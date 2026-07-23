@@ -50,8 +50,8 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     "connect_args": {"connect_timeout": 15},
     "pool_pre_ping": True,        # 🩺 checks if connection is alive before using it
     "pool_recycle": 300,          # 🔁 reconnects every 5 minutes
-    "pool_size": 5,               # 💧 keep 5 connections ready
-    "max_overflow": 10            # 🚀 allow temporary burst of 10
+    "pool_size": 2,               # 💧 keep 5 connections ready
+    "max_overflow": 3            # 🚀 allow temporary burst of 10
 }
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
