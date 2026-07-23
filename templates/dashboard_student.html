@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Student Dashboard</title>
+
+<link rel="icon" type="image/png"
+      href="{{ url_for('static', filename='favicon.png') }}">
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/student.css') }}">
+
+<script>
+if (localStorage.getItem("darkMode") === "true") {
+    document.documentElement.classList.add("dark-mode");
+}
+</script>
+
+<style>
+
+/* ================= DARK MODE ================= */
+.dark-mode {
+  background-color: #121212 !important;
+  color: #e0e0e0 !important;
+}
+
+.dark-mode body {
+  background-color: #121212 !important;
+  color: #e0e0e0 !important;
+}
+
+.dark-mode .card {
+  background-color: #1e1e1e !important;
+  color: #e0e0e0 !important;
+}
+
+.dark-mode table {
+  color: #e0e0e0 !important;
+}
+
+.dark-mode .table {
+  color: #e0e0e0 !important;
+}
+
+.dark-mode .table-striped>tbody>tr:nth-of-type(odd)>* {
+  color: #e0e0e0 !important;
+}
+
+.dark-mode .table-dark {
+  background-color: #2a2a2a !important;
+}
+
+.dark-mode .list-group-item {
+  background-color: #1e1e1e !important;
+  color: #e0e0e0 !important;
+  border-color: #333 !important;
+}
+
+.dark-mode .text-muted {
+  color: #bdbdbd !important;
+}
+
+/* ================= SIDEBAR ================= */
+.sidebar {
+  width: 250px;
+  position: fixed;
+  height: 100vh;
+  overflow-y: auto;
+  transition: width .25s ease;
+}
+
+.dark-mode .sidebar {
+  background-color: #1a1a1a !important;
+}
+
+/* ================= CONTENT ================= */
+.main-content {
+  margin-left: 250px;
+  transition: margin-left .25s ease;
+}
+.sidebar.collapsed {
+    width: 70px;
+}
+
+.main-content.collapsed {
+    margin-left: 70px;
+}
+
+/* ================= EXAM CARDS ================= */
+.exam-card {
+  transition: 0.2s ease;
+}
+
+.exam-card:hover {
+  transform: translateY(-2px);
+}
+
+/* ================= EXAM DESCRIPTION ================= */
+
+.exam-description-box{
+    background: #f8f9fa;
+    color: #212529;
+    min-height: 100px;
+    white-space: pre-wrap;
+}
+
+.dark-mode .exam-description-box{
+    background: #2b2b2b;
+    color: #e0e0e0;
+    border-color: #444 !important;
+}
+
+.exam-update {
+    animation: fadePulse 0.6s ease;
+}
+
+.waiting-transition {
+    animation: waitingFade 0.4s ease;
+}
+
+@keyframes waitingFade {
+
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+}
+
+@keyframes fadePulse {
+    0% {
+        opacity: 0.3;
+        transform: scale(0.98);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.02);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.approved-highlight {
+    animation: approvedGlow 5s ease;
+}
+
+@keyframes approvedGlow {
+
+    0% {
+        box-shadow: 0 0 0 rgba(13,110,253,0);
+        transform: scale(1);
+    }
+
+    15% {
+        box-shadow: 0 0 30px rgba(13,110,253,.75);
+        transform: scale(1.02);
+    }
+
+    50% {
+        box-shadow: 0 0 26px rgba(13,110,253,.70);
+        transform: scale(1.02);
+    }
+
+    85% {
+        box-shadow: 0 0 18px rgba(13,110,253,.45);
+    }
+
+    100% {
+        box-shadow: 0 0 0 rgba(13,110,253,0);
+        transform: scale(1);
+    }
+
+}
+
+/* ================= MOBILE SIDEBAR ================= */
+
+@media (max-width: 991.98px) {
+
+    .sidebar{
+        position: relative;
+        width: 100%;
+        height: auto;
+        margin-bottom: 1rem;
+    }
+
+    .main-content{
+        margin-left: 0;
+    }
+
+}
+
+/* ================= MOBILE SIDEBAR ANIMATION ================= */
+
+#studentSidebar{
+    transition: all .35s ease;
+}
+
+#studentSidebar.collapsing{
+
+    opacity: 0;
+
+    transform: translateY(-12px);
+
+}
+
+#studentSidebar.collapse.show{
+
+    opacity: 1;
+
+    transform: translateY(0);
+
+    animation: sidebarDrop .35s ease;
+
+}
+
+@keyframes sidebarDrop{
+
+    from{
+
+        opacity:0;
+
+        transform:translateY(-12px);
+
+    }
+
+    to{
+
+        opacity:1;
+
+        transform:translateY(0);
+
+    }
+
+}
+</style>
+
+</head>
+<body class="bg-light">
+<div class="d-flex">
+
+<!-- ================= MAIN CONTENT ================= -->
+<div class="d-lg-none p-3 bg-primary text-white sticky-top shadow-sm">
+
+    <button
+        id="sidebarToggle"
+        class="btn btn-light btn-sm me-2"
+        type="button"
+        data-bs-toggle="collapse"
+        data-bs-target="#studentSidebar"
+        aria-expanded="false">
+
+        <i id="sidebarIcon" class="bi bi-list"></i>
+
+    </button>
+
+    <span class="fw-bold">
+        🎓 Student Dashboard 
+    </span>
+
+</div>
+
+<!-- ================= SIDEBAR ================= -->
+<div id="studentSidebar"
+     class="collapse d-lg-block bg-primary text-white p-3 sidebar">
+
+  <h5 class="text-center mb-4 d-none d-lg-block">
+      🎓 Student Dashboard
+  </h5>
+
+  {% if session.get('role') == 'Admin' %}
+  <a href="{{ url_for('dashboard_admin') }}" class="btn btn-light w-100 mb-2">
+    <i class="bi bi-arrow-left"></i> Admin
+  </a>
+  {% elif session.get('role') == 'Instructor' %}
+  <a href="{{ url_for('dashboard_instructor') }}" class="btn btn-light w-100 mb-2">
+    <i class="bi bi-arrow-left"></i> Instructor
+  </a>
+  {% endif %}
+
+  <!-- EXAMS BUTTON -->
+  <a href="#exam-section" class="btn btn-warning w-100 mb-2">
+    <i class="bi bi-pencil-square"></i>
+    Exams
+  </a>
+
+  <a href="{{ url_for('change_password') }}" class="btn btn-light w-100 mb-2">
+    <i class="bi bi-lock-fill"></i>
+    Change Password
+  </a>
+
+  <button onclick="toggleDarkMode()" class="btn btn-dark w-100 mb-3">
+    🌙 Lana Mode
+  </button>
+
+  <hr>
+
+  <a href="{{ url_for('logout') }}" class="btn btn-danger w-100">
+    <i class="bi bi-box-arrow-right"></i>
+    Logout
+  </a>
+
+</div>
+
+<!-- ================= HEADER ================= -->
+<div class="container mt-4">
+<div class="mb-4">
+
+  <h2 class="mb-1" id="greetingTitle">
+    👋 Welcome, {{ student_name or "Student" }}
+  </h2>
+
+    <p class="text-muted">
+      Student ID: {{ student.student_id if student else '' }}
+    </p>
+
+</div>
+
+<!-- ================= GRADES ================= -->
+{% if grades %}
+
+<div class="card shadow-sm p-3">
+
+  <h4 class="mb-3">
+    <i class="bi bi-bar-chart-fill"></i>
+    Your Grades
+  </h4>
+
+  <div class="table-responsive">
+
+    <table class="table table-bordered table-striped align-middle">
+
+      <thead class="table-dark text-center">
+        <tr>
+          <th>Subject</th>
+          <th>Midterm Grade</th>
+          <th>Midterm Remarks</th>
+          <th>Final Grade</th>
+          <th>Final Remarks</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+
+      <tbody>
+
+        {% for g in grades %}
+
+        <tr>
+
+          <td>{{ g.subject }}</td>
+
+          <td>{{ g.midterm_grade or '-' }}</td>
+
+          <td>{{ g.midterm_remarks or '-' }}</td>
+
+          <td>{{ g.final_grade or '-' }}</td>
+
+          <td>{{ g.final_remarks or '-' }}</td>
+
+          <td class="text-center">
+
+            <a href="{{ url_for('subject_performance',
+              student_id=g.student_id,
+              subject=g.subject | urlencode) }}"
+              class="btn btn-primary btn-sm">
+
+              <i class="bi bi-eye-fill"></i>
+              View
+
+            </a>
+
+          </td>
+
+        </tr>
+
+        {% endfor %}
+
+      </tbody>
+
+    </table>
+
+  </div>
+
+</div>
+
+{% else %}
+
+<p class="text-center text-muted">
+  No records found.
+</p>
+
+{% endif %}
+
+<!-- ================= FLASH ================= -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+{% for category, message in messages %}
+<div class="alert alert-{{ category }} flash">
+  {{ message }}
+</div>
+{% endfor %}
+{% endif %}
+{% endwith %}
+
+<!-- ================= EXAMS ================= -->
+<div class="card shadow-sm p-3 mt-4" id="exam-section">
+
+  <h4 class="mb-3">
+    <i class="bi bi-pencil-square"></i>
+    Available Exams
+  </h4>
+
+{% if allowed_exams %}
+
+<div class="list-group">
+
+{% for exam in allowed_exams %}
+
+<div id="req-{{ exam.id }}"
+     class="list-group-item exam-card d-flex justify-content-between align-items-center">
+
+    <div>
+        <h6 class="mb-1">{{ exam.title }}</h6>
+
+        <small class="text-muted">
+            Subject:
+            {{ exam.subject.subject_code if exam.subject else "N/A" }}
+        </small>
+    </div>
+
+    <div id="exam-status-{{ exam.id }}" class="mb-2">
+
+        {% if exam.status == "approved" %}
+
+            <span class="badge bg-success">
+                🟢 Ready
+            </span>
+
+        {% elif exam.status == "pending" %}
+
+            <span class="badge bg-warning text-dark">
+                🟡 Pending Approval
+            </span>
+
+        {% else %}
+
+            <span class="badge bg-secondary">
+                ⚪ Not Requested
+            </span>
+
+        {% endif %}
+
+    </div>
+    <div id="exam-action-{{ exam.id }}">
+
+        {% if exam.status == "approved" %}
+
+            <button
+                type="button"
+                class="btn btn-success"
+
+                data-bs-toggle="modal"
+                data-bs-target="#examInfoModal"
+
+                data-title="{{ exam.title }}"
+                data-subject="{{ exam.subject.subject_code if exam.subject else 'N/A' }}"
+                data-description="{{ exam.description }}"
+                data-duration="{{ exam.duration }}"
+                data-question-count="{{ exam.question_count }}"
+                data-exam-type="{{ exam.exam_type }}"
+                data-term="{{ exam.term }}"
+                data-start-url="{{ url_for('start_exam', exam_id=exam.id) }}"
+
+                onclick="showExamInfo(this)">
+
+                Start Examination
+
+            </button>
+
+        {% elif exam.status == "pending" %}
+
+            <button class="btn btn-warning" disabled>
+                Pending Approval
+            </button>
+
+        {% else %}
+
+            <button 
+                id="request-btn-{{ exam.id }}"
+                class="btn btn-primary"
+
+                data-bs-toggle="modal"
+                data-bs-target="#requestExamModal"
+
+                onclick="setExamId({{ exam.id }})">
+
+                Request Exam
+            </button>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+{% endfor %}
+
+</div>
+
+{% else %}
+
+<p>No exams available.</p>
+
+{% endif %}
+
+</div>
+
+<!--/** ================= REQUEST EXAM MODAL ================= **/-->
+<div class="modal fade" id="requestExamModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+
+      <form
+          id="requestExamForm"
+          method="POST"
+          action="{{ url_for('request_exam') }}">
+
+        <div class="modal-header">
+          <h5 class="modal-title">Request Exam Access</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+
+        <div class="modal-body">
+
+          <input type="hidden" name="exam_id" id="modal_exam_id">
+
+          <div class="mb-3">
+            <label class="form-label">Enter Access Code</label>
+            <input type="text"
+                   class="form-control"
+                   name="access_code"
+                   placeholder="Enter code given by instructor/admin"
+                   required>
+          </div>
+
+          <small class="text-muted">
+            Only approved codes will grant exam access.
+          </small>
+
+        </div>
+
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-success">
+            Submit Request
+          </button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+            Cancel
+          </button>
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+</div>
+
+<!-- ================= EXAM RESULTS ================= -->
+
+<div class="card shadow-sm p-3 mt-4">
+
+    <h4 class="mb-3">
+        <i class="bi bi-clipboard-data"></i>
+        Examination Results
+    </h4>
+
+    {% if exam_results %}
+
+    <div class="table-responsive">
+
+        <table class="table table-bordered table-striped align-middle">
+
+            <thead class="table-dark text-center">
+
+                <tr>
+
+                    <th>Exam</th>
+                    <th>Subject</th>
+                    <th>Score</th>
+                    <th>Result</th>
+                    <th>Submitted</th>
+
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+            {% for exam in exam_results %}
+
+                <tr>
+
+                    <td>
+
+                        <strong>{{ exam.title }}</strong>
+
+                    </td>
+
+                    <td>
+
+                        {{ exam.subject.subject_code }}
+
+                    </td>
+
+                    <td class="text-center">
+
+                        {% if exam.percentage >= 85 %}
+
+                            <span class="fw-bold text-success">
+
+                                {{ exam.score }} / {{ exam.total_points }}
+
+                                ({{ exam.percentage }}%)
+
+                            </span>
+
+                        {% elif exam.percentage >= 70 %}
+
+                            <span class="fw-bold text-warning">
+
+                                {{ exam.score }} / {{ exam.total_points }}
+
+                                ({{ exam.percentage }}%)
+
+                            </span>
+
+                        {% else %}
+
+                            <span class="fw-bold text-danger">
+
+                                {{ exam.score }} / {{ exam.total_points }}
+
+                                ({{ exam.percentage }}%)
+
+                            </span>
+
+                        {% endif %}
+
+                    </td>
+
+                    <td class="text-center">
+
+                        {% if exam.result == "Excellent" %}
+
+                            <span class="badge bg-success">
+
+                                🏆 Excellent
+
+                            </span>
+
+                        {% elif exam.result == "Passed" %}
+
+                            <span class="badge bg-warning text-dark">
+
+                                ✅ Passed
+
+                            </span>
+
+                        {% else %}
+
+                            <span class="badge bg-danger">
+
+                                ❌ Failed
+
+                            </span>
+
+                        {% endif %}
+
+                    </td>
+
+                    <td class="text-center">
+
+                        {{ exam.submitted_at.strftime("%b %d, %Y") }}
+
+                        <br>
+
+                        <small class="text-muted">
+
+                            {{ exam.submitted_at.strftime("%I:%M %p") }}
+
+                        </small>
+
+                    </td>
+
+                </tr>
+
+            {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+    {% else %}
+
+    <div class="alert alert-info mb-0">
+
+        You have not completed any examinations yet.
+
+    </div>
+
+    {% endif %}
+
+</div>
+
+
+<!-- ==========================================
+     EXAM INFORMATION MODAL
+========================================== -->
+<div class="modal fade"
+     id="examInfoModal"
+     tabindex="-1"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-lg">
+
+        <div class="modal-content">
+
+            <div class="modal-header">
+
+                <h5 class="modal-title">
+                    📄 Examination Information
+                </h5>
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal">
+                </button>
+
+            </div>
+
+            <div class="modal-body">
+
+                <h4 id="modalExamTitle"></h4>
+
+                <hr>
+
+                <table class="table table-bordered align-middle" id="examInfoTable">
+
+                    <tbody>
+
+                        <tr>
+                            <th width="35%">Subject</th>
+                            <td id="modalSubject"></td>
+                        </tr>
+
+                        <tr>
+                            <th>Exam Type</th>
+                            <td id="modalExamType"></td>
+                        </tr>
+
+                        <tr>
+                            <th>Term</th>
+                            <td id="modalTerm"></td>
+                        </tr>
+
+                        <tr>
+                            <th>Duration</th>
+                            <td id="modalDuration"></td>
+                        </tr>
+
+                        <tr>
+                            <th>Questions</th>
+                            <td id="modalQuestions">
+                                Loading...
+                            </td>
+                        </tr>
+
+                    </tbody>
+
+                </table>
+
+                <div class="mb-3">
+
+                    <strong>Description</strong>
+
+                    <div class="exam-description-box border rounded p-3 mt-2"
+                         id="modalDescription">
+                    </div>
+
+                </div>
+
+                <hr>
+
+                <h5 class="mt-4">
+                    ⚠ Examination Rules
+                </h5>
+
+                <ul class="list-group">
+
+                    <li class="list-group-item">
+                        Timer starts immediately after clicking
+                        <strong>Start Examination</strong>.
+                    </li>
+
+                    <li class="list-group-item">
+                        Fullscreen mode is required.
+                    </li>
+
+                    <li class="list-group-item">
+                        Tab switching is monitored.
+                    </li>
+
+                    <li class="list-group-item">
+                        Print Screen activity is monitored.
+                    </li>
+
+                    <li class="list-group-item">
+                        Multiple security violations may automatically submit your examination.
+                    </li>
+
+                </ul>
+
+            <div class="form-check mt-4">
+
+                <input
+                    class="form-check-input"
+                    type="checkbox"
+                    id="examAcknowledgement">
+
+                <label
+                    class="form-check-label"
+                    for="examAcknowledgement">
+
+                    I have read and understood the examination instructions.
+                    I understand that the timer begins immediately after
+                    clicking <strong>Start Examination</strong>.
+
+                </label>
+
+            </div>
+            <div class="modal-footer">
+
+                <button class="btn btn-secondary"
+                        data-bs-dismiss="modal">
+
+                    Cancel
+
+                </button>
+
+                <a id="startExamButton"
+                   href="#"
+                   class="btn btn-success disabled"
+                   aria-disabled="true">
+
+                    Start Examination
+
+                </a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+</div>
+
+<!-- ================= TOAST ================= -->
+
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+
+    <div id="liveToast"
+         class="toast align-items-center text-bg-success border-0"
+         role="alert">
+
+        <div class="d-flex">
+
+            <div class="toast-body" id="toastMessage">
+                Success
+            </div>
+
+            <button
+                type="button"
+                class="btn-close btn-close-white me-2 m-auto"
+                data-bs-dismiss="toast">
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- ================= START SCRIPTS ================= -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+window.studentName = "{{ student_name or 'Student' }}";
+window.studentId = "{{ student.student_id if student else '' }}";
+</script>
+<script>window.studentId = "{{ student.student_id if student else '' }}";</script>
+<script src="{{ url_for('static', filename='js/student-dashboard.js') }}"></script>
+<!-- ================= END SCRIPTS ================= -->
+
+</body>
+</html>

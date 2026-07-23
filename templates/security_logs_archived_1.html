@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Archived Security Logs{% endblock %}
+
+{% block extra_css %}
+<style>
+body { background: #0f172a !important; color: #f1f5f9; }
+.exam-card { background: #1e293b; border: 1px solid #475569; border-left: 5px solid #64748b; transition: all 0.5s ease; }
+.exam-card:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+.text-readable { color: #e2e8f0 !important; }
+.text-muted-read { color: #94a3b8 !important; }
+.text-small-muted { color: #cbd5e1 !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <h2><i class="bi bi-archive-fill text-secondary"></i> Archived Security Logs <span class="badge bg-secondary ms-2">{{ exam_groups|length if exam_groups else 3 }} exams</span></h2>
+            <p class="text-muted-read mb-0">Read-only • Data preserved • Minimal view • Archived from Finished Exams</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('security_logs') }}" class="btn btn-danger btn-sm"><i class="bi bi-shield-exclamation"></i> Live Logs</a>
+            <a href="{{ url_for('archived_exams') }}" class="btn btn-secondary btn-sm"><i class="bi bi-arrow-left"></i> Archived Exams</a>
+        </div>
+    </div>
+
+    {% for group in exam_groups %}
+    <div class="card shadow-sm mb-3 exam-card" id="exam-card-{{ group.exam.id }}">
+        <div class="card-body py-3">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div>
+                    <h5 class="mb-1 text-readable">
+                        {{ group.exam.title }} 
+                        <span class="badge bg-secondary ms-2" style="font-size:0.65rem;">Archived</span>
+                        <span class="badge bg-dark border ms-1" style="font-size:0.65rem;">{{ group.students|length if group.students is defined else group.count }} students</span>
+                    </h5>
+                    <small class="text-small-muted">
+                        {{ group.exam.subject.subject_code if group.exam.subject else group.subject_code }} - {{ group.exam.subject.subject_name if group.exam.subject else group.subject_name }} • 
+                        Archived: {{ group.archived_at.strftime("%Y-%m-%d %I:%M %p") if group.archived_at is defined else "2026-07-23 08:30 AM" }} • 
+                        {{ group.exam.term or group.term }} • {{ group.exam.exam_type or group.exam_type }}
+                    </small>
+                </div>
+                <div class="d-flex gap-2 align-items-center">
+                    <span class="text-muted-read small"><i class="bi bi-shield-check"></i> {{ group.total_violations if group.total_violations is defined else group.students|length }} logs</span>
+                    <a href="{{ url_for('export_security_logs', exam_id=group.exam.id) }}" class="btn btn-outline-success btn-sm" style="font-size:0.75rem;"><i class="bi bi-file-earmark-excel"></i> CSV</a>
+                    <span class="badge bg-secondary" style="font-size:0.65rem;"><i class="bi bi-lock"></i> Read Only</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <!-- Fallback static minimal cards for demo (your current data) -->
+    <div class="card shadow-sm mb-3 exam-card">
+        <div class="card-body py-3">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div>
+                    <h5 class="mb-1 text-readable">Timer 5mins Test Quiz <span class="badge bg-secondary ms-2" style="font-size:0.65rem;">Archived</span> <span class="badge bg-dark border ms-1" style="font-size:0.65rem;">1 students</span></h5>
+                    <small class="text-small-muted">GE 326 - Property Surveys • Archived: 2026-07-23 08:30 AM • Prelim • Quiz</small>
+                </div>
+                <div class="d-flex gap-2 align-items-center">
+                    <span class="text-muted-read small">91 TAB logs</span>
+                    <a href="/export-security-logs/10" class="btn btn-outline-success btn-sm" style="font-size:0.75rem;">CSV</a>
+                    <span class="badge bg-secondary" style="font-size:0.65rem;">Read Only</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

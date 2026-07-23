@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Exams</title>
+
+<link rel="icon" type="image/png"
+      href="{{ url_for('static', filename='favicon.png') }}">
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<script>
+if (localStorage.getItem("darkMode") === "true") {
+    document.documentElement.classList.add("dark-mode");
+}
+</script>
+
+<style>
+
+/* ================= DARK MODE TOGGLE BASE ================= */
+.dark-mode {
+  background-color: #121212 !important;
+  color: #e0e0e0 !important;
+}
+
+/* NAVBAR */
+.dark-mode .navbar {
+  background-color: #1a1a1a !important;
+}
+
+.dark-mode .navbar-brand {
+  color: #ffffff !important;
+}
+
+/* CONTAINER + CARD */
+.dark-mode .container,
+.dark-mode .card {
+  background-color: #1e1e1e !important;
+  color: #e0e0e0 !important;
+}
+
+/* TEXT */
+.dark-mode h1,
+.dark-mode h2,
+.dark-mode h3,
+.dark-mode h4,
+.dark-mode h5,
+.dark-mode h6,
+.dark-mode p,
+.dark-mode span,
+.dark-mode small,
+.dark-mode label {
+  color: #e0e0e0 !important;
+}
+
+/* TABLE BASE */
+.dark-mode table {
+  background-color: #1e1e1e !important;
+  color: #ffffff !important;
+  border-color: #333 !important;
+}
+
+/* TABLE HEAD */
+.dark-mode thead th {
+  background-color: #2a2a2a !important;
+  color: #ffffff !important;
+}
+
+/* TABLE BODY */
+.dark-mode tbody td,
+.dark-mode tbody th {
+  background-color: #1e1e1e !important;
+  color: #ffffff !important;
+  border-color: #333 !important;
+}
+
+/* BUTTONS */
+.dark-mode .btn-light {
+  background-color: #333 !important;
+  color: #fff !important;
+  border: 1px solid #555 !important;
+}
+
+.dark-mode .btn-warning {
+  background-color: #6b4f00 !important;
+  color: #fff !important;
+}
+
+.dark-mode .btn-success {
+  background-color: #1f6f3b !important;
+}
+
+/* INPUT VIEW MODE FIX */
+.dark-mode .form-control {
+  background-color: #2a2a2a !important;
+  color: #fff !important;
+  border: 1px solid #444 !important;
+}
+
+/* BACKGROUND */
+.dark-mode .bg-light {
+  background-color: #121212 !important;
+}
+
+.dark-mode .bg-primary {
+  background-color: #1f1f1f !important;
+}
+
+/* Darker modal overlay */
+.dark-mode .modal {
+  background: rgba(0,0,0,0.75) !important;
+}
+
+/* MODAL DARK MODE */
+.dark-mode .modal-content {
+  background-color: #1e1e1e !important;
+  color: #e0e0e0 !important;
+  border: 1px solid #333 !important;
+}
+
+.dark-mode .modal-header {
+  border-bottom: 1px solid #333 !important;
+}
+
+.dark-mode .modal-footer {
+  border-top: 1px solid #333 !important;
+}
+
+.dark-mode .modal-title,
+.dark-mode .modal-body {
+  color: #ffffff !important;
+}
+
+</style>
+
+</head>
+
+<body class="bg-light">
+
+<nav class="navbar navbar-dark bg-primary">
+  <div class="container-fluid">
+    <span class="navbar-brand">Exams & Grades</span>
+
+    <div class="d-flex gap-2">
+      <a href="{{ url_for('subject_performance',
+          student_id=student.student_id,
+          subject=student.subject) }}"
+         class="btn btn-light btn-sm">
+        Back
+      </a>
+
+      <a href="{{ url_for('dashboard_student', student_id=student.student_id) }}"
+         class="btn btn-warning btn-sm">
+        Dashboard
+      </a>
+    </div>
+  </div>
+</nav>
+
+<div class="container my-4">
+
+  <div class="card shadow-sm">
+    <div class="card-body">
+
+      {% macro score_input(name, value) %}
+        {% if session.get('role') in ['Admin', 'Instructor'] %}
+          <input name="{{ name }}"
+                 class="form-control form-control-sm text-center"
+                 value="{{ value or '' }}">
+        {% else %}
+          <span class="form-control form-control-sm bg-light text-center">
+            {{ value or '-' }}
+          </span>
+        {% endif %}
+      {% endmacro %}
+
+      <h5 class="mb-2">{{ student.name }}</h5>
+      <small class="text-muted">Subject: {{ student.subject }}</small>
+
+      <div class="table-responsive mt-3">
+
+        <form method="POST">
+
+        <table class="table table-bordered text-center">
+
+          <thead class="table-dark">
+            <tr>
+              <th colspan="4" class="bg-primary">MIDTERM</th>
+              <th colspan="4" class="bg-success">FINAL</th>
+            </tr>
+
+            <tr>
+              <th>Exam</th>
+              <th>Lab Exam</th>
+              <th>Grade</th>
+              <th>Remarks</th>
+
+              <th>Exam</th>
+              <th>Lab Exam</th>
+              <th>Grade</th>
+              <th>Remarks</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr>
+
+              <td>{{ score_input('midterm_exam', exams.midterm_exam) }}</td>
+              <td>{{ score_input('midterm_laboratory_exam', exams.midterm_laboratory_exam) }}</td>
+              <td>{{ score_input('midterm_grade', exams.midterm_grade) }}</td>
+              <td>{{ score_input('midterm_remarks', exams.midterm_remarks) }}</td>
+
+              <td>{{ score_input('final_exam', exams.final_exam) }}</td>
+              <td>{{ score_input('final_laboratory_exam', exams.final_laboratory_exam) }}</td>
+              <td>{{ score_input('final_grade', exams.final_grade) }}</td>
+              <td>{{ score_input('final_remarks', exams.final_remarks) }}</td>
+
+            </tr>
+          </tbody>
+
+        </table>
+
+        {% if session.get('role') in ['Admin', 'Instructor'] %}
+        <div class="text-end">
+          <button type="submit" class="btn btn-success">
+            Save Changes
+          </button>
+        </div>
+        {% endif %}
+
+        </form>
+
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- SUCCESS MODAL -->
+{% if saved %}
+<div class="modal fade show" style="display:block; background:rgba(0,0,0,0.75);">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title">Success</h5>
+      </div>
+
+      <div class="modal-body">
+        Exams updated successfully!
+        <br><br>
+        What do you want to do next?
+      </div>
+
+      <div class="modal-footer">
+
+        <a href="{{ request.path }}" class="btn btn-primary">
+          Stay
+        </a>
+
+        <a href="{{ url_for('subject_performance',
+            student_id=student.student_id,
+            subject=student.subject) }}"
+           class="btn btn-secondary">
+          Subject
+        </a>
+
+        <a href="{{ url_for('dashboard_student') }}"
+           class="btn btn-warning">
+          Dashboard
+        </a>
+
+        {% if session.get('role') == 'Admin' %}
+        <a href="{{ url_for('dashboard_admin') }}"
+           class="btn btn-danger">
+          Admin
+        </a>
+        {% endif %}
+
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endif %}
+
+</body>
+</html>

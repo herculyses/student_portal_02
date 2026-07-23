@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
+
+<title>Edit Exam</title>
+
+<link rel="icon" type="image/png"
+      href="{{ url_for('static', filename='favicon.png') }}">
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet">
+
+<script>
+if (localStorage.getItem("darkMode") === "true") {
+    document.documentElement.classList.add("dark-mode");
+}
+</script>
+
+<style>
+
+/* ================= DARK MODE TOGGLE BASE ================= */
+.dark-mode {
+  background-color: #121212 !important;
+  color: #e0e0e0 !important;
+}
+
+/* NAVBAR */
+.dark-mode .navbar {
+  background-color: #1a1a1a !important;
+}
+
+.dark-mode .navbar-brand {
+  color: #ffffff !important;
+}
+
+/* CONTAINER + CARD */
+.dark-mode .container,
+.dark-mode .card {
+  background-color: #1e1e1e !important;
+  color: #e0e0e0 !important;
+}
+
+/* TEXT */
+.dark-mode h1,
+.dark-mode h2,
+.dark-mode h3,
+.dark-mode h4,
+.dark-mode h5,
+.dark-mode h6,
+.dark-mode p,
+.dark-mode span,
+.dark-mode small,
+.dark-mode label {
+  color: #e0e0e0 !important;
+}
+
+/* TABLE BASE */
+.dark-mode table {
+  background-color: #1e1e1e !important;
+  color: #ffffff !important;
+  border-color: #333 !important;
+}
+
+/* TABLE HEAD */
+.dark-mode thead th {
+  background-color: #2a2a2a !important;
+  color: #ffffff !important;
+}
+
+/* TABLE BODY */
+.dark-mode tbody td,
+.dark-mode tbody th {
+  background-color: #1e1e1e !important;
+  color: #ffffff !important;
+  border-color: #333 !important;
+}
+
+/* BUTTONS */
+.dark-mode .btn-light {
+  background-color: #333 !important;
+  color: #fff !important;
+  border: 1px solid #555 !important;
+}
+
+.dark-mode .btn-warning {
+  background-color: #6b4f00 !important;
+  color: #fff !important;
+}
+
+.dark-mode .btn-success {
+  background-color: #1f6f3b !important;
+}
+
+/* INPUT VIEW MODE FIX */
+.dark-mode .form-control {
+  background-color: #2a2a2a !important;
+  color: #fff !important;
+  border: 1px solid #444 !important;
+}
+
+/* BACKGROUND */
+.dark-mode .bg-light {
+  background-color: #121212 !important;
+}
+
+.dark-mode .bg-primary {
+  background-color: #1f1f1f !important;
+}
+
+/* Darker modal overlay */
+.dark-mode .modal {
+  background: rgba(0,0,0,0.75) !important;
+}
+
+/* MODAL DARK MODE */
+.dark-mode .modal-content {
+  background-color: #1e1e1e !important;
+  color: #e0e0e0 !important;
+  border: 1px solid #333 !important;
+}
+
+.dark-mode .modal-header {
+  border-bottom: 1px solid #333 !important;
+}
+
+.dark-mode .modal-footer {
+  border-top: 1px solid #333 !important;
+}
+
+.dark-mode .modal-title,
+.dark-mode .modal-body {
+  color: #ffffff !important;
+}
+
+</style>
+
+
+</head>
+
+<body class="bg-light">
+
+<div class="container py-4">
+
+<div class="card shadow-sm p-4">
+
+<h3 class="mb-4">Edit Exam</h3>
+
+<form method="POST"
+      enctype="multipart/form-data">
+
+    <!-- SUBJECT -->
+    <div class="mb-3">
+
+        <label class="form-label">
+            Subject
+        </label>
+
+        <select name="subject_id"
+                class="form-control">
+
+            {% for subject in subjects %}
+
+            <option value="{{ subject.id }}"
+                {% if exam.subject_id == subject.id %}
+                    selected
+                {% endif %}
+            >
+
+                {{ subject.subject_code }}
+                -
+                {{ subject.subject_name }}
+
+            </option>
+
+            {% endfor %}
+
+        </select>
+
+    </div>
+
+    <!-- TITLE -->
+    <div class="mb-3">
+
+        <label class="form-label">
+            Exam Title
+        </label>
+
+        <input type="text"
+               name="title"
+               class="form-control"
+               value="{{ exam.title }}">
+
+    </div>
+
+    <!-- Access Code -->
+
+    <div class="mb-3">
+
+        <label class="form-label">
+            Access Code
+        </label>
+
+        <input type="text"
+               name="access_code"
+               class="form-control"
+               value="{{ exam.access_code or '' }}"
+               placeholder="e.g. GE2026MIDTERM">
+
+        <small class="text-muted">
+            Students must enter this code when requesting access.
+        </small>
+
+    </div>
+
+    <!-- CATEGORY -->
+    <div class="mb-3">
+
+        <label class="form-label">
+            Exam Type
+        </label>
+
+        <select name="exam_type"
+                class="form-control">
+
+            <option value="Quiz"
+                {% if exam.exam_type == 'Quiz' %}
+                    selected
+                {% endif %}
+            >
+                Quiz
+            </option>
+
+            <option value="Major Exam"
+                {% if exam.exam_type == 'Major Exam' %}
+                    selected
+                {% endif %}
+            >
+                Major Exam
+            </option>
+
+            <option value="Activity"
+                {% if exam.exam_type == 'Activity' %}
+                    selected
+                {% endif %}
+            >
+                Activity
+            </option>
+
+        </select>
+
+    </div>
+
+    <!-- TERM -->
+    <div class="mb-3">
+
+        <label class="form-label">
+            Academic Term
+        </label>
+
+        <select name="term"
+                class="form-control">
+
+            <option value="Prelim" {% if exam.term == 'Prelim' %}selected{% endif %}>Prelim</option>
+            <option value="Midterm" {% if exam.term == 'Midterm' %}selected{% endif %}>Midterm</option>
+            <option value="Semi-Final" {% if exam.term == 'Semi-Final' %}selected{% endif %}>Semi-Final</option>
+            <option value="Final" {% if exam.term == 'Final' %}selected{% endif %}>Final</option>
+
+        </select>
+
+    </div>
+
+<!-- SECTION -->
+<div class="mb-3">
+
+    <label class="form-label">
+        Section
+    </label>
+
+    <input type="text"
+           name="section"
+           class="form-control"
+           value="{{ exam.section }}">
+
+</div>
+
+<!-- YEAR -->
+<div class="mb-3">
+
+    <label class="form-label">
+        Year Level
+    </label>
+
+    <select name="year"
+            class="form-control">
+
+        <option value="1st"
+            {% if exam.year == '1st' %}
+                selected
+            {% endif %}
+        >
+            1st Year
+        </option>
+
+        <option value="2nd"
+            {% if exam.year == '2nd' %}
+                selected
+            {% endif %}
+        >
+            2nd Year
+        </option>
+
+        <option value="3rd"
+            {% if exam.year == '3rd' %}
+                selected
+            {% endif %}
+        >
+            3rd Year
+        </option>
+
+        <option value="4th"
+            {% if exam.year == '4th' %}
+                selected
+            {% endif %}
+        >
+            4th Year
+        </option>
+
+    </select>
+
+</div>
+
+<!-- SCHOOL YEAR -->
+<div class="mb-3">
+
+    <label class="form-label">
+        School Year
+    </label>
+
+    <input type="text"
+           name="school_year"
+           class="form-control"
+           value="{{ exam.school_year }}">
+
+</div>
+
+<!-- SEMESTER -->
+<div class="mb-3">
+
+    <label class="form-label">
+        Semester
+    </label>
+
+    <select name="semester"
+            class="form-control">
+
+        <option value="1st"
+            {% if exam.semester == '1st' %}
+                selected
+            {% endif %}
+        >
+            1st
+        </option>
+
+        <option value="2nd"
+            {% if exam.semester == '2nd' %}
+                selected
+            {% endif %}
+        >
+            2nd
+        </option>
+
+        <option value="midyear"
+            {% if exam.semester == 'midyear' %}
+                selected
+            {% endif %}
+        >
+            midyear
+        </option>
+
+    </select>
+
+</div>
+
+    <!-- DESCRIPTION -->
+    <div class="mb-3">
+
+        <label class="form-label">
+            Description
+        </label>
+
+        <textarea name="description"
+                  class="form-control"
+                  rows="3">{{ exam.description }}</textarea>
+
+    </div>
+
+    <!-- DURATION -->
+    <div class="mb-3">
+
+        <label class="form-label">
+            Duration (minutes)
+        </label>
+
+        <input type="number"
+               name="duration_minutes"
+               class="form-control"
+               value="{{ exam.duration_minutes }}">
+
+    </div>
+
+    <!-- EXCEL -->
+    <div class="mb-3">
+
+        <label class="form-label">
+            Replace Questions Excel
+        </label>
+
+        <input type="file"
+               name="questions_file"
+               class="form-control">
+
+        <small class="text-muted">
+            Uploading replaces all old questions.
+        </small>
+
+    </div>
+
+    <!-- BUTTONS -->
+    <div class="d-flex gap-2">
+
+        <button type="submit"
+                class="btn btn-success">
+
+            Save Changes
+
+        </button>
+
+        <a href="{{ url_for('view_exams') }}"
+           class="btn btn-secondary">
+
+           Back
+
+        </a>
+
+    </div>
+
+</form>
+
+</div>
+</div>
+
+</body>
+</html>

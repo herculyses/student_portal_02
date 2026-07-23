@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}Archived Exams{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+<style>
+.exam-card { transition: all 0.65s cubic-bezier(0.68, -0.55, 0.265, 1.55); border-left: 5px solid #6c757d; }
+.exam-card.exiting { transform: translateX(120px) scale(0.85); opacity: 0; max-height: 0; margin:0; padding:0; overflow:hidden; border:0; }
+.exam-card.entering { animation: seamlessEnter 0.7s cubic-bezier(0.68, -0.55, 0.265, 1.55); }
+@keyframes seamlessEnter { from { transform: translateY(30px) scale(0.9); opacity:0; } to { transform: translateY(0) scale(1); opacity:1; } }
+.exam-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <h2><i class="bi bi-archive-fill"></i> Archived Exams <span id="examCount" class="badge bg-secondary live-count ms-2">{{ exams|length }}</span></h2>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('view_exams') }}" class="btn btn-primary btn-sm"><i class="bi bi-list-check"></i> Active</a>
+            <a href="{{ url_for('finished_exams') }}" class="btn btn-warning btn-sm"><i class="bi bi-check2-square"></i> Finished</a>
+            <a href="{{ url_for('dashboard_admin') }}" class="btn btn-secondary btn-sm"><i class="bi bi-arrow-left"></i> Back</a>
+        </div>
+    </div>
+
+    {% if not exams %}
+    <div class="text-center py-5">
+        <i class="bi bi-inbox display-1 text-muted"></i>
+        <h4 class="text-muted mt-3">No archived exams yet</h4>
+        <p class="text-muted">When you archive a finished exam, it will appear here.</p>
+    </div>
+    {% endif %}
+
+    {% for exam in exams %}
+    <div class="card shadow-sm mb-3 exam-card" id="exam-card-{{ exam.id }}" data-exam-id="{{ exam.id }}">
+        <div class="card-body py-3">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                <div>
+                    <h5 class="mb-1">{{ exam.title }} <span class="badge bg-secondary ms-1" style="font-size:0.65rem;">Archived</span></h5>
+                    <small class="text-muted">
+                        {{ exam.subject.subject_code }} - {{ exam.subject.subject_name }} • 
+                        {{ exam.term or "No Term" }} • {{ exam.exam_type or "No Type" }} • 
+                        {{ exam.duration_minutes }} mins • 
+                        Archived: {{ exam.archived_at.strftime('%Y-%m-%d %I:%M %p') if exam.archived_at else "Unknown" }}
+                    </small>
+                </div>
+                <!-- PRESERVED BUTTONS - Important -->
+                <div class="d-flex flex-wrap gap-2">
+                    <button class="btn btn-success btn-sm js-restore-exam" data-exam-id="{{ exam.id }}">
+                        <i class="bi bi-arrow-counterclockwise"></i> Restore
+                    </button>
+                    <a href="{{ url_for('archived_security_logs') }}#exam-card-{{ exam.id }}" class="btn btn-danger btn-sm">
+                        <i class="bi bi-shield-exclamation"></i> Security Logs
+                    </a>
+                    <button class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal" onclick="setDeleteExam('{{ exam.id }}', '{{ exam.title }}')">
+                        <i class="bi bi-trash"></i> Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Delete Modal - PRESERVED -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white"><h5 class="modal-title">Delete Exam</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body"><p>Are you sure you want to permanently delete <strong id="deleteExamTitle"></strong>?</p><p class="text-danger small">This cannot be undone!</p></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <form id="deleteExamForm" method="POST"><button type="submit" class="btn btn-danger">Delete Permanently</button></form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="liveToast" class="toast align-items-center text-bg-success border-0" role="alert">
+        <div class="d-flex"><div class="toast-body" id="toastMessage">Success</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function setDeleteExam(id, title){
+  document.getElementById('deleteExamTitle').textContent = title;
+  document.getElementById('deleteExamForm').action = `/delete-exam/${id}`;
+}
+document.addEventListener('DOMContentLoaded', ()=>{
+  function showToast(msg, type='success'){
+    const el = document.getElementById('liveToast');
+    const msgEl = document.getElementById('toastMessage');
+    if(!el || !msgEl) return;
+    msgEl.textContent = msg;
+    el.className = `toast align-items-center border-0 text-bg-${type}`;
+    new bootstrap.Toast(el,{delay:4000}).show();
+  }
+  async function handle(btn, url, isRestore){
+    const id = btn.dataset.examId;
+    const card = document.getElementById(`exam-card-${id}`);
+    const orig = btn.innerHTML;
+    btn.disabled=true; btn.innerHTML='<span class="spinner-border spinner-border-sm"></span> ...';
+    try{
+      const res = await fetch(url,{method:'POST', headers:{'X-Requested-With':'XMLHttpRequest'}});
+      const data = await res.json();
+      if(!data.success) throw new Error();
+      if(window.broadcastMove) window.broadcastMove('restore', id, data.title);
+      card.classList.add('exiting');
+      setTimeout(()=>{
+        card.remove();
+        if(window.updateLiveCount) window.updateLiveCount();
+        showToast(`♻ "${data.title}" restored to Finished Exams`, 'success');
+        if(document.querySelectorAll('.exam-card').length===0){
+          document.querySelector('.container').insertAdjacentHTML('beforeend','<div class="text-center py-5 text-muted"><h5>No archived exams 🎉</h5></div>');
+        }
+      },650);
+    }catch(e){ 
+      btn.disabled=false; btn.innerHTML=orig;
+      showToast('Failed','danger'); 
+    }
+  }
+  document.addEventListener('click', e=>{
+    const r = e.target.closest('.js-restore-exam');
+    if(r) handle(r, `/restore-exam/${r.dataset.examId}`, true);
+  });
+  if(window.updateLiveCount) window.updateLiveCount();
+});
+</script>
+{% endblock %}

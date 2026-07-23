@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Preview Export</title>
+
+<link rel="icon" type="image/png"
+      href="{{ url_for('static', filename='favicon.png') }}">
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+</head>
+
+<body class="bg-light">
+
+<div class="container mt-4">
+
+  <!-- HEADER -->
+  <div class="d-flex justify-content-between align-items-center mb-3">
+
+    <div>
+      <h4 class="mb-1">👁 Preview Data</h4>
+      <p class="text-muted mb-0">
+        Showing first 50 matching records
+      </p>
+    </div>
+
+    <a href="javascript:history.back()" class="btn btn-secondary">
+      ← Back
+    </a>
+
+  </div>
+
+  <!-- FILTER SUMMARY -->
+  <div class="card shadow-sm mb-4">
+
+    <div class="card-body">
+
+      <h6 class="fw-bold mb-3">Selected Filters</h6>
+
+      <div class="row">
+
+        <div class="col-md-4 mb-2">
+          <strong>Year:</strong>
+          {{ filters.get('year', 'All') or 'All' }}
+        </div>
+
+        <div class="col-md-4 mb-2">
+          <strong>Section:</strong>
+          {{ filters.get('section', 'All') or 'All' }}
+        </div>
+
+        <div class="col-md-4 mb-2">
+          <strong>Subject:</strong>
+          {{ filters.get('subject', 'All') or 'All' }}
+        </div>
+
+        <div class="col-md-4 mb-2">
+          <strong>Semester:</strong>
+          {{ filters.get('semester', 'All') or 'All' }}
+        </div>
+
+        <div class="col-md-4 mb-2">
+          <strong>School Year:</strong>
+          {{ filters.get('school_year', 'All') or 'All' }}
+        </div>
+
+        <div class="col-md-4 mb-2">
+          <strong>Activity:</strong>
+          {{ filters.get('activity_type', 'All') or 'All' }}
+        </div>
+
+        <div class="col-md-4 mb-2">
+          <strong>Term:</strong>
+          {{ filters.get('term', 'All') or 'All' }}
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- TABLE -->
+  <div class="card shadow">
+
+    <div class="card-body">
+
+      <div class="table-responsive">
+
+        <table class="table table-bordered table-striped table-hover">
+
+          <thead class="table-dark">
+
+            <tr>
+
+              {% for h in headers %}
+              <th>{{ h.replace('_', ' ').title() }}</th>
+              {% endfor %}
+
+            </tr>
+
+          </thead>
+
+          <tbody>
+
+            {% if data %}
+
+              {% for row in data %}
+
+              <tr>
+
+                {% for h in headers %}
+
+                <td>{{ row[h] }}</td>
+
+                {% endfor %}
+
+              </tr>
+
+              {% endfor %}
+
+            {% else %}
+
+              <tr>
+                <td colspan="{{ headers|length }}" class="text-center text-muted py-4">
+                  No matching records found.
+                </td>
+              </tr>
+
+            {% endif %}
+
+          </tbody>
+
+        </table>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- DOWNLOAD BUTTON -->
+  <form method="GET"
+        action="{{ url_for('export_csv') }}"
+        class="mt-4">
+
+    {% for key, value in filters.items() %}
+
+      {% if key != 'preview' %}
+
+        <input type="hidden"
+               name="{{ key }}"
+               value="{{ value }}">
+
+      {% endif %}
+
+    {% endfor %}
+
+    <button class="btn btn-success">
+
+      ⬇ Download Full CSV
+
+    </button>
+
+  </form>
+
+</div>
+
+</body>
+</html>

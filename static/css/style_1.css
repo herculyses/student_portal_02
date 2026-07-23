@@ -1,0 +1,360 @@
+/* =========================================================
+   BASE STYLES (LIGHT MODE DEFAULT)
+========================================================= */
+
+body {
+    background-color: #f8f9fa;
+    font-family: "Poppins", Arial, sans-serif;
+    color: #333;
+    margin: 0;
+    padding: 0;
+    transition: background 0.3s ease, color 0.3s ease;
+}
+
+.container {
+    max-width: 1000px;
+}
+
+/* HEADINGS */
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 600;
+}
+
+/* =========================================================
+   TABLE STYLES
+========================================================= */
+
+.table {
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    margin-top: 15px;
+}
+
+.table-hover tbody tr:hover {
+    background-color: #f0f8ff;
+    transition: background-color 0.3s ease;
+}
+
+.table th {
+    background-color: #0d6efd;
+    color: #fff;
+    text-transform: uppercase;
+}
+
+.table td {
+    background-color: #fff;
+}
+
+/* =========================================================
+   BUTTONS
+========================================================= */
+
+.btn {
+    border-radius: 8px !important;
+    font-weight: 500;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn:hover {
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+}
+
+.btn:active {
+    transform: scale(0.98);
+}
+
+.btn-primary:hover {
+    background-color: #0b5ed7;
+    transform: scale(1.03);
+}
+
+.btn-success:hover {
+    background-color: #198754;
+    transform: scale(1.03);
+}
+
+.btn-secondary:hover {
+    background-color: #6c757d;
+    transform: scale(1.03);
+}
+
+/* Logout button */
+.logout-btn {
+    background-color: #dc3545;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 8px;
+    text-decoration: none;
+}
+
+.logout-btn:hover {
+    background-color: #bb2d3b;
+}
+
+/* =========================================================
+   FORMS / INPUTS
+========================================================= */
+
+input,
+select,
+textarea {
+    border-radius: 6px;
+}
+
+/* =========================================================
+   CARDS
+========================================================= */
+
+.card {
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+}
+
+/* =========================================================
+   FLASH MESSAGES
+========================================================= */
+
+.flash {
+    padding: 10px;
+    border-radius: 6px;
+    font-weight: 500;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.1);
+}
+
+/* =========================================================
+   MODAL ANIMATION
+========================================================= */
+
+.modal.fade .modal-dialog {
+    transform: translateY(-20px);
+    transition: transform 0.3s ease-out;
+}
+
+.modal.show .modal-dialog {
+    transform: translateY(0);
+}
+
+/* =========================================================
+   TABS
+========================================================= */
+
+.nav-tabs .nav-link {
+    border-radius: 8px 8px 0 0;
+    font-weight: 500;
+}
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 768px) {
+    .d-flex {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+    }
+}
+
+/* =========================================================
+   🚀 FORCED DARK MODE (SYSTEM-WIDE OVERRIDE)
+========================================================= */
+
+.dark-mode {
+    background-color: #121212 !important;
+    color: #e0e0e0 !important;
+}
+
+/* TEXT */
+.dark-mode h1,
+.dark-mode h2,
+.dark-mode h3,
+.dark-mode h4,
+.dark-mode h5,
+.dark-mode h6,
+.dark-mode p,
+.dark-mode span,
+.dark-mode small,
+.dark-mode label {
+    color: #e0e0e0 !important;
+}
+
+/* CONTAINER */
+.dark-mode .container {
+    background-color: transparent !important;
+}
+
+/* CARDS */
+.dark-mode .card {
+    background-color: #1e1e1e !important;
+    color: #e0e0e0 !important;
+    border: 1px solid #333 !important;
+}
+
+/* TABLES */
+.dark-mode table {
+    background-color: #1e1e1e !important;
+    color: #ffffff !important;
+}
+
+.dark-mode thead,
+.dark-mode .table-dark,
+.dark-mode .table-light {
+    background-color: #2a2a2a !important;
+    color: #ffffff !important;
+}
+
+.dark-mode tbody tr,
+.dark-mode tbody td,
+.dark-mode tbody th {
+    background-color: #1e1e1e !important;
+    color: #ffffff !important;
+    border-color: #333 !important;
+}
+
+/* TABLE TEXT SAFETY NET */
+.dark-mode table,
+.dark-mode table td,
+.dark-mode table th {
+    color: #ffffff !important;
+}
+
+/* HOVER */
+.dark-mode .table-hover tbody tr:hover {
+    background-color: #2c2c2c !important;
+}
+
+/* BUTTONS */
+.dark-mode .btn-light {
+    background-color: #333 !important;
+    color: #fff !important;
+    border: 1px solid #555 !important;
+}
+
+.dark-mode .btn-primary {
+    background-color: #0d6efd !important;
+}
+
+.dark-mode .btn-success {
+    background-color: #1f6f3b !important;
+}
+
+.dark-mode .btn-warning {
+    background-color: #7a5a00 !important;
+    color: #fff !important;
+}
+
+.dark-mode .btn-secondary {
+    background-color: #444 !important;
+}
+
+/* INPUTS */
+.dark-mode input,
+.dark-mode select,
+.dark-mode textarea {
+    background-color: #2a2a2a !important;
+    color: #fff !important;
+    border: 1px solid #555 !important;
+}
+
+/* PLACEHOLDER */
+.dark-mode input::placeholder {
+    color: #cccccc !important;
+}
+
+/* =========================================================
+   MODAL DARK MODE (IMPROVED DARKER VERSION)
+========================================================= */
+
+.dark-mode .modal-content {
+    background-color: #141414 !important; /* darker than before */
+    color: #e0e0e0 !important;
+    border: 1px solid #333 !important;
+    box-shadow: 0 0 20px rgba(0,0,0,0.6) !important;
+}
+
+/* Modal header */
+.dark-mode .modal-header {
+    background-color: #1f1f1f !important;
+    color: #ffffff !important;
+    border-bottom: 1px solid #333 !important;
+}
+
+/* Modal footer */
+.dark-mode .modal-footer {
+    background-color: #1a1a1a !important;
+    border-top: 1px solid #333 !important;
+}
+
+/* Modal body */
+.dark-mode .modal-body {
+    background-color: #141414 !important;
+    color: #e0e0e0 !important;
+}
+
+/* Buttons inside modal (extra safety) */
+.dark-mode .modal .btn-primary {
+    background-color: #0d6efd !important;
+}
+
+.dark-mode .modal .btn-secondary {
+    background-color: #444 !important;
+}
+
+.dark-mode .modal .btn-warning {
+    background-color: #7a5a00 !important;
+    color: #fff !important;
+}
+
+/* RIGHT SIDEBAR */
+.right-sidebar{
+    width:260px;
+    min-height:100vh;
+    position:fixed;
+    right:0;
+    top:0;
+    overflow-y:auto;
+    z-index:1000;
+}
+
+/* =========================
+   DELETE BUTTON ANIMATION
+========================= */
+
+.delete-question-btn {
+    transition: all 0.2s ease;
+}
+
+.delete-question-btn:hover {
+    background-color: #dc3545 !important;
+    color: white !important;
+    transform: scale(1.05);
+}
+
+.delete-question-btn:hover i {
+    animation: shake 0.4s infinite;
+    color: white;
+}
+
+@keyframes shake {
+    0% { transform: rotate(0deg); }
+    25% { transform: rotate(-10deg); }
+    50% { transform: rotate(10deg); }
+    75% { transform: rotate(-10deg); }
+    100% { transform: rotate(0deg); }
+}
+
+#deleteSuccessAlert {
+    border-radius: 12px;
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(40px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
