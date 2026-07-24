@@ -137,15 +137,15 @@ function glow(id, cls){
     setTimeout(()=> el.classList.remove(cls), 4500);
 }
 
-let es=null;
-function connect(){
-    es = new EventSource("/stream/admin");
-    es.addEventListener("security_violation", (e)=>{
-        try{ const d = JSON.parse(e.data); 
-            console.log("SSE violation", d);
-            handleViolation(d); 
-        }catch(err){ console.error(err); }
-    });
+let seenPoll = new Set();
+async function pollSecurity(){
+    if(document.hidden) return;
+    try{
+        const res = await fetch('/api/security-summary');
+        if(!res.ok) return;
+        const list = await res.json();
+        list.forEach(d => handleViolation(d));
+    }catch{}
 }
 
 function handleViolation(data){
@@ -283,7 +283,7 @@ examChannel.onmessage = (e)=>{
     }
 };
 
-document.addEventListener('DOMContentLoaded', ()=>{ connect(); updateCounts(); setInterval(updateCounts, 2000); });
+document.addEventListener('DOMContentLoaded', ()=>{ pollSecurity(); setInterval(pollSecurity, 10000); updateCounts(); setInterv
 </script>
 </body>
 </html>
