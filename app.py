@@ -1,30 +1,31 @@
-from flask import Flask, render_template, redirect, url_for, request, session, flash, send_file, jsonify
-from flask_sqlalchemy import SQLAlchemy
-from flask_wtf import FlaskForm
 from wtforms import IntegerField, TextAreaField, StringField, PasswordField, FileField, SubmitField, SelectField
-from wtforms.validators import DataRequired, Optional
-from werkzeug.utils import secure_filename
+from flask import Flask, render_template, redirect, url_for, request, session, flash, send_file, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
-from functools import wraps
-from datetime import datetime, timedelta
-from flask import get_flashed_messages
+from wtforms.validators import DataRequired, Optional
 from flask import Response, stream_with_context
-from flask_wtf.csrf import CSRFProtect
-from urllib.parse import unquote
-from sqlalchemy import func
+from werkzeug.utils import secure_filename
 from sqlalchemy.exc import IntegrityError
-from flask_migrate import Migrate
+from datetime import datetime, timedelta
+from flask_sqlalchemy import SQLAlchemy
+from flask_wtf.csrf import CSRFProtect
+from flask import get_flashed_messages
+from flask_caching import SimpleCache
 from collections import defaultdict
+from flask_migrate import Migrate
+from urllib.parse import unquote
+from flask_wtf import FlaskForm
 from time import perf_counter
+from functools import wraps
+from sqlalchemy import func
+from sqlalchemy import text
 
 import pandas as pd
 import tempfile
+import csv, io
 import random
 import time
 import json
 import os
-import csv
-import io
 
 # --- Flask Setup ---
 app = Flask(__name__)
@@ -1898,9 +1899,6 @@ def finished_exams():
 @app.route('/export-exam-scores/<int:exam_id>')
 @login_required(role=['Admin', 'Instructor'])
 def export_exam_scores(exam_id):
-    from flask import Response
-    import csv, io
-    from sqlalchemy import text
 
     exam = Exam.query.get_or_404(exam_id)
     output = io.StringIO()
@@ -3569,8 +3567,7 @@ def archived_security_logs():
 @app.route('/export-security-logs-archived/<int:exam_id>')
 @login_required(role=['Admin', 'Instructor'])
 def export_security_logs(exam_id):
-    from flask import Response
-    import csv, io
+
     exam = Exam.query.get_or_404(exam_id)
     attempts = ExamAttempt.query.filter_by(exam_id=exam_id).all()
     output = io.StringIO()
@@ -5636,8 +5633,6 @@ def download_csv():
             "Content-Disposition": "attachment; filename=students_filtered.csv"
         }
     )
-
-from flask import Response
 
 # --- Export Data ---
 @app.route('/dashboard/admin/export')
