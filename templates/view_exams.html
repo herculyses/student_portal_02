@@ -1,29 +1,124 @@
+
 {% extends "base.html" %}
 {% block title %}View Exams{% endblock %}
 
 {% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
-.delete-zone { border-top: 1px solid #dc3545; margin-top: 15px; padding-top: 10px; display: flex; justify-content: flex-end; }
-.card-body .card { transition: transform .2s ease, box-shadow .2s ease; }
-.card-body .card:hover { transform: translateY(-4px); box-shadow: 0 .5rem 1rem rgba(0,0,0,.15); }
-.exam-card { transition: all 0.75s cubic-bezier(0.34, 1.56, 0.64, 1) !important; will-change: transform, opacity, max-height; }
-.exam-card.exiting { transform: translateX(180px) scale(0.75) rotate(3deg) !important; opacity:0 !important; max-height:0 !important; margin:0 !important; padding:0 !important; overflow:hidden !important; border:0 !important; filter: blur(4px); }
-.exam-card.entering { animation: seamlessEnter 0.8s cubic-bezier(0.34, 1.56, 0.64, 1); }
-@keyframes seamlessEnter { 0% { transform: translateY(50px) scale(0.8); opacity:0; } 60% { transform: translateY(-10px) scale(1.03); } 100% { transform: translateY(0) scale(1); opacity:1; } }
-.live-count { transition: all 0.3s ease; }
-.live-count.bump { transform: scale(1.4); background-color: #ffc107 !important; color:#000 !important; }
+body, .container, h1,h2,h3,h4,h5, small,p,span,a,button,td,th,div { font-family: 'Nunito', system-ui, sans-serif !important; -webkit-font-smoothing: antialiased; }
+h2 { font-weight: 800; color: #2e334d; letter-spacing: -0.02em; }
+.card { border-radius: 22px !important; border: 1px solid #f2eefb !important; box-shadow: 0 6px 28px rgba(120,100,180,0.07) !important; }
+.card-header { border-radius: 22px 22px 0 0 !important; background: #faf8ff !important; border-bottom: 1px solid #f0eafb !important; }
+
+/* Force Submit - flying send animation */
+.friendly-btn[data-flip="send"] i {
+  transition: transform 0.5s cubic-bezier(0.34,1.56,0.64,1) !important;
+}
+.friendly-btn[data-flip="send"]:hover i {
+  transform: translate(6px, -6px) scale(1.3) rotate(12deg);
+}
+/* FRIENDLY BUTTONS */
+.friendly-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  padding: 9px 18px; border-radius: 50px; font-weight: 700; font-size: 0.82rem;
+  letter-spacing: 0.02em; border: 1.5px solid transparent; text-decoration: none; cursor: pointer;
+  transition: all 0.32s cubic-bezier(0.34,1.56,0.64,1); box-shadow: 0 3px 12px rgba(0,0,0,0.04);
+}
+.friendly-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(0,0,0,0.10); }
+.friendly-btn:active { transform: scale(0.96); }
+.friendly-btn i { font-size: 1.02rem; display:inline-block; transition: transform 0.55s cubic-bezier(0.34,1.56,0.64,1); }
+.friendly-btn[data-flip="pop"]:hover i { transform: translateY(-2px) scale(1.25); }
+.friendly-btn[data-flip="spin"]:hover i { transform: rotate(360deg) scale(1.2); }
+.friendly-btn[data-flip="y"]:hover i { transform: rotateY(360deg); }
+.friendly-btn[data-flip="x"]:hover i { transform: rotateX(360deg); }
+.friendly-btn[data-flip="bounce"]:hover i { animation: softBounce 0.6s cubic-bezier(0.34,1.56,0.64,1); }
+.friendly-btn[data-flip="wobble"]:hover i { animation: softWobble 0.65s ease; }
+@keyframes softBounce { 0%{transform:translateY(0)} 40%{transform:translateY(-5px) scale(1.2)} 100%{transform:translateY(0) scale(1.1)} }
+@keyframes softWobble { 0%{transform:rotate(0)} 25%{transform:rotate(10deg) scale(1.15)} 50%{transform:rotate(-8deg)} 100%{transform:rotate(0)} }
+
+.friendly-btn.primary { background:#eef2ff; color:#5a6cf3; border-color:#d9e0ff; }
+.friendly-btn.primary:hover { background:#5a6cf3; color:#fff; }
+.friendly-btn.success { background:#e8f6eb; color:#3daa5e; border-color:#cde9d3; }
+.friendly-btn.success:hover { background:#3daa5e; color:#fff; }
+.friendly-btn.danger { background:#fff0f2; color:#ff6b7b; border-color:#ffdade; }
+.friendly-btn.danger:hover { background:#ff6b7b; color:#fff; }
+.friendly-btn.warning { background:#fff7e0; color:#d69e2e; border-color:#ffefb0; }
+.friendly-btn.warning:hover { background:#d69e2e; color:#fff; }
+.friendly-btn.secondary { background:#f5f5f9; color:#8b90a3; border-color:#ececf2; }
+.friendly-btn.secondary:hover { background:#8b90a3; color:#fff; }
+.friendly-btn.info { background:#eaf7ff; color:#4fb8e0; border-color:#cdefff; }
+.friendly-btn.info:hover { background:#4fb8e0; color:#fff; }
+.friendly-btn.outline-primary { background:#f8f9ff; color:#5a6cf3; border-color:#d9e0ff; }
+.friendly-btn.outline-primary:hover { background:#5a6cf3; color:#fff; }
+.friendly-btn.outline-warning { background:#fffcf0; color:#c49a2e; border-color:#ffecb0; }
+.friendly-btn.outline-warning:hover { background:#c49a2e; color:#fff; }
+
+/* UNIQUE COLORS FOR EXAM SUMMARY - like screenshot but colorful */
+.summary-card { border-radius: 20px !important; border: none !important; padding: 4px; transition: all 0.3s ease; }
+.summary-card:hover { transform: translateY(-3px); box-shadow: 0 10px 28px rgba(0,0,0,0.08) !important; }
+.summary-card .card-body { border-radius: 16px; padding: 18px 12px; text-align:center; }
+.summary-num { font-family: 'Quicksand', sans-serif; font-size: 1.8rem; font-weight: 700 !important; line-height:1; margin-bottom: 8px; }
+.summary-label { font-size: 0.76rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; display:flex; align-items:center; justify-content:center; gap:6px; }
+
+/* Each status unique pastel */
+.summary-card.requested .card-body { background: #eef2ff; }
+.summary-card.requested .summary-num { color: #4a5de8; }
+.summary-card.requested .summary-label { color: #7a85d0; }
+
+.summary-card.pending .card-body { background: #fff7e0; }
+.summary-card.pending .summary-num { color: #b78a1f; }
+.summary-card.pending .summary-label { color: #c9a43a; }
+
+.summary-card.approved .card-body { background: #e6f4ee; }
+.summary-card.approved .summary-num { color: #2e9d6b; }
+.summary-card.approved .summary-label { color: #5abf8e; }
+
+.summary-card.completed .card-body { background: #f3efff; }
+.summary-card.completed .summary-num { color: #7a5af0; }
+.summary-card.completed .summary-label { color: #9d8ae8; }
+
+.summary-card.rejected .card-body { background: #ffe8e8; }
+.summary-card.rejected .summary-num { color: #e5485a; }
+.summary-card.rejected .summary-label { color: #e87a86; }
+
+.summary-card.forced .card-body { background: #f0f1f5; }
+.summary-card.forced .summary-num { color: #5a667d; }
+.summary-card.forced .summary-label { color: #8a95ad; }
+
+.summary-card.passed .card-body { background: #e7f6eb; }
+.summary-card.passed .summary-num { color: #2e9d4a; }
+.summary-card.passed .summary-label { color: #5abf7a; }
+
+.summary-card.failed .card-body { background: #ffeaea; }
+.summary-card.failed .summary-num { color: #ff3b3b; }
+.summary-card.failed .summary-label { color: #ff7a7a; }
+.summary-card.failed .summary-label i { color: #ff3b3b !important; }
+
+.summary-card.average .card-body { background: linear-gradient(135deg, #eef2ff 0%, #f3efff 100%); }
+.summary-card.average .summary-num { color: #5a5fd7; }
+.summary-card.average .summary-label { color: #8a8ac0; }
+
+.summary-card.highest .card-body { background: linear-gradient(135deg, #fff8e0 0%, #fff0cc 100%); }
+.summary-card.highest .summary-num { color: #c28a00; }
+.summary-card.highest .summary-label { color: #d0a63a; }
+
+.table thead th { background: #3b82f6 !important; color: #fff !important; font-weight: 800; font-size: 0.8rem; letter-spacing: 0.04em; text-transform: uppercase; border: none !important; padding: 14px 12px !important; }
+.table tbody td { font-weight: 500; color: #3d4156; vertical-align: middle; }
+.live-count { border-radius: 50px; padding: 5px 12px; font-weight: 800; background: #eef2ff !important; color: #5a6cf3 !important; border: 1px solid #d9e0ff; }
 </style>
 {% endblock %}
+
 
 {% block content %}
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-        <h2><i class="bi bi-file-earmark-text"></i> View Exams <span id="examCount" class="badge bg-primary live-count ms-2">{{ exams|length }}</span></h2>
+        <h2><i class="bi bi-journal-text" style="color:#7a5af0;"></i> View Exams <span id="examCount" class="badge bg-primary live-count ms-2">{{ exams|length }}</span></h2>
         <div class="d-flex gap-2 flex-wrap">
-            <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createExamModal"><i class="bi bi-plus-circle"></i> Create Exam</button>
-            <a href="{{ url_for('finished_exams') }}" class="btn btn-success btn-sm"><i class="bi bi-check2-square"></i> Finished Exams</a>
-            <a href="{{ url_for('security_logs') }}" class="btn btn-danger btn-sm"><i class="bi bi-shield-exclamation"></i> Live Security Logs</a>
-            <a href="{{ url_for('dashboard_admin') }}" class="btn btn-secondary btn-sm"><i class="bi bi-arrow-left"></i> Back</a>
+            <button type="button" class="friendly-btn primary" data-flip="spin" data-bs-toggle="modal" data-bs-target="#createExamModal"><i class="bi bi-plus-circle icon-flip"></i> Create Exam</button>
+            <a href="{{ url_for('finished_exams') }}" class="friendly-btn success" data-flip="y"><i class="bi bi-check2-square icon-flip"></i> Finished Exams</a>
+            <a href="{{ url_for('security_logs') }}" class="friendly-btn danger" data-flip="wobble"><i class="bi bi-shield-exclamation icon-flip"></i> Live Security Logs</a>
+            <a href="{{ url_for('dashboard_admin') }}" class="friendly-btn secondary" data-flip="x"><i class="bi bi-arrow-left icon-flip"></i> Back to Admin</a>
         </div>
     </div>
 
@@ -59,23 +154,23 @@
             <!-- ACTIONS -->
             <div class="d-flex flex-wrap gap-2 mb-3">
                 <a href="{{ url_for('edit_exam', exam_id=exam.id) }}"
-                   class="btn btn-primary btn-sm">
-                    <i class="bi bi-pencil"></i> Edit
+                   class="friendly-btn primary" data-flip="spin">
+                    <i class="bi bi-pencil icon-flip"></i> Edit
                 </a>
                 <a href="{{ url_for('add_question', exam_id=exam.id) }}"
-                   class="btn btn-success btn-sm">
-                    <i class="bi bi-plus-circle"></i> Add Questions
+                   class="friendly-btn success" data-flip="y">
+                    <i class="bi bi-plus-circle icon-flip"></i> Add Questions
                 </a>
                 <!-- replaced -->
-                    <button class="btn btn-danger btn-sm js-end-exam" data-exam-id="{{ exam.id }}"><i class="bi bi-stop-circle"></i> End Exam</button>
+                    <button class="btn btn-danger btn-sm js-end-exam" data-exam-id="{{ exam.id }}"><i class="bi bi-stop-circle icon-flip"></i> End Exam</button>
             </div>
             <!-- DELETE -->
             <div class="delete-zone">
-                <button class="btn btn-outline-danger btn-sm"
+                <button class="friendly-btn danger" data-flip="bounce"
                         data-bs-toggle="modal"
                         data-bs-target="#deleteModal"
                         onclick="setDeleteExam('{{ exam.id }}', '{{ exam.title }}')">
-                    <i class="bi bi-trash"></i> Delete Exam
+                    <i class="bi bi-trash icon-flip"></i> Delete Exam
                 </button>
             </div>
             <!-- ============================= -->
@@ -84,7 +179,7 @@
             <div class="card shadow-sm border-0 mb-4">
 
                 <div class="card-header bg-primary text-white fw-bold">
-                    📊 Exam Summary
+                    <i class="bi bi-bar-chart-line-fill"></i> Exam Summary
                 </div>
 
                 <div class="card-body">
@@ -92,82 +187,34 @@
                     <div class="row g-3">
 
                         <div class="col-md-3">
-                            <div class="card bg-light border-start border-primary border-4 h-100">
-                                <div class="card-body text-center">
-                                    <h3 id="summary-requested-{{ exam.id }}">{{ exam_summary[exam.id].requested }}</h3>
-                                    <small class="text-muted">👥 Requested</small>
-                                </div>
-                            </div>
-                        </div>
+                            <div class="card summary-card requested h-100"><div class="card-body text-center"><div class="summary-num" id="summary-requested-{{ exam.id }}">{{ exam_summary[exam.id].requested }}</div><div class="summary-label"><i class="bi bi-people-fill"></i> Requested</div></div></div></div>
 
                         <div class="col-md-3">
-                            <div class="card bg-light border-start border-warning border-4 h-100">
-                                <div class="card-body text-center">
-                                    <h3 id="summary-pending-{{ exam.id }}">{{ exam_summary[exam.id].pending }}</h3>
-                                    <small class="text-muted">🟡 Pending</small>
-                                </div>
-                            </div>
-                        </div>
+                            <div class="card summary-card pending h-100"><div class="card-body text-center"><div class="summary-num" id="summary-pending-{{ exam.id }}">{{ exam_summary[exam.id].pending }}</div><div class="summary-label"><i class="bi bi-hourglass-split"></i> Pending</div></div></div></div>
 
                         <div class="col-md-3">
-                            <div class="card bg-light border-start border-success border-4 h-100">
-                                <div class="card-body text-center">
-                                    <h3 id="summary-approved-{{ exam.id }}">{{ exam_summary[exam.id].approved }}</h3>
-                                    <small class="text-muted">🟢 Approved</small>
-                                </div>
-                            </div>
-                        </div>
+                            <div class="card summary-card approved h-100"><div class="card-body text-center"><div class="summary-num" id="summary-approved-{{ exam.id }}">{{ exam_summary[exam.id].approved }}</div><div class="summary-label"><i class="bi bi-check-circle"></i> Approved</div></div></div></div>
 
                         <div class="col-md-3">
-                            <div class="card bg-light border-start border-info border-4 h-100">
-                                <div class="card-body text-center">
-                                    <h3 id="summary-completed-{{ exam.id }}">{{ exam_summary[exam.id].completed }}</h3>
-                                    <small class="text-muted">🔵 Completed</small>
-                                </div>
-                            </div>
-                        </div>
+                            <div class="card summary-card completed h-100"><div class="card-body text-center"><div class="summary-num" id="summary-completed-{{ exam.id }}">{{ exam_summary[exam.id].completed }}</div><div class="summary-label"><i class="bi bi-check2-all"></i> Completed</div></div></div></div>
 
                         <div class="col-md-3">
-                            <div class="card bg-light border-start border-danger border-4 h-100">
-                                <div class="card-body text-center">
-                                    <h3 id="summary-rejected-{{ exam.id }}">{{ exam_summary[exam.id].rejected }}</h3>
-                                    <small class="text-muted">🔴 Rejected</small>
-                                </div>
-                            </div>
-                        </div>
+                            <div class="card summary-card rejected h-100"><div class="card-body text-center"><div class="summary-num" id="summary-rejected-{{ exam.id }}">{{ exam_summary[exam.id].rejected }}</div><div class="summary-label"><i class="bi bi-x-circle"></i> Rejected</div></div></div></div>
 
                         <div class="col-md-3">
-                            <div class="card bg-light border-start border-dark border-4 h-100">
-                                <div class="card-body text-center">
-                                    <h3 id="summary-forced-{{ exam.id }}">{{ exam_summary[exam.id].forced_submit }}</h3>
-                                    <small class="text-muted">⚫ Forced</small>
-                                </div>
-                            </div>
-                        </div>
+                            <div class="card summary-card forced h-100"><div class="card-body text-center"><div class="summary-num" id="summary-forced-{{ exam.id }}">{{ exam_summary[exam.id].forced_submit }}</div><div class="summary-label"><i class="bi bi-exclamation-octagon"></i> Forced</div></div></div></div>
 
                         <div class="col-md-3">
-                            <div class="card bg-light border-start border-success border-4 h-100">
-                                <div class="card-body text-center">
-                                    <h3 id="summary-passed-{{ exam.id }}">{{ exam_summary[exam.id].passed }}</h3>
-                                    <small class="text-muted">✅ Passed</small>
-                                </div>
-                            </div>
-                        </div>
+                            <div class="card summary-card passed h-100"><div class="card-body text-center"><div class="summary-num" id="summary-passed-{{ exam.id }}">{{ exam_summary[exam.id].passed }}</div><div class="summary-label"><i class="bi bi-check-circle-fill"></i> Passed</div></div></div></div>
 
                         <div class="col-md-3">
-                            <div class="card bg-light border-start border-danger border-4 h-100">
-                                <div class="card-body text-center">
-                                    <h3 id="summary-failed-{{ exam.id }}">{{ exam_summary[exam.id].failed }}</h3>
-                                    <small class="text-muted">❌ Failed</small>
-                                </div>
-                            </div>
-                        </div>
+                            <div class="card summary-card failed h-100"><div class="card-body text-center"><div class="summary-num" id="summary-failed-{{ exam.id }}">{{ exam_summary[exam.id].failed }}</div><div class="summary-label"><i class="bi bi-x-circle-fill"></i> Failed</div></div></div></div>
 
                         <div class="col-md-6">
                             <div class="card bg-light border-start border-secondary border-4 h-100">
                                 <div class="card-body text-center">
-                                    <h3 id="summary-average-{{ exam.id }}">{{ exam_summary[exam.id].average }}%</h2>
-                                    <small class="text-muted">📈 Average Score</small>
+                                    <h3 id="summary-average-{{ exam.id }}">{{ exam_summary[exam.id].average }}%</h3>
+                                    <small class="text-muted"><i class="bi bi-graph-up-arrow"></i> Average Score</small>
                                 </div>
                             </div>
                         </div>
@@ -175,8 +222,8 @@
                         <div class="col-md-6">
                             <div class="card bg-light border-start border-success border-4 h-100">
                                 <div class="card-body text-center">
-                                    <h3 id="summary-highest-{{ exam.id }}">{{ exam_summary[exam.id].highest }}%</h2>
-                                    <small class="text-muted">🏆 Highest Score</small>
+                                    <h3 id="summary-highest-{{ exam.id }}">{{ exam_summary[exam.id].highest }}%</h3>
+                                    <small class="text-muted"><i class="bi bi-trophy-fill"></i> Highest Score</small>
                                 </div>
                             </div>
                         </div>
@@ -240,7 +287,7 @@
 
                             {% else %}
 
-                                <span class="text-muted">—</span>
+                                <span class="text-muted"><i class="bi bi-dash-lg text-muted"></i></span>
 
                             {% endif %}
 
@@ -261,7 +308,7 @@
                                     </span>
                                 {% endif %}
                             {% else %}
-                                —
+                                <i class="bi bi-dash-lg text-muted"></i>
                             {% endif %}
                             </td>
                             <td id="submitted-{{ student.student_id }}-{{ exam.id }}">
@@ -276,7 +323,7 @@
 
                             {% else %}
 
-                                <span class="text-muted">—</span>
+                                <span class="text-muted"><i class="bi bi-dash-lg text-muted"></i></span>
 
                             {% endif %}
 
@@ -288,7 +335,7 @@
                                         {% if score_map[(student.student_id, exam.id)].is_active_attempt %}
 
                                             <span class="badge bg-info">
-                                                🟢 Taking Exam
+                                                <i class="bi bi-check-circle"></i> Taking Exam
                                             </span>
 
                                         {% else %}
@@ -319,12 +366,12 @@
                                 {% if access and access.status == "pending" %}
                                     <div class="d-flex justify-content-center gap-2">
                                         <button
-                                            class="btn btn-success btn-sm"
+                                            class="friendly-btn success" data-flip="y"
                                             onclick="approveRequest({{ access.id }})">
                                             Approve
                                         </button>
                                         <button
-                                            class="btn btn-outline-danger btn-sm"
+                                            class="friendly-btn danger" data-flip="bounce"
                                             onclick="recycleExam(
                                                 {{ exam.id }},
                                                 '{{ student.student_id }}'
@@ -337,41 +384,41 @@
                                     <div class="d-flex justify-content-center gap-2">
 
                                         <button
-                                            class="btn btn-outline-primary btn-sm"
+                                            class="friendly-btn outline-primary" data-flip="pop"
                                             onclick="reviewAttempt(
                                                 {{ exam.id }},
                                                 '{{ student.student_id }}'
                                             )">
-                                            👁 Review
+                                            <i class="bi bi-eye"></i> Review
                                         </button>
 
                                         {% if score_map[(student.student_id, exam.id)].is_active_attempt %}
 
                                             <button
-                                                class="btn btn-danger btn-sm"
+                                                class="friendly-btn danger force-submit-btn" data-flip="send"
                                                 onclick="forceSubmit(
                                                     {{ exam.id }},
                                                     '{{ student.student_id }}'
                                                 )">
-                                                ⛔ Force Submit
+                                                <i class="bi bi-send-exclamation-fill"></i> Force Submit
                                             </button>
 
                                         {% else %}
 
                                             <button
-                                                class="btn btn-outline-warning btn-sm"
+                                                class="friendly-btn outline-warning" data-flip="spin"
                                                 onclick="recycleExam(
                                                     {{ exam.id }},
                                                     '{{ student.student_id }}'
                                                 )">
-                                                ♻ Reset
+                                                <i class="bi bi-arrow-clockwise"></i> Reset
                                             </button>
 
                                         {% endif %}
 
                                     </div>
                                 {% else %}
-                                    <span class="text-muted">—</span>
+                                    <span class="text-muted"><i class="bi bi-dash-lg text-muted"></i></span>
                                 {% endif %}
                             </td>
                         </tr>
@@ -396,7 +443,7 @@
 
       <div class="modal-header bg-danger text-white">
         <h5 class="modal-title">
-            <i class="bi bi-exclamation-triangle"></i> Confirm Delete
+            <i class="bi bi-exclamation-triangle icon-flip"></i> Confirm Delete
         </h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
@@ -635,7 +682,7 @@
                     class="modal-title"
                     id="reviewModalLabel">
 
-                    👁 Student Exam Review
+                    <i class="bi bi-eye"></i> Student Exam Review
 
                 </h5>
 
@@ -697,15 +744,12 @@
                     id="reviewFullReportBtn"
                     class="btn btn-outline-primary">
 
-                    📊 Full Report
+                    <i class="bi bi-bar-chart-line-fill"></i> Full Report
 
                 </button>
 
-                <button
-                    class="btn btn-success">
-
-                    📤 Export Excel
-
+                <button class="friendly-btn excel" data-flip="y" onclick="exportExcel()">
+                  <i class="bi bi-file-earmark-spreadsheet"></i> Export Excel
                 </button>
 
                 <button
@@ -751,32 +795,32 @@ function setDeleteExam(id, title) {
 const adminStream = new EventSource("/stream/admin");
 
 adminStream.onopen = function () {
-    console.log("✅ SSE CONNECTED");
+    console.log('✅ SSE CONNECTED');
 };
 
 adminStream.onerror = function (e) {
-    console.log("❌ SSE ERROR", e);
+    console.log('❌ SSE ERROR', e);
 };
 
 adminStream.addEventListener("new_request", function (e) {
 
     const data = JSON.parse(e.data);
 
-    console.log("📨 New exam request:", data);
+    console.log("ðŸ“¨ New exam request:", data);
 
     addToQueue(data);
 });
 
 // ============================================
-// =========👇SSE live_update listener========
+// =========ðŸ‘‡SSE live_update listener========
 // ============================================
 adminStream.addEventListener("live_update", function (e) {
 
-    console.log("🔥 LIVE UPDATE EVENT RECEIVED");
+    console.log("ðŸ”¥ LIVE UPDATE EVENT RECEIVED");
 
     const data = JSON.parse(e.data);
 
-    console.log("✅ LIVE UPDATE:", data);
+    console.log('✅ LIVE UPDATE:', data);
     console.table(data);
     console.log(JSON.stringify(data, null, 2));
 
@@ -798,18 +842,18 @@ adminStream.addEventListener("live_update", function (e) {
 });
 
 // ============================================
-// =========👇SSE exam_ended listener=========
+// =========ðŸ‘‡SSE exam_ended listener=========
 // ============================================
 adminStream.addEventListener("exam_ended", function (e) {
 
     const data = JSON.parse(e.data);
 
-    console.log("🏁 Exam ended:", data);
+    console.log("ðŸ Exam ended:", data);
 
 });
 
 // ============================================
-// =========👇Adds Row to Queue==========
+// =========ðŸ‘‡Adds Row to Queue==========
 // ============================================
 function addToQueue(data) {
 
@@ -849,12 +893,12 @@ function addToQueue(data) {
         actionCell.innerHTML = `
             <div class="d-flex gap-2 justify-content-center">
 
-                <button class="btn btn-success btn-sm"
+                <button class="friendly-btn success" data-flip="y"
                         onclick="approveRequest(${data.access_id})">
                     Approve
                 </button>
 
-                <button class="btn btn-outline-danger btn-sm"
+                <button class="friendly-btn danger" data-flip="bounce"
                         onclick="recycleExam(${data.exam_id}, '${data.student_id}')">
                     Cancel
                 </button>
@@ -871,7 +915,7 @@ function addToQueue(data) {
         );
 
         if (!tableBody) {
-            console.log("❌ Exam table not found.");
+            console.log('❌ Exam table not found.');
             return;
         }
 
@@ -890,19 +934,19 @@ function addToQueue(data) {
             </td>
 
             <td id="section-${data.student_id}-${data.exam_id}">
-                ${data.section || "—"}
+                ${data.section || '<i class="bi bi-dash-lg text-muted"></i>'}
             </td>
 
             <td id="score-${data.student_id}-${data.exam_id}">
-                <span class="text-muted">—</span>
+                <span class="text-muted"><i class="bi bi-dash-lg text-muted"></i></span>
             </td>
 
             <td id="result-${data.student_id}-${data.exam_id}">
-                —
+                <i class="bi bi-dash-lg text-muted"></i>
             </td>
 
             <td id="submitted-${data.student_id}-${data.exam_id}">
-                <span class="text-muted">—</span>
+                <span class="text-muted"><i class="bi bi-dash-lg text-muted"></i></span>
             </td>
 
             <td id="status-${data.student_id}-${data.exam_id}"
@@ -919,12 +963,12 @@ function addToQueue(data) {
 
                 <div class="d-flex gap-2 justify-content-center">
 
-                    <button class="btn btn-success btn-sm"
+                    <button class="friendly-btn success" data-flip="y"
                             onclick="approveRequest(${data.access_id})">
                         Approve
                     </button>
 
-                    <button class="btn btn-outline-danger btn-sm"
+                    <button class="friendly-btn danger" data-flip="bounce"
                             onclick="recycleExam(${data.exam_id}, '${data.student_id}')">
                         Cancel
                     </button>
@@ -938,14 +982,14 @@ function addToQueue(data) {
 
         console.log("ROWS AFTER:", tableBody.rows.length);
 
-        console.log("✅ Student row added.");
+        console.log('✅ Student row added.');
 
     }
 
 }
 
 // ============================================
-// =========👇 Update Student Access==========
+// =========ðŸ‘‡ Update Student Access==========
 // ============================================
 function updateStudentAccess(studentId, examId, status) {
 
@@ -959,7 +1003,7 @@ function updateStudentAccess(studentId, examId, status) {
 
     if (!statusBox || !actionBox) return;
 
-    console.log(`Updating Student ${studentId}, Exam ${examId} → ${status}`);
+    console.log(`Updating Student ${studentId}, Exam ${examId} <i class="bi bi-arrow-right"></i> ${status}`);
 
     // ================= APPROVED =================
     if (status === "approved") {
@@ -975,15 +1019,15 @@ function updateStudentAccess(studentId, examId, status) {
                 class="btn btn-outline-primary btn-sm me-1"
                 onclick="reviewAttempt(${examId}, '${studentId}')">
 
-                👁 Review
+                <i class="bi bi-eye"></i> Review
 
             </button>
 
             <button
-                class="btn btn-outline-warning btn-sm"
+                class="friendly-btn outline-warning" data-flip="spin"
                 onclick="recycleExam(${examId}, '${studentId}')">
 
-                ♻ Reset
+                <i class="bi bi-arrow-clockwise"></i> Reset
 
             </button>
         `;
@@ -1000,7 +1044,7 @@ function updateStudentAccess(studentId, examId, status) {
 
         statusBox.innerHTML = `
             <span class="badge bg-info">
-                🟢 Taking Exam
+                <i class="bi bi-check-circle"></i> Taking Exam
             </span>
         `;
 
@@ -1008,18 +1052,18 @@ function updateStudentAccess(studentId, examId, status) {
             <div class="d-flex justify-content-center gap-2">
 
                 <button
-                    class="btn btn-outline-primary btn-sm"
+                    class="friendly-btn outline-primary" data-flip="pop"
                     onclick="reviewAttempt(${examId}, '${studentId}')">
 
-                    👁 Review
+                    <i class="bi bi-eye"></i> Review
 
                 </button>
 
                 <button
-                    class="btn btn-danger btn-sm"
+                    class="friendly-btn danger" data-flip="wobble"
                     onclick="forceSubmit(${examId}, '${studentId}')">
 
-                    ⛔ Force Submit
+                    â›” Force Submit
 
                 </button>
 
@@ -1041,17 +1085,17 @@ function updateStudentAccess(studentId, examId, status) {
             <div class="d-flex justify-content-center gap-2">
 
                 <button
-                    class="btn btn-outline-primary btn-sm"
+                    class="friendly-btn outline-primary" data-flip="pop"
                     onclick="reviewAttempt(${examId}, '${studentId}')">
 
-                    👁 Review
+                    <i class="bi bi-eye"></i> Review
 
                 </button>
                 <button
-                    class="btn btn-outline-warning btn-sm"
+                    class="friendly-btn outline-warning" data-flip="spin"
                     onclick="recycleExam(${examId}, '${studentId}')">
 
-                    ♻ Reset
+                    <i class="bi bi-arrow-clockwise"></i> Reset
 
                 </button>
 
@@ -1071,10 +1115,10 @@ function updateStudentAccess(studentId, examId, status) {
 
         actionBox.innerHTML = `
             <button
-                class="btn btn-outline-warning btn-sm"
+                class="friendly-btn outline-warning" data-flip="spin"
                 onclick="recycleExam(${examId}, '${studentId}')">
 
-                ♻ Reset
+                <i class="bi bi-arrow-clockwise"></i> Reset
 
             </button>
         `;
@@ -1098,18 +1142,18 @@ function updateStudentAccess(studentId, examId, status) {
             <div class="d-flex justify-content-center gap-2">
 
                 <button
-                    class="btn btn-outline-primary btn-sm"
+                    class="friendly-btn outline-primary" data-flip="pop"
                     onclick="reviewAttempt(${examId}, '${studentId}')">
 
-                    👁 Review
+                    <i class="bi bi-eye"></i> Review
 
                 </button>
 
                 <button
-                    class="btn btn-outline-warning btn-sm"
+                    class="friendly-btn outline-warning" data-flip="spin"
                     onclick="recycleExam(${examId}, '${studentId}')">
 
-                    ♻ Reset
+                    <i class="bi bi-arrow-clockwise"></i> Reset
 
                 </button>
 
@@ -1128,7 +1172,7 @@ function updateStudentAccess(studentId, examId, status) {
         `;
 
         actionBox.innerHTML = `
-            <button class="btn btn-secondary btn-sm" disabled>
+            <button class="friendly-btn secondary" data-flip="x" disabled>
                 Waiting...
             </button>
         `;
@@ -1146,11 +1190,11 @@ function updateStudentAccess(studentId, examId, status) {
 }
 
 // ============================================
-// =========👇 Updates Student Row==========
+// =========ðŸ‘‡ Updates Student Row==========
 // ============================================
 function updateStudentRow(data) {
 
-    console.log("🟢 updateStudentRow()", data);
+    console.log('✅ updateStudentRow()', data);
 
     const sectionBox = document.getElementById(
         `section-${data.student_id}-${data.exam_id}`
@@ -1270,14 +1314,14 @@ function updateStudentRow(data) {
 }
 
 // ============================================
-// =========👇 Updates Summary Cards==========
+// =========ðŸ‘‡ Updates Summary Cards==========
 // ============================================
 function updateSummaryCards(examId, summary) {
 
-    console.log("🔥 updateSummaryCards() CALLED");
+    console.log("ðŸ”¥ updateSummaryCards() CALLED");
     console.log(summary);
 
-    console.log("📊 updateSummaryCards()", examId, summary);
+    console.log('📊 updateSummaryCards()', examId, summary);
 
     const setValue = (id, value) => {
         const element = document.getElementById(`${id}-${examId}`);
@@ -1297,12 +1341,12 @@ function updateSummaryCards(examId, summary) {
     setValue("summary-average", summary.average + "%");
     setValue("summary-highest", summary.highest + "%");
 
-    console.log("📊 Summary Updated", summary);
+    console.log('📊 Summary Updated', summary);
 
 }
 
 // ============================================
-// =======👇 Updates Approve Request========
+// =======ðŸ‘‡ Updates Approve Request========
 // ============================================
 function approveRequest(accessId) {
 
@@ -1433,7 +1477,7 @@ document.addEventListener("DOMContentLoaded", function () {
 </script>
 
 <! ============================================>
-<! ============👇 Reset Feature==============>
+<! ============ðŸ‘‡ Reset Feature==============>
 <! ============================================>
 <script>
 function recycleExam(examId, studentId) {
@@ -1503,11 +1547,11 @@ function recycleExam(examId, studentId) {
 }
 
 // ============================================
-// =========👇 Review Student Attempt==========
+// =========ðŸ‘‡ Review Student Attempt==========
 // ============================================
 function reviewAttempt(examId, studentId) {
 
-    console.log("👁 Review Requested");
+    console.log('👁 Review Requested');
 
     console.table({
         examId,
@@ -1546,7 +1590,7 @@ function reviewAttempt(examId, studentId) {
 
         .then(data => {
 
-            console.log("📚 Review Data");
+            console.log("ðŸ“š Review Data");
 
             console.log(data);
 
@@ -1557,7 +1601,7 @@ function reviewAttempt(examId, studentId) {
                     <div class="card-body">
 
                         <h5 class="mb-3">
-                            👤 Student Information
+                            ðŸ‘¤ Student Information
                         </h5>
 
                         <div class="row">
@@ -1637,7 +1681,7 @@ function reviewAttempt(examId, studentId) {
                 <div class="card-body">
 
                     <h5 class="mb-3">
-                        📊 Exam Progress
+                        <i class="bi bi-bar-chart-line-fill"></i> Exam Progress
                     </h5>
 
                     <div class="progress mb-3" style="height:22px;">
@@ -1711,7 +1755,7 @@ function reviewAttempt(examId, studentId) {
 
             data.questions.forEach(q => {
 
-                let badge = "⚪";
+                let badge = "âšª";
                 let color = "secondary";
                 let answer = "Unanswered";
 
@@ -1720,11 +1764,11 @@ function reviewAttempt(examId, studentId) {
                     answer = q.student_answer;
 
                     if (q.is_correct) {
-                        badge = "🟢";
+                        badge = '<i class="bi bi-check-circle"></i>';
                         color = "success";
                     }
                     else {
-                        badge = "🔴";
+                        badge = '<i class="bi bi-x-circle"></i>';
                         color = "danger";
                     }
 
@@ -1762,7 +1806,7 @@ function reviewAttempt(examId, studentId) {
 }
 
 // ============================================
-// =========👇 Force Submit ===================
+// =========ðŸ‘‡ Force Submit ===================
 // ============================================
 function forceSubmit(examId, studentId) {
 
@@ -1854,7 +1898,7 @@ function forceSubmit(examId, studentId) {
 <div class="modal fade" id="endExamModal" tabindex="-1" data-bs-backdrop="static">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content border-0 shadow-lg">
-      <div class="modal-header bg-danger text-white"><h5 class="modal-title"><i class="bi bi-exclamation-triangle-fill"></i> End Exam?</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+      <div class="modal-header bg-danger text-white"><h5 class="modal-title"><i class="bi bi-exclamation-triangle-fill icon-flip"></i> End Exam?</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
       <div class="modal-body p-4"><p>End <strong id="endExamTitle">this exam</strong>?</p><div class="alert alert-warning small">Moves to <strong>Finished Exams</strong>. Students can't take it anymore.</div></div>
       <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button type="button" class="btn btn-danger" id="confirmEndExamBtn">Continue - End Exam</button></div>
     </div>
@@ -1874,9 +1918,9 @@ function updateLiveCount(){
     const emptyMsg=document.getElementById('emptyMessage');
     const container=document.querySelector('.container');
     if(count===0 && !emptyMsg && container){
-        let msg='<div id="emptyMessage" class="text-center py-5 exam-card entering"><h5 class="text-muted">No exams here ✨</h5></div>';
+        let msg='<div id="emptyMessage" class="text-center py-5 exam-card entering"><h5 class="text-muted">No exams here <i class="bi bi-stars"></i></h5></div>';
         const page=window.location.pathname;
-        if(page.includes('view-exams')) msg='<div id="emptyMessage" class="text-center py-5 exam-card entering"><h5 class="text-muted">No active exams — all finished! 🎉</h5><a href="/finished-exams" class="btn btn-primary mt-3">Go to Finished Exams</a></div>';
+        if(page.includes('view-exams')) msg='<div id="emptyMessage" class="text-center py-5 exam-card entering"><h5 class="text-muted">No active exams <i class="bi bi-dash-lg text-muted"></i> all finished! <i class="bi bi-balloon"></i></h5><a href="/finished-exams" class="btn btn-primary mt-3">Go to Finished Exams</a></div>';
         else if(page.includes('finished-exams')) msg='<div id="emptyMessage" class="text-center py-5 exam-card entering"><h5 class="text-muted">No finished exams</h5><a href="/view-exams" class="btn btn-primary mt-2">Active</a> <a href="/archived-exams" class="btn btn-secondary mt-2">Archived</a></div>';
         else if(page.includes('archived-exams')) msg='<div id="emptyMessage" class="text-center py-5 exam-card entering"><h5 class="text-muted">No archived exams</h5></div>';
         container.insertAdjacentHTML('beforeend', msg);
@@ -1899,13 +1943,13 @@ examChannel.onmessage = async (e)=>{
         let badge='', badgeClass='', buttons='';
         if(data.action==='end' || data.action==='restore'){
             badge='Finished'; badgeClass='bg-warning text-dark';
-            buttons=`<a href="/edit-exam/${exam.id}" class="btn btn-primary btn-sm"><i class="bi bi-pencil"></i> Edit</a> <button class="btn btn-warning btn-sm js-start-exam" data-exam-id="${exam.id}"><i class="bi bi-play-circle"></i> Start Exam</button> <button class="btn btn-secondary btn-sm js-archive-exam" data-exam-id="${exam.id}"><i class="bi bi-archive"></i> Archive</button>`;
+            buttons=`<a href="/edit-exam/${exam.id}" class="friendly-btn primary" data-flip="spin"><i class="bi bi-pencil icon-flip"></i> Edit</a> <button class="btn btn-warning btn-sm js-start-exam" data-exam-id="${exam.id}"><i class="bi bi-play-circle icon-flip"></i> Start Exam</button> <button class="btn btn-secondary btn-sm js-archive-exam" data-exam-id="${exam.id}"><i class="bi bi-archive icon-flip"></i> Archive</button>`;
         } else if(data.action==='archive'){
             badge='Archived'; badgeClass='bg-secondary';
-            buttons=`<button class="btn btn-success btn-sm js-restore-exam" data-exam-id="${exam.id}"><i class="bi bi-arrow-counterclockwise"></i> Restore</button>`;
+            buttons=`<button class="btn btn-success btn-sm js-restore-exam" data-exam-id="${exam.id}"><i class="bi bi-arrow-counterclockwise icon-flip"></i> Restore</button>`;
         } else if(data.action==='start'){
             badge='Active'; badgeClass='bg-success';
-            buttons=`<a href="/edit-exam/${exam.id}" class="btn btn-primary btn-sm"><i class="bi bi-pencil"></i> Edit</a> <button class="btn btn-danger btn-sm js-end-exam" data-exam-id="${exam.id}"><i class="bi bi-stop-circle"></i> End Exam</button>`;
+            buttons=`<a href="/edit-exam/${exam.id}" class="friendly-btn primary" data-flip="spin"><i class="bi bi-pencil icon-flip"></i> Edit</a> <button class="btn btn-danger btn-sm js-end-exam" data-exam-id="${exam.id}"><i class="bi bi-stop-circle icon-flip"></i> End Exam</button>`;
         }
         const html=`<div class="card shadow-sm mb-4 exam-card entering" id="exam-card-${exam.id}" data-exam-id="${exam.id}" style="border-left:5px solid #0d6efd;"><div class="card-body"><div class="d-flex justify-content-between align-items-start mb-3"><div><h4 class="mb-1">${exam.title} <span class="badge ${badgeClass} ms-2">${badge} • New!</span></h4><p class="text-muted mb-1">${exam.subject_code} - ${exam.subject_name}</p><small class="text-muted"><strong>Term:</strong> ${exam.term} | <strong>Type:</strong> ${exam.exam_type} | <strong>Duration:</strong> ${exam.duration} mins</small></div><span class="badge ${badgeClass}">${badge}</span></div><div class="d-flex flex-wrap gap-2 mb-3">${buttons}</div></div></div>`;
         const first=document.querySelector('.exam-card');
@@ -1913,7 +1957,7 @@ examChannel.onmessage = async (e)=>{
         else { const empty=document.getElementById('emptyMessage'); if(empty) empty.remove(); container.insertAdjacentHTML('beforeend', html); }
         updateLiveCount();
         const el=document.getElementById('liveToast'); const m=document.getElementById('toastMessage');
-        if(el && m){ m.textContent=`✨ "${exam.title}" arrived automatically!`; el.className='toast align-items-center border-0 text-bg-primary'; new bootstrap.Toast(el,{delay:4000}).show(); }
+        if(el && m){ m.textContent=`<i class="bi bi-stars"></i> "${exam.title}" arrived automatically!`; el.className='toast align-items-center border-0 text-bg-primary'; new bootstrap.Toast(el,{delay:4000}).show(); }
         setTimeout(()=>{ const b=document.querySelector(`#exam-card-${exam.id} .badge`); if(b) b.textContent=badge; },5000);
     }catch(err){ console.error(err); }
 };
@@ -1951,12 +1995,86 @@ document.addEventListener('DOMContentLoaded', ()=>{
       broadcastMove('end', selId, data.title);
       if(bsModal) bsModal.hide();
       selCard.classList.add('exiting');
-      setTimeout(()=>{ selCard.remove(); updateLiveCount(); toast(`📦 "${data.title}" → Finished`, 'warning'); },750);
+      setTimeout(()=>{ selCard.remove(); updateLiveCount(); toast(`<i class="bi bi-box-seam"></i> "${data.title}" <i class="bi bi-arrow-right"></i> Finished`, 'warning'); },750);
     }catch(e){ toast('Failed','danger'); if(bsModal) bsModal.hide(); } finally{ confirmBtn.disabled=false; confirmBtn.innerHTML=orig; }
   });
 
   if(modalEl) modalEl.addEventListener('hidden.bs.modal', ()=>{ selId=null; selCard=null; });
 });
+</script>
+
+
+<script>
+// === FIXED Review & Reset - Soft Friendly Patch ===
+function reviewAttemptFixed(examId, studentId) {
+    console.log("[FIXED] Review Requested", examId, studentId);
+    const modalEl = document.getElementById("reviewModal");
+    if (!modalEl) { console.error("reviewModal not found"); alert("Review modal missing"); return; }
+    const fullReportButton = document.getElementById("reviewFullReportBtn");
+    if (fullReportButton) {
+        fullReportButton.onclick = () => { window.location.href = `/review-report/${examId}/${studentId}`; };
+    }
+    const modal = new bootstrap.Modal(modalEl);
+    document.getElementById("reviewStudentInfo").innerHTML = '<div class="text-center py-4"><div class="spinner-border" style="color:#7a5af0;"></div><p class="mt-2" style="font-family:Nunito; color:#8a92a8;">Loading student review...</p></div>';
+    document.getElementById("reviewProgress").innerHTML = "";
+    document.getElementById("reviewStatistics").innerHTML = "";
+    document.getElementById("reviewQuestions").innerHTML = "";
+    modal.show();
+    fetch(`/review-attempt-data/${examId}/${studentId}`)
+        .then(r => { if(!r.ok) throw new Error('Network error'); return r.json(); })
+        .then(data => {
+            console.log("Review Data:", data);
+            // Reuse original rendering if exists - call original logic
+            if (typeof window.originalRenderReview === 'function') {
+                window.originalRenderReview(data);
+            } else {
+                // Basic fallback rendering
+                document.getElementById("reviewStudentInfo").innerHTML = `<div style="font-family:Nunito; background:#f0f2ff; border-radius:14px; padding:16px;"><h5 style="color:#3e4460;"><i class="bi bi-person"></i> ${data.student_name || studentId}</h5><p style="color:#8a92a8; margin:0;">Score: ${data.score || 'N/A'} | ${data.percentage || ''}%</p></div>`;
+                if (data.questions) {
+                    document.getElementById("reviewQuestions").innerHTML = data.questions.map((q,i)=>`<div style="background:#fff; border:1px solid #f0eef8; border-radius:12px; padding:12px; margin-bottom:8px; font-family:Nunito;"><strong>Q${i+1}:</strong> ${q.question}<br><small style="color:${q.is_correct?'#3daa5e':'#ff6b7b'}">${q.is_correct?'Correct':'Wrong'} - Your answer: ${q.student_answer}</small></div>`).join('');
+                }
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            document.getElementById("reviewStudentInfo").innerHTML = `<div class="alert alert-danger" style="border-radius:14px; font-family:Nunito;"><i class="bi bi-exclamation-triangle"></i> Unable to load review: ${err.message}</div>`;
+        });
+}
+
+function recycleExamFixed(examId, studentId) {
+    console.log("[FIXED] Reset Requested", examId, studentId);
+    if (!confirm(`Reset exam for student ${studentId}? This will allow retake.`)) return;
+    const toastEl = document.getElementById("liveToast");
+    const toastMsg = document.getElementById("toastMessage");
+    fetch("/reset-exam", {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({exam_id: examId, student_id: studentId})
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (!data.success) {
+            if (toastMsg) toastMsg.innerHTML = `<i class="bi bi-x-circle"></i> ${data.message}`;
+            if (toastEl) { toastEl.className = "toast align-items-center border-0 text-bg-danger"; new bootstrap.Toast(toastEl).show(); }
+            else alert(data.message);
+            return;
+        }
+        if (typeof updateStudentAccess === 'function') updateStudentAccess(studentId, examId, "not_requested");
+        if (toastMsg) toastMsg.innerHTML = `<i class="bi bi-check-circle"></i> ${data.message}`;
+        if (toastEl) { toastEl.className = "toast align-items-center border-0 text-bg-success"; new bootstrap.Toast(toastEl).show(); }
+        // Update row visually
+        setTimeout(()=>location.reload(), 1200);
+    })
+    .catch(err => {
+        console.error(err);
+        if (toastMsg) toastMsg.innerHTML = `<i class="bi bi-exclamation-triangle"></i> Unable to reset exam`;
+        if (toastEl) { toastEl.className = "toast align-items-center border-0 text-bg-danger"; new bootstrap.Toast(toastEl).show(); }
+    });
+}
+
+// Override original functions with fixed ones
+window.reviewAttempt = reviewAttemptFixed;
+window.recycleExam = recycleExamFixed;
 </script>
 
 </body>

@@ -14,6 +14,7 @@ from collections import defaultdict
 from flask_migrate import Migrate
 from urllib.parse import unquote
 from flask_wtf import FlaskForm
+from flask_caching import Cache
 from time import perf_counter
 from functools import wraps
 from sqlalchemy import func
@@ -31,42 +32,39 @@ import os
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your_secret_key_change_in_render')
 
-# --- Ensure upload folder exists ---
-basedir = os.path.abspath(os.path.dirname(__file__))
+# --- PHONE OPTIMIZED CACHE: short timeout for live data ---
+cache = Cache(app, config={
+    'CACHE_TYPE': 'SimpleCache',
+    'CACHE_DEFAULT_TIMEOUT': 15  # 15 sec, not 300 - phone sees approval fast
+})
 
+# --- Ensure upload folder ---
+basedir = os.path.abspath(os.path.dirname(__file__))
 UPLOAD_FOLDER = os.path.join(basedir, 'uploads')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-
 ALLOWED_EXTENSIONS = {'csv'}
 
-# --- Neon PostgreSQL (persistent) ---
-# --- Neon PostgreSQL (persistent) - uses env var for new deploy, falls back to existing NeonDB ---
+# --- NeonDB - PHONE OPTIMIZED POOL ---
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 
     'postgresql://neondb_owner:npg_97DuTpZbOLJY@ep-cold-resonance-a1ldqo6i-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require'
 )
-
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-    "connect_args": {"connect_timeout": 15},
-    "pool_pre_ping": True,        # 🩺 checks if connection is alive before using it
-    "pool_recycle": 300,          # 🔁 reconnects every 5 minutes
-    "pool_size": 2,               # 💧 keep 5 connections ready
-    "max_overflow": 3            # 🚀 allow temporary burst of 10
+    "connect_args": {"connect_timeout": 10},  # 10 not 15 - phone drops faster
+    "pool_pre_ping": True,
+    "pool_recycle": 300,
+    "pool_size": 2,       # perfect for 0.1 CPU
+    "max_overflow": 2     # was 3, lower = less Neon connections from phone spam
 }
-
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# cache already defined as 15s for phone live
 
 # --- Database ---
 db = SQLAlchemy(app)
-
-# --- Flask-Migrate ---
 migrate = Migrate(app, db)
 
-# =========================
-# SSE EVENT STORE (REALTIME QUEUE)
-# =========================
-sse_events = defaultdict(list)
+sse_events = defaultdict(list)  # LIVE auto-refresh - required, tiny RAM
 
 # --- Models ---
 class User(db.Model):
@@ -256,9 +254,28 @@ class Question(db.Model):
     choice_b = db.Column(db.Text, nullable=True)
     choice_c = db.Column(db.Text, nullable=True)
     choice_d = db.Column(db.Text, nullable=True)
+    choices_json = db.Column(db.Text, nullable=True)
 
     correct_answer = db.Column(db.Text)
     points = db.Column(db.Integer, default=1)
+    is_deleted = db.Column(db.Boolean, default=False, nullable=False)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    deleted_at = db.Column(db.DateTime, nullable=True)
+
+    @property
+    def choices(self):
+        import json as _json
+        if self.choices_json:
+            try:
+                return _json.loads(self.choices_json)
+            except:
+                pass
+        d = {}
+        if self.choice_a: d['A'] = self.choice_a
+        if self.choice_b: d['B'] = self.choice_b
+        if self.choice_c: d['C'] = self.choice_c
+        if self.choice_d: d['D'] = self.choice_d
+        return d
 
 class ExamAttempt(db.Model):
     __tablename__ = 'exam_attempts'
@@ -765,13 +782,22 @@ def get_exam_records(student_id):
 # ===== Get Exam Questions =============
 # ======================================
 def get_exam_questions(exam_id):
-
-    return (
-        Question.query
-        .filter_by(exam_id=exam_id)
-        .order_by(Question.id.asc())
-        .all()
-    )
+    """Only active questions - hidden from take_exam if soft deleted"""
+    try:
+        return (
+            Question.query
+            .filter(Question.exam_id==exam_id, Question.is_deleted==False, Question.is_active==True)
+            .order_by(Question.id.asc())
+            .all()
+        )
+    except:
+        # fallback if columns not yet migrated
+        return (
+            Question.query
+            .filter_by(exam_id=exam_id)
+            .order_by(Question.id.asc())
+            .all()
+        )
 
 # ==========================================================
 # LOAD QUESTIONS USING THE STORED RANDOM ORDER
@@ -1499,7 +1525,7 @@ def dashboard_instructor():
     students = Student.query.all()
 
     # FETCH SUBJECTS
-    subjects = Subject.query.all()
+    subjects = Subject.query.order_by(Subject.subject_name.asc()).all()
 
     return render_template(
         'dashboard_instructor.html',
@@ -1692,7 +1718,7 @@ def add_subject():
 @login_required(role=['Admin', 'Instructor'])
 def view_subjects():
 
-    subjects = Subject.query.all()
+    subjects = Subject.query.order_by(Subject.subject_name.asc()).all()
 
     return render_template(
         'view_subjects.html',
@@ -1791,7 +1817,7 @@ def create_exam():
 @login_required(role=['Admin', 'Instructor'])
 def edit_exam(exam_id):
     exam = Exam.query.get_or_404(exam_id)
-    subjects = Subject.query.all()
+    subjects = Subject.query.order_by(Subject.subject_name.asc()).all()
     if request.method == 'POST':
         exam.title = request.form.get('title')
         exam.subject_id = request.form.get('subject_id')
@@ -1814,8 +1840,9 @@ def edit_exam(exam_id):
 # ========================
 @app.route('/view-exams')
 @login_required(role=['Admin', 'Instructor'])
+@cache.cached(timeout=15)
 def view_exams():
-    subjects = Subject.query.all()
+    subjects = Subject.query.order_by(Subject.subject_name.asc()).all()
     # Only Active AND Not Archived
     exams = Exam.query.filter_by(is_active=True, is_archived=False).order_by(Exam.created_at.desc()).all()
     access_records = ExamAccess.query.all()
@@ -1857,8 +1884,9 @@ def view_exams():
 # =========================================================
 @app.route("/finished-exams")
 @login_required(role=["Admin", "Instructor"])
+@cache.cached(timeout=15)
 def finished_exams():
-    subjects = Subject.query.all()
+    subjects = Subject.query.order_by(Subject.subject_name.asc()).all()
     # Only Closed AND Not Archived
     exams = Exam.query.filter_by(is_active=False, is_archived=False).order_by(Exam.created_at.desc()).all()
     access_map = {(a.student_id, a.exam_id): a for a in ExamAccess.query.filter(ExamAccess.status != "not_requested").all()}
@@ -2004,7 +2032,7 @@ def export_exam_scores(exam_id):
 @app.route("/archived-exams")
 @login_required(role=["Admin", "Instructor"])
 def archived_exams():
-    subjects = Subject.query.all()
+    subjects = Subject.query.order_by(Subject.subject_name.asc()).all()
     exams = Exam.query.filter_by(is_archived=True).order_by(Exam.archived_at.desc()).all()
     exam_students = {}
     exam_summary = {}
@@ -2058,7 +2086,35 @@ def admin_start_exam(exam_id):
 def end_exam(exam_id):
     exam = Exam.query.get_or_404(exam_id)
     exam.is_active = False
-    db.session.commit()
+
+    # FORCE SUBMIT all taking - as you requested
+    try:
+        active_attempts = ExamAttempt.query.filter_by(exam_id=exam.id, is_submitted=False).all()
+        for attempt in active_attempts:
+            try:
+                answers = StudentAnswer.query.filter_by(attempt_id=attempt.id).all()
+                score = 0
+                for ans in answers:
+                    q = Question.query.get(ans.question_id)
+                    if q and ans.selected_answer:
+                        if q.question_type == 'identification':
+                            if ans.selected_answer.strip().lower() == (q.correct_answer or '').strip().lower():
+                                score += q.points or 1
+                        else:
+                            if ans.selected_answer.strip().upper() == (q.correct_answer or '').strip().upper():
+                                score += q.points or 1
+                attempt.score = score
+                attempt.is_submitted = True
+                attempt.submitted_at = datetime.utcnow()
+                acc = ExamAccess.query.filter_by(exam_id=exam.id, student_id=attempt.student_id).first()
+                if acc:
+                    acc.status = "submitted"
+            except Exception as e:
+                print(f"Force submit error: {e}")
+        db.session.commit()
+    except Exception as e:
+        print(f"End exam error: {e}")
+
     for access in ExamAccess.query.filter_by(exam_id=exam.id).all():
         if str(access.student_id) in sse_events:
             sse_events[access.student_id].append({"event": "exam_ended", "data": {"exam_id": exam.id}})
@@ -2095,163 +2151,206 @@ def restore_exam(exam_id):
 # =========================================================
 # 3. ✏️ QUESTION MANAGEMENT - Add Question
 # =========================================================
+
 @app.route('/add-question/<int:exam_id>', methods=['GET', 'POST'])
 @login_required(role=['Admin', 'Instructor'])
 def add_question(exam_id):
-
     exam = Exam.query.get_or_404(exam_id)
-
-    subjects = Subject.query.all()
+    subjects = Subject.query.order_by(Subject.subject_name.asc()).all()
+    import json
 
     if request.method == 'POST':
-
         question_types = request.form.getlist('question_type[]')
-        questions = request.form.getlist('question_text[]')
-
-        choice_as = request.form.getlist('choice_a[]')
-        choice_bs = request.form.getlist('choice_b[]')
-        choice_cs = request.form.getlist('choice_c[]')
-        choice_ds = request.form.getlist('choice_d[]')
-
+        questions_text = request.form.getlist('question_text[]')
+        points_list = request.form.getlist('points[]')
         correct_answers = request.form.getlist('correct_answer[]')
         identification_answers = request.form.getlist('correct_identification[]')
 
-        points_list = request.form.getlist('points[]')
+        choice_letters = [chr(c) for c in range(ord('a'), ord('z')+1)]
+        choices_by_letter = {}
+        for letter in choice_letters:
+            choices_by_letter[letter] = request.form.getlist(f'choice_{letter}[]')
 
-        id_index = 0  # 👈 FIX: separate index for identification
+        id_idx = 0
+        mcq_idx = 0
 
-        for i in range(len(questions)):
+        for i in range(len(questions_text)):
+            if not questions_text[i].strip():
+                continue
+            q_type = question_types[i] if i < len(question_types) else 'mcq'
+            try:
+                points = int(points_list[i]) if i < len(points_list) and points_list[i] else 1
+            except:
+                points = 1
 
-            q_type = question_types[i]
-
-            points = int(points_list[i]) if i < len(points_list) and points_list[i] else 1
-
-            # =========================
-            # IDENTIFICATION
-            # =========================
             if q_type == "identification":
-
+                correct = identification_answers[id_idx] if id_idx < len(identification_answers) else ""
+                id_idx += 1
                 question = Question(
                     exam_id=exam.id,
                     question_type="identification",
-                    question_text=questions[i],
-                    correct_answer=identification_answers[id_index] if id_index < len(identification_answers) else "",
-                    points=points
+                    question_text=questions_text[i],
+                    correct_answer=correct,
+                    points=points,
+                    is_deleted=False,
+                    is_active=True
                 )
-
-                identification_answers = iter(identification_answers)
-                next(identification_answers, "")
-
-            # =========================
-            # MCQ
-            # =========================
+                db.session.add(question)
             else:
+                all_choices = {}
+                for letter in choice_letters:
+                    lst = choices_by_letter.get(letter, [])
+                    val = ""
+                    if i < len(lst) and lst[i].strip():
+                        val = lst[i]
+                    elif mcq_idx < len(lst) and lst[mcq_idx].strip():
+                        val = lst[mcq_idx]
+                    if val:
+                        all_choices[letter.upper()] = val
+
+                choice_a = all_choices.get('A', '')
+                choice_b = all_choices.get('B', '')
+                choice_c = all_choices.get('C', '')
+                choice_d = all_choices.get('D', '')
+
+                correct = ""
+                if mcq_idx < len(correct_answers) and correct_answers[mcq_idx].strip():
+                    correct = correct_answers[mcq_idx]
+                elif i < len(correct_answers):
+                    correct = correct_answers[i]
 
                 question = Question(
                     exam_id=exam.id,
                     question_type="mcq",
-                    question_text=questions[i],
-                    choice_a=choice_as[i] if i < len(choice_as) else "",
-                    choice_b=choice_bs[i] if i < len(choice_bs) else "",
-                    choice_c=choice_cs[i] if i < len(choice_cs) else "",
-                    choice_d=choice_ds[i] if i < len(choice_ds) else "",
-                    correct_answer=correct_answers[i] if i < len(correct_answers) else "",
-                    points=points
+                    question_text=questions_text[i],
+                    choice_a=choice_a,
+                    choice_b=choice_b,
+                    choice_c=choice_c,
+                    choice_d=choice_d,
+                    choices_json=json.dumps(all_choices) if all_choices else None,
+                    correct_answer=correct,
+                    points=points,
+                    is_deleted=False,
+                    is_active=True
                 )
-
-            db.session.add(question)
+                db.session.add(question)
+                mcq_idx += 1
 
         db.session.commit()
-
         flash("Questions added successfully!", "success")
         return redirect(url_for('add_question', exam_id=exam.id))
 
-    questions = get_exam_questions(exam_id)
+    # Get ALL questions including soft deleted for admin view
+    try:
+        all_questions = Question.query.filter_by(exam_id=exam_id).order_by(Question.id.asc()).all()
+    except:
+        all_questions = Question.query.filter_by(exam_id=exam_id).order_by(Question.id.asc()).all()
+
+    # Robust counting - handle NULLs (old data before migration)
+    active_questions = []
+    hidden_questions = []
+    for q in all_questions:
+        is_del = getattr(q, 'is_deleted', False)
+        is_act = getattr(q, 'is_active', True)
+        # Treat None as False/True
+        if is_del is None:
+            is_del = False
+        if is_act is None:
+            is_act = True
+        if is_del or not is_act:
+            hidden_questions.append(q)
+        else:
+            active_questions.append(q)
 
     return render_template(
         'add_question.html',
         exam=exam,
-        questions=questions,
+        questions=all_questions,
+        active_questions=active_questions,
+        hidden_questions=hidden_questions,
+        active_count=len(active_questions),
+        hidden_count=len(hidden_questions),
         subjects=subjects
     )
-
 # =========================
 # Edit Exam Question Route
 # =========================
 @app.route('/edit-question/<int:question_id>', methods=['GET', 'POST'])
 @login_required(role=['Admin', 'Instructor'])
 def edit_question(question_id):
-
+    import json
     question = Question.query.get_or_404(question_id)
 
-    # =========================
-    # AJAX GET MODE
-    # =========================
-    if request.method == "GET" and request.headers.get("X-Requested-With") == "XMLHttpRequest":
-
+    if request.method == "GET":
+        choices = question.choices if hasattr(question, 'choices') else {}
         return jsonify({
-
             "id": question.id,
-
             "question_text": question.question_text,
-
             "choice_a": question.choice_a,
-
             "choice_b": question.choice_b,
-
             "choice_c": question.choice_c,
-
             "choice_d": question.choice_d,
-
+            "choices": choices,
+            "choices_json": question.choices_json if hasattr(question, 'choices_json') else None,
             "correct_answer": question.correct_answer,
-
             "points": question.points,
-
             "question_type": question.question_type
-
         })
 
-    # =========================
-    # AJAX MODE (NEW)
-    # =========================
     if request.method == 'POST' and request.is_json:
-
         data = request.get_json()
-
+        new_type = data.get('question_type', question.question_type)
         question.question_text = data.get('question_text')
-        question.choice_a = data.get('choice_a')
-        question.choice_b = data.get('choice_b')
-        question.choice_c = data.get('choice_c')
-        question.choice_d = data.get('choice_d')
+        question.question_type = new_type
+
+        if new_type == 'identification':
+            # TRANSFORM TO IDENTIFICATION - clear MCQ choices
+            question.choices_json = None
+            question.choice_a = None
+            question.choice_b = None
+            question.choice_c = None
+            question.choice_d = None
+        else:
+            # TRANSFORM TO MCQ - save A-Z choices
+            choices = data.get('choices', {})
+            if choices:
+                question.choices_json = json.dumps(choices)
+                question.choice_a = choices.get('A', '') or choices.get('a', '')
+                question.choice_b = choices.get('B', '') or choices.get('b', '')
+                question.choice_c = choices.get('C', '') or choices.get('c', '')
+                question.choice_d = choices.get('D', '') or choices.get('d', '')
+                # Store extra choices beyond D in choices_json, already done
+            else:
+                # Fallback old fields
+                question.choice_a = data.get('choice_a')
+                question.choice_b = data.get('choice_b')
+                question.choice_c = data.get('choice_c')
+                question.choice_d = data.get('choice_d')
+
         question.correct_answer = data.get('correct_answer')
-        question.points = int(data.get('points', 1))
-
+        try:
+            question.points = int(data.get('points', 1))
+        except:
+            question.points = 1
         db.session.commit()
+        return jsonify({"success": True, "transformed_to": new_type})
 
-        return jsonify({"success": True})
-
-    # =========================
-    # OLD PAGE MODE (UNCHANGED)
-    # =========================
     if request.method == 'POST':
-
         question.question_text = request.form.get('question_text')
         question.choice_a = request.form.get('choice_a')
         question.choice_b = request.form.get('choice_b')
         question.choice_c = request.form.get('choice_c')
         question.choice_d = request.form.get('choice_d')
         question.correct_answer = request.form.get('correct_answer')
-        question.points = int(request.form.get('points', 1))
-
+        try:
+            question.points = int(request.form.get('points', 1))
+        except:
+            question.points = 1
         db.session.commit()
-
         flash("Question updated successfully!", "success")
-
         return redirect(url_for('add_question', exam_id=question.exam_id))
 
-    return jsonify({
-    "message": "Use AJAX to edit questions."
-})
+    return jsonify({"message": "Use AJAX to edit questions."})
 
 # =========================
 # Delete Exam Question Route
@@ -2259,15 +2358,89 @@ def edit_question(question_id):
 @app.route('/delete-question/<int:question_id>', methods=['POST'])
 @login_required(role=['Admin', 'Instructor'])
 def delete_question(question_id):
-
     question = Question.query.get_or_404(question_id)
+    data = request.get_json(silent=True) or {}
+    mode = data.get('mode', 'soft')  # default soft!
+    try:
+        if mode == 'hard':
+            # HARD DELETE only when explicitly Hard Delete
+            StudentAnswer.query.filter_by(question_id=question.id).delete(synchronize_session=False)
+            AttemptQuestionOrder.query.filter_by(question_id=question.id).delete(synchronize_session=False)
+            db.session.flush()
+            db.session.delete(question)
+            db.session.commit()
+            return jsonify({"success": True, "action": "hard_deleted"})
+        else:
+            # SOFT DELETE DEFAULT - safe, hides from take_exam.html
+            question.is_deleted = True
+            question.is_active = False
+            question.deleted_at = datetime.utcnow()
+            db.session.commit()
+            return jsonify({"success": True, "action": "soft_deleted", "message": "Moved to Hidden/Deleted tab"})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500
+
+@app.route('/restore-question/<int:question_id>', methods=['POST'])
+@login_required(role=['Admin', 'Instructor'])
+def restore_question(question_id):
+    question = Question.query.get_or_404(question_id)
+    if hasattr(question, 'is_deleted'):
+        question.is_deleted = False
+        question.is_active = True
+        question.deleted_at = None
+        db.session.commit()
+        return jsonify({"success": True, "action": "restored"})
+    return jsonify({"success": False, "message": "Soft delete not enabled"}), 400
+
+@app.route('/hard-delete-question/<int:question_id>', methods=['POST'])
+@login_required(role=['Admin', 'Instructor'])
+def hard_delete_question(question_id):
+    question = Question.query.get_or_404(question_id)
+    StudentAnswer.query.filter_by(question_id=question.id).delete(synchronize_session=False)
+    AttemptQuestionOrder.query.filter_by(question_id=question.id).delete(synchronize_session=False)
     db.session.delete(question)
     db.session.commit()
+    return jsonify({"success": True, "action": "hard_deleted"})
 
-    # =====================
-    # AJAX RESPONSE
-    # =====================
-    return jsonify({"success": True})
+@app.route('/get-question/<int:question_id>', methods=['GET'])
+@login_required(role=['Admin', 'Instructor'])
+def get_question_alias(question_id):
+    # This fixes your console error GET /get-question/103 404
+    # It just calls the real edit function
+    return edit_question(question_id)
+
+@app.route('/bulk-soft-delete', methods=['POST'])
+@login_required(role=['Admin', 'Instructor'])
+def bulk_soft_delete():
+    data = request.get_json() or {}
+    ids = data.get('ids', [])
+    count = 0
+    for qid in ids:
+        q = Question.query.get(qid)
+        if q:
+            q.is_deleted = True
+            q.is_active = False
+            q.deleted_at = datetime.utcnow()
+            count += 1
+    db.session.commit()
+    return jsonify({"success": True, "count": count})
+
+@app.route('/bulk-restore', methods=['POST'])
+@login_required(role=['Admin', 'Instructor'])
+def bulk_restore():
+    data = request.get_json() or {}
+    ids = data.get('ids', [])
+    count = 0
+    for qid in ids:
+        q = Question.query.get(qid)
+        if q:
+            q.is_deleted = False
+            q.is_active = True
+            q.deleted_at = None
+            count += 1
+    db.session.commit()
+    return jsonify({"success": True, "count": count})
 
 # =========================
 # Import Exam Question Route
@@ -2410,35 +2583,107 @@ def export_question_template():
         download_name="question_template.xlsx"
     )
 
+
 @app.route('/import-existing-questions/<int:exam_id>', methods=['POST'])
 @login_required(role=['Instructor', 'Admin'])
 def import_existing_questions(exam_id):
+    import json
+    selected_ids = []
+    if request.is_json:
+        data = request.get_json()
+        selected_ids = data.get('question_ids', [])
+    else:
+        selected_ids = request.form.getlist('question_ids') or request.form.getlist('question_ids[]') or request.form.getlist('question_ids[]'.replace('[]',''))
 
-    selected_ids = request.form.getlist('question_ids')
+    # also try form with subject flow legacy
+    if not selected_ids:
+        selected_ids = request.form.getlist('question_ids')
 
+    if not selected_ids:
+        if request.is_json:
+            return jsonify({"success": False, "message": "No questions selected"})
+        flash('No questions selected!', 'warning')
+        return redirect(url_for('add_question', exam_id=exam_id))
+
+    count = 0
     for qid in selected_ids:
-
-        original = Question.query.get(qid)
-
+        try:
+            original = Question.query.get(int(qid))
+        except:
+            continue
         if original:
-
-            db.session.add(Question(
+            new_q = Question(
                 exam_id=exam_id,
                 question_text=original.question_text,
+                question_type=original.question_type,
                 choice_a=original.choice_a,
                 choice_b=original.choice_b,
                 choice_c=original.choice_c,
                 choice_d=original.choice_d,
                 correct_answer=original.correct_answer,
                 points=original.points
-            ))
+            )
+            if hasattr(original, 'choices_json') and hasattr(new_q, 'choices_json'):
+                new_q.choices_json = original.choices_json
+            db.session.add(new_q)
+            count += 1
 
     db.session.commit()
 
-    flash('Questions imported successfully!', 'success')
+    if request.is_json:
+        return jsonify({"success": True, "count": count})
 
+    flash(f'{count} questions imported successfully!', 'success')
     return redirect(url_for('add_question', exam_id=exam_id))
 
+
+@app.route('/api/questions-by-subject/<int:subject_id>')
+@login_required(role=['Admin', 'Instructor'])
+def get_questions_by_subject(subject_id):
+    import json
+    exclude_exam_id = request.args.get('exclude_exam', type=int)
+    exams = Exam.query.filter_by(subject_id=subject_id).all()
+    exam_ids = [e.id for e in exams]
+    if not exam_ids:
+        return jsonify({"questions": []})
+
+    query = Question.query.filter(Question.exam_id.in_(exam_ids))
+    if exclude_exam_id:
+        query = query.filter(Question.exam_id != exclude_exam_id)
+
+    questions = query.order_by(Question.id.desc()).limit(200).all()
+
+    result = []
+    for q in questions:
+        choices = {}
+        if hasattr(q, 'choices_json') and q.choices_json:
+            try:
+                choices = json.loads(q.choices_json)
+            except:
+                choices = {}
+        if not choices:
+            if q.choice_a: choices['A'] = q.choice_a
+            if q.choice_b: choices['B'] = q.choice_b
+            if q.choice_c: choices['C'] = q.choice_c
+            if q.choice_d: choices['D'] = q.choice_d
+
+        exam_title = ""
+        for e in exams:
+            if e.id == q.exam_id:
+                exam_title = e.title
+                break
+
+        result.append({
+            "id": q.id,
+            "question_text": q.question_text,
+            "question_type": q.question_type,
+            "choices": choices,
+            "correct_answer": q.correct_answer,
+            "points": q.points,
+            "exam_title": exam_title
+        })
+
+    return jsonify({"questions": result})
 
 # =========================================================
 # 4. 📚 STUDENT EXAM LIST
@@ -3452,12 +3697,45 @@ def log_security_event():
 # =========================================================
 # SECURITY LOGS - CARD LAYOUT BY EXAM + EXPORT + ARCHIVED
 # =========================================================
+# LIVE API for security logs - auto updates without F5
+@app.route('/api/security_logs_live')
+@login_required(role=['Admin', 'Instructor'])
+def api_security_logs_live():
+    active_attempts = ExamAttempt.query.filter_by(is_submitted=False).all()
+    result = []
+    for attempt in active_attempts:
+        student = Student.query.filter_by(student_id=attempt.student_id).first()
+        events = SecurityEvent.query.filter_by(attempt_id=attempt.id).all()
+        counts = {'TAB_SWITCH':0,'RIGHT_CLICK':0,'TEXT_SELECTION':0,'COPY':0,'PASTE':0,'CUT':0,'F12':0,'CTRL_U':0,'CTRL_SHIFT_I':0,'FULLSCREEN_EXIT':0}
+        for ev in events:
+            if ev.event_type in counts:
+                counts[ev.event_type] += 1
+        highest_type = None
+        highest_pen = -1
+        for ev in events:
+            if ev.penalty > highest_pen:
+                highest_pen = ev.penalty
+                highest_type = ev.event_type
+        result.append({
+            'exam_id': attempt.exam_id,
+            'attempt_id': attempt.id,
+            'student_id': attempt.student_id,
+            'student_name': student.name if student else attempt.student_id,
+            'section': student.section if student else "",
+            'security_score': attempt.security_score,
+            'total_violations': attempt.total_violations,
+            'last_violation_type': attempt.last_violation_type,
+            'highest_penalty_type': highest_type,
+            'occurred_at': attempt.last_violation.strftime("%I:%M:%S %p") if attempt.last_violation else "Just now",
+            'counts': counts
+        })
+    return jsonify(result)
+
 @app.route('/security-logs')
 @login_required(role=['Admin', 'Instructor'])
 def security_logs():
-    # Only ACTIVE exams that are being taken
+    # Only ACTIVE exams that are being taken - FIXED: compute from actual events to avoid mismatch
     active_attempts = ExamAttempt.query.filter_by(is_submitted=False).all()
-    # Group by exam_id
     from collections import defaultdict
     grouped = defaultdict(list)
     for attempt in active_attempts:
@@ -3475,34 +3753,53 @@ def security_logs():
         cheating_count = 0
         for attempt in attempts:
             student = Student.query.filter_by(student_id=attempt.student_id).first()
-            events = SecurityEvent.query.filter_by(attempt_id=attempt.id).all()
+            events = SecurityEvent.query.filter_by(attempt_id=attempt.id).order_by(SecurityEvent.occurred_at.desc()).all()
+            # FIX: case-insensitive counts, handle any variation
             counts = {
                 'TAB_SWITCH': 0, 'RIGHT_CLICK': 0, 'TEXT_SELECTION': 0,
                 'COPY': 0, 'PASTE': 0, 'CUT': 0,
                 'F12': 0, 'CTRL_U': 0, 'CTRL_SHIFT_I': 0, 'FULLSCREEN_EXIT': 0
             }
+            total_penalty = 0
             for ev in events:
-                if ev.event_type in counts:
-                    counts[ev.event_type] += 1
+                et = (ev.event_type or '').strip().upper()
+                if et in counts:
+                    counts[et] += 1
+                else:
+                    # try to map close names
+                    for k in counts:
+                        if k in et or et in k:
+                            counts[k] += 1
+                            break
+                total_penalty += ev.penalty or 0
+
+            # FIX: compute score and total from actual events, not stale attempt fields
+            actual_score = max(0, 100 - total_penalty)
+            actual_total = len(events)
+            last_type = events[0].event_type if events else (attempt.last_violation_type or 'None')
+            last_time = events[0].occurred_at.strftime("%I:%M:%S %p") if events else (attempt.last_violation.strftime("%I:%M:%S %p") if attempt.last_violation else "Just now")
+
             highest_type = None
             highest_pen = -1
             for ev in events:
-                if ev.penalty > highest_pen:
-                    highest_pen = ev.penalty
+                if (ev.penalty or 0) > highest_pen:
+                    highest_pen = ev.penalty or 0
                     highest_type = ev.event_type
-            if attempt.security_score < 100:
+
+            if actual_score < 100:
                 cheating_count += 1
-            total_events += len(events)
+            total_events += actual_total
+
             students.append({
                 'attempt_id': attempt.id,
                 'student_id': attempt.student_id,
                 'student_name': student.name if student else attempt.student_id,
                 'section': student.section if student else "",
-                'security_score': attempt.security_score,
-                'total_violations': attempt.total_violations,
-                'last_violation_type': attempt.last_violation_type,
+                'security_score': actual_score,
+                'total_violations': actual_total,
+                'last_violation_type': last_type,
                 'highest_penalty_type': highest_type,
-                'last_occurred': attempt.last_violation.strftime("%I:%M %p") if attempt.last_violation else "Just now",
+                'last_occurred': last_time,
                 'counts': counts,
                 'raw_events': events
             })
@@ -3517,6 +3814,35 @@ def security_logs():
         total_monitored=total_monitored,
         total_events=total_events
     )
+
+@app.route('/api/security-summary')
+@login_required(role=['Admin', 'Instructor'])
+@cache.cached(timeout=10)
+def api_security_summary():
+    # light summary only, no raw_events (saves Neon + phone data)
+    recent = SecurityEvent.query.order_by(SecurityEvent.occurred_at.desc()).limit(20).all()
+    data = []
+    for ev in recent:
+        attempt = ExamAttempt.query.get(ev.attempt_id)
+        if not attempt: continue
+        student = Student.query.filter_by(student_id=attempt.student_id).first()
+        exam = Exam.query.get(attempt.exam_id)
+        data.append({
+            'attempt_id': attempt.id,
+            'exam_id': attempt.exam_id,
+            'event_id': ev.id,
+            'student_id': attempt.student_id,
+            'student_name': student.name if student else attempt.student_id,
+            'section': student.section if student else '',
+            'exam_title': exam.title if exam else '',
+            'event_type': ev.event_type,
+            'penalty': ev.penalty,
+            'security_score': attempt.security_score,
+            'total_violations': attempt.total_violations,
+            'highest_penalty_type': attempt.last_violation_type,
+            'occurred_at': ev.occurred_at.strftime("%I:%M:%S %p") if ev.occurred_at else ''
+        })
+    return jsonify(data)
 
 @app.route('/security-logs-archived')
 @login_required(role=['Admin', 'Instructor'])
@@ -3765,6 +4091,7 @@ def delete_exam(exam_id):
 
 @app.route('/student-exam-status')
 @login_required(role=['Student'])
+@cache.cached(timeout=10, query_string=True)
 def student_exam_status():
 
     student_id = session.get('student_id')
@@ -3840,39 +4167,31 @@ def student_dashboard_data():
 @app.route("/reset-exam", methods=["POST"])
 @login_required(role=["Admin"])
 def reset_exam():
-
     data = request.get_json()
-
     exam_id = data.get("exam_id")
     student_id = data.get("student_id")
 
-    access = ExamAccess.query.filter_by(
-        exam_id=exam_id,
-        student_id=student_id
-    ).first()
-
+    access = ExamAccess.query.filter_by(exam_id=exam_id, student_id=student_id).first()
     if not access:
-        return jsonify({
-            "success": False,
-            "message": "Exam access not found."
-        })
+        return jsonify({"success": False, "message": "Exam access not found."})
 
     access.status = "approved"
     access.is_reset = True
     access.reset_at = datetime.utcnow()
 
     attempt = get_latest_attempt(student_id, exam_id)
-
     if attempt:
-
-        # ------------------------------------
-        # Reset security state
-        # ------------------------------------
+        try:
+            # DELETE logs so security_logs.html clears automatically
+            SecurityEvent.query.filter_by(attempt_id=attempt.id).delete(synchronize_session=False)
+            SecurityLog.query.filter_by(attempt_id=attempt.id).delete(synchronize_session=False)
+            StudentAnswer.query.filter_by(attempt_id=attempt.id).delete(synchronize_session=False)
+        except:
+            pass
         attempt.security_score = 100
         attempt.total_violations = 0
         attempt.last_violation = None
         attempt.last_violation_type = None
-
     db.session.commit()
 
     access = ExamAccess.query.filter_by(
@@ -5839,36 +6158,44 @@ def export_csv():
 def export_page():
     return render_template('export.html')
 
-# --- Initialize Database ---
+def ensure_question_columns():
+    """Auto-migrate NeonDB - IF NOT EXISTS, safe for 0.1 CPU Render + gunicorn - no manual cd command"""
+    try:
+        from sqlalchemy import text as _text
+        with db.engine.connect() as conn:
+            conn.execute(_text("ALTER TABLE questions ADD COLUMN IF NOT EXISTS choices_json TEXT;"))
+            conn.execute(_text("ALTER TABLE questions ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE;"))
+            conn.execute(_text("ALTER TABLE questions ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP;"))
+            conn.execute(_text("ALTER TABLE questions ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;"))
+            conn.execute(_text("CREATE INDEX IF NOT EXISTS idx_questions_is_deleted ON questions(is_deleted);"))
+            conn.execute(_text("CREATE INDEX IF NOT EXISTS idx_questions_is_active ON questions(is_active);"))
+            conn.commit()
+            conn.execute(_text("UPDATE questions SET is_deleted = FALSE WHERE is_deleted IS NULL;"))
+            conn.execute(_text("UPDATE questions SET is_active = TRUE WHERE is_active IS NULL;"))
+            conn.commit()
+        print("✅ Auto-migration OK - no manual command needed")
+    except Exception as e:
+        print(f"⚠️ Auto-migration skipped: {e}")
+
+# Run on import - for gunicorn on Render (no waitress)
+try:
+    with app.app_context():
+        ensure_question_columns()
+except Exception as _e:
+    print(f"Auto-migrate on import skipped: {_e}")
+
+# For local Flask terminal: python app.py
+# For Render: gunicorn app:app
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-
+        ensure_question_columns()
         if not User.query.filter_by(username='admin').first():
-            db.session.add(User(
-                username='admin',
-                password=generate_password_hash('admin123'),
-                role='Admin'
-            ))
-
+            db.session.add(User(username='admin', password=generate_password_hash('admin123'), role='Admin'))
         if not User.query.filter_by(username='student').first():
-            db.session.add(User(
-                username='student',
-                password=generate_password_hash('stud123'),
-                role='Student'
-            ))
-
+            db.session.add(User(username='student', password=generate_password_hash('stud123'), role='Student'))
         db.session.commit()
 
     ENV = os.environ.get('FLASK_ENV', 'development')
-
-    if ENV == 'development':
-        app.run(
-            host="0.0.0.0",
-            port=5000,
-            debug=True,
-            threaded=True
-        )
-    else:
-        from waitress import serve
-        serve(app, host='0.0.0.0', port=5000)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host="0.0.0.0", port=port, debug=(ENV == 'development'), threaded=True)

@@ -55,6 +55,7 @@ if (localStorage.getItem("darkMode") === "true") {
 .main-content {
   margin-left: 260px;
 }
+.icon-flip{display:inline-block;transition:transform 0.5s cubic-bezier(0.175,0.885,0.32,1.275);} .btn:hover .icon-flip, .icon-flip:hover{transform:scale(1.2) rotateY(180deg);}
 </style>
 
 </head>
@@ -69,31 +70,31 @@ if (localStorage.getItem("darkMode") === "true") {
   <h5 class="text-center mb-4">Instructor Panel</h5>
 
   <a href="{{ url_for('view_students') }}" class="btn btn-light w-100 mb-2">
-    <i class="bi bi-people"></i> Students
+    <i class="bi bi-people icon-flip"></i> Students
   </a>
 
   <a href="#" class="btn btn-success w-100 mb-2" data-bs-toggle="modal" data-bs-target="#addSubjectModal">
-    <i class="bi bi-journal-plus"></i> Add Subject
+    <i class="bi bi-journal-plus icon-flip"></i> Add Subject
   </a>
 
   <a href="#" class="btn btn-warning w-100 mb-2" data-bs-toggle="modal" data-bs-target="#createExamModal">
-    <i class="bi bi-file-earmark-text"></i> Create Exam
+    <i class="bi bi-file-earmark-text icon-flip"></i> Create Exam
   </a>
 
   <a href="{{ url_for('upload_students') }}" class="btn btn-light w-100 mb-2">
-    <i class="bi bi-upload"></i> Upload CSV
+    <i class="bi bi-upload icon-flip"></i> Upload CSV
   </a>
 
   <a href="{{ url_for('add_student') }}" class="btn btn-light w-100 mb-2">
-    <i class="bi bi-person-plus"></i> Add Student
+    <i class="bi bi-person-plus icon-flip"></i> Add Student
   </a>
 
   <a href="{{ url_for('download_csv') }}" class="btn btn-light w-100 mb-2">
-    <i class="bi bi-download"></i> Download CSV
+    <i class="bi bi-download icon-flip"></i> Download CSV
   </a>
 
   <a href="{{ url_for('export_page') }}" class="btn btn-light w-100 mb-3">
-    <i class="bi bi-funnel"></i> Export Data
+    <i class="bi bi-funnel icon-flip"></i> Export Data
   </a>
 
   <!-- DARK MODE -->
@@ -104,7 +105,7 @@ if (localStorage.getItem("darkMode") === "true") {
   <hr>
 
   <a href="{{ url_for('logout') }}" class="btn btn-danger w-100">
-    <i class="bi bi-box-arrow-right"></i> Logout
+    <i class="bi bi-box-arrow-right icon-flip"></i> Logout
   </a>
 
 </div>
@@ -165,17 +166,17 @@ if (localStorage.getItem("darkMode") === "true") {
 
             <a href="{{ url_for('edit_student', student_id=s.student_id, subject=s.subject) }}"
                class="btn btn-warning btn-sm">
-              <i class="bi bi-pencil"></i>
+              <i class="bi bi-pencil icon-flip"></i>
             </a>
 
             <a href="{{ url_for('student_grades', student_id=s.student_id) }}"
                class="btn btn-success btn-sm">
-              <i class="bi bi-eye"></i>
+              <i class="bi bi-eye icon-flip"></i>
             </a>
 
             <a href="{{ url_for('subject_performance', student_id=s.student_id, subject=s.subject) }}"
                class="btn btn-info btn-sm text-white">
-              <i class="bi bi-bar-chart-line"></i>
+              <i class="bi bi-bar-chart-line icon-flip"></i>
             </a>
 
             <form method="POST"
@@ -183,7 +184,7 @@ if (localStorage.getItem("darkMode") === "true") {
                   style="display:inline;">
               <button class="btn btn-danger btn-sm"
                       onclick="return confirm('Delete student?')">
-                <i class="bi bi-trash"></i>
+                <i class="bi bi-trash icon-flip"></i>
               </button>
             </form>
 

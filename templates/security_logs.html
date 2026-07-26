@@ -27,7 +27,7 @@ body { background: #0f172a; color: #f1f5f9; }
 @keyframes scoreGlow { 0%,100% { box-shadow: 0 0 5px rgba(239,68,68,0.5); transform: scale(1); } 50% { box-shadow: 0 0 30px rgba(239,68,68,1); transform: scale(1.25); } }
 @keyframes countGlow { 0%,100% { box-shadow: 0 0 5px rgba(251,191,36,0.4); transform: scale(1); } 50% { box-shadow: 0 0 25px rgba(251,191,36,1); transform: scale(1.35); } }
 .badge-critical { background: #dc2626; color: white; border: 1px solid #fca5a5; }
-.count-badge { min-width: 32px; display: inline-block; text-align: center; font-weight: 800; font-size: 0.85rem; padding: 0.35em 0.5em; }
+.count-badge { min-width: 32px; display: inline-block; text-align: center; font-weight: 800; font-size: 0.85rem; padding: 0.35em 0.5em; transition: all 0.3s ease; }
 .count-zero { background: #334155 !important; color: #64748b !important; }
 .live-dot { width:10px; height:10px; background:#22c55e; border-radius:50%; display:inline-block; animation: blink 1s infinite; }
 @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
@@ -37,27 +37,37 @@ body { background: #0f172a; color: #f1f5f9; }
 .stat-danger { border-left-color: #ef4444; }
 .stat-warning { border-left-color: #f59e0b; }
 .violation-col { min-width: 55px; text-align: center; }
+
+/* BREATHE FOR BUTTONS */
+@keyframes breathe { 0%{transform:scale(1); box-shadow:0 0 0 0 rgba(34,197,94,0.4);} 50%{transform:scale(1.08); box-shadow:0 0 0 12px rgba(34,197,94,0);} 100%{transform:scale(1); box-shadow:0 0 0 0 rgba(34,197,94,0);} }
+.btn-breathe { animation: breathe 0.6s cubic-bezier(0.175,0.885,0.32,1.275); }
+.btn { transition: all 0.2s ease; }
+.btn:active { transform: scale(0.92); }
+
+/* ICON FLIP */
+.icon-flip { display:inline-block; transition: transform 0.5s cubic-bezier(0.175,0.885,0.32,1.275); }
+.btn:hover .icon-flip { transform: scale(1.2) rotateY(180deg); }
 </style>
 </head>
 <body>
 <div class="container-fluid py-4">
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <div>
-            <h2><i class="bi bi-shield-exclamation text-danger"></i> Live Security Logs <span class="live-dot ms-2"></span> <small class="text-muted-readable fs-6">LIVE BY EXAM</small></h2>
-            <p class="text-muted-readable mb-0">Grouped by Exam Card • Auto glows on cheating • Export per exam • Seamless archive</p>
+            <h2><i class="bi bi-shield-exclamation text-danger icon-flip"></i> Live Security Logs <span class="live-dot ms-2"></span> <small class="text-muted-readable fs-6">LIVE BY EXAM - AUTO UPDATES EVERY 3s - FIXED MAPPING</small></h2>
+            <p class="text-muted-readable mb-0">Grouped by Exam Card • Correct violation mapping • Reset clears logs • Force submit on end exam</p>
         </div>
         <div class="d-flex gap-2">
-            <span class="badge bg-dark border fs-6"><i class="bi bi-people"></i> Monitoring: <span id="totalStudents">{{ total_monitored }}</span> students • <span id="statExamsTop">{{ exams_data|length }}</span> exams</span>
-            <a href="{{ url_for('archived_security_logs') }}" class="btn btn-outline-light btn-sm"><i class="bi bi-archive"></i> Archived Logs</a>
-            <a href="{{ url_for('dashboard_admin') }}" class="btn btn-secondary btn-sm"><i class="bi bi-arrow-left"></i> Back</a>
+            <span class="badge bg-dark border fs-6"><i class="bi bi-people icon-flip"></i> Monitoring: <span id="totalStudents">{{ total_monitored }}</span> students • <span id="statExamsTop">{{ exams_data|length }}</span> exams</span>
+            <a href="{{ url_for('archived_security_logs') }}" class="btn btn-outline-light btn-sm"><i class="bi bi-archive icon-flip"></i> Archived Logs</a>
+            <a href="{{ url_for('view_exams') }}" class="btn btn-secondary btn-sm"><i class="bi bi-arrow-left icon-flip"></i> Back</a>
         </div>
     </div>
 
     <div class="row g-3 mb-4">
         <div class="col-md-3"><div class="card stat-card stat-danger p-3"><h5 id="statExams">{{ exams_data|length }}</h5><small>Exams Being Monitored</small></div></div>
         <div class="col-md-3"><div class="card stat-card stat-warning p-3"><h5 id="statStudents">{{ total_monitored }}</h5><small>Students Taking Exams</small></div></div>
-        <div class="col-md-3"><div class="card stat-card stat-danger p-3" style="border-left-color:#ef4444;"><h5 id="statEvents">{{ total_events }}</h5><small>Total Violations</small></div></div>
-        <div class="col-md-3"><div class="card stat-card p-3" style="border-left-color:#8b5cf6;"><h5 id="liveClock">00:00:00</h5><small>Live Time</small></div></div>
+        <div class="col-md-3"><div class="card stat-card stat-danger p-3" style="border-left-color:#ef4444;"><h5 id="statEvents">{{ total_events }}</h5><small>Total Violations (from actual events)</small></div></div>
+        <div class="col-md-3"><div class="card stat-card p-3" style="border-left-color:#8b5cf6;"><h5 id="liveClock">00:00:00</h5><small>Live Time <span class="badge bg-success ms-2" id="liveStatus">LIVE</span></small></div></div>
     </div>
 
     <div id="examsContainer">
@@ -71,219 +81,173 @@ body { background: #0f172a; color: #f1f5f9; }
                     <small class="text-muted-readable"><strong>Term:</strong> {{ block.exam.term or 'No Term' }} | <strong>Type:</strong> {{ block.exam.exam_type or 'No Type' }} | <strong>Duration:</strong> {{ block.exam.duration_minutes }} mins | <strong>Exam ID:</strong> {{ block.exam.id }}</small>
                 </div>
                 <div class="d-flex gap-2 align-items-center">
-                    <a href="{{ url_for('export_security_logs', exam_id=block.exam.id) }}" class="btn btn-success btn-sm"><i class="bi bi-file-earmark-excel"></i> Export CSV</a>
+                    <a href="{{ url_for('export_security_logs', exam_id=block.exam.id) }}" class="btn btn-success btn-sm"><i class="bi bi-file-earmark-excel icon-flip"></i> Export CSV</a>
                     <span class="badge bg-dark border border-success text-success"><span class="live-dot me-1"></span>LIVE</span>
                 </div>
             </div>
             <div class="table-responsive">
                 <table class="table table-dark table-hover security-table mb-0">
-                    <thead><tr><th>#</th><th>Student</th><th>Section</th><th>Score</th><th>Total</th><th>Last Type</th><th>Highest</th><th class="violation-col">TAB</th><th class="violation-col">R-Click</th><th class="violation-col">Select</th><th class="violation-col">Copy</th><th class="violation-col">Paste</th><th class="violation-col">Cut</th><th class="violation-col">F12</th><th class="violation-col">Ctrl+U</th><th class="violation-col">Ctrl+Shift+I</th><th class="violation-col">FullScr</th><th>Time</th></tr></thead>
+                    <thead><tr><th>#</th><th>Student</th><th>Section</th><th>Score</th><th>Total</th><th>Last Violation</th><th>Highest</th><th>TAB</th><th>R-Click</th><th>Select</th><th>Copy</th><th>Paste</th><th>Cut</th><th>F12</th><th>Ctrl+U</th><th>Ctrl+Shift+I</th><th>FS Exit</th><th>Time</th></tr></thead>
                     <tbody id="tbody-{{ block.exam.id }}">
-                        {% for row in block.students %}
-                        <tr id="row-{{ row.attempt_id }}" data-exam-id="{{ block.exam.id }}" data-student-id="{{ row.student_id }}">
-                            <td>{{ loop.index }}</td>
-                            <td><strong>{{ row.student_name }}</strong><br><small class="small-muted">{{ row.student_id }}</small></td>
-                            <td>{{ row.section }}</td>
-                            <td><span class="badge {% if row.security_score <= 40 %}bg-danger{% elif row.security_score <=70 %}bg-warning text-dark{% else %}bg-success{% endif %} count-badge" id="score-{{ row.attempt_id }}">{{ row.security_score }}</span></td>
-                            <td><span class="badge bg-secondary count-badge" id="total-{{ row.attempt_id }}">{{ row.total_violations }}</span></td>
-                            <td><span class="badge badge-critical" id="last-{{ row.attempt_id }}">{{ row.last_violation_type or 'None' }}</span></td>
-                            <td><span class="badge bg-dark border border-warning text-warning" id="highest-{{ row.attempt_id }}">{{ row.highest_penalty_type or 'None' }}</span></td>
-                            <td class="violation-col"><span class="badge {% if row.counts.TAB_SWITCH>0 %}bg-danger{% else %}count-zero{% endif %} count-badge" id="count-TAB_SWITCH-{{ row.attempt_id }}">{{ row.counts.TAB_SWITCH }}</span></td>
-                            <td class="violation-col"><span class="badge {% if row.counts.RIGHT_CLICK>0 %}bg-warning text-dark{% else %}count-zero{% endif %} count-badge" id="count-RIGHT_CLICK-{{ row.attempt_id }}">{{ row.counts.RIGHT_CLICK }}</span></td>
-                            <td class="violation-col"><span class="badge {% if row.counts.TEXT_SELECTION>0 %}bg-info text-dark{% else %}count-zero{% endif %} count-badge" id="count-TEXT_SELECTION-{{ row.attempt_id }}">{{ row.counts.TEXT_SELECTION }}</span></td>
-                            <td class="violation-col"><span class="badge {% if row.counts.COPY>0 %}bg-danger{% else %}count-zero{% endif %} count-badge" id="count-COPY-{{ row.attempt_id }}">{{ row.counts.COPY }}</span></td>
-                            <td class="violation-col"><span class="badge {% if row.counts.PASTE>0 %}bg-danger{% else %}count-zero{% endif %} count-badge" id="count-PASTE-{{ row.attempt_id }}">{{ row.counts.PASTE }}</span></td>
-                            <td class="violation-col"><span class="badge {% if row.counts.CUT>0 %}bg-warning text-dark{% else %}count-zero{% endif %} count-badge" id="count-CUT-{{ row.attempt_id }}">{{ row.counts.CUT }}</span></td>
-                            <td class="violation-col"><span class="badge {% if row.counts.F12>0 %}bg-danger{% else %}count-zero{% endif %} count-badge" id="count-F12-{{ row.attempt_id }}">{{ row.counts.F12 }}</span></td>
-                            <td class="violation-col"><span class="badge {% if row.counts.CTRL_U>0 %}bg-danger{% else %}count-zero{% endif %} count-badge" id="count-CTRL_U-{{ row.attempt_id }}">{{ row.counts.CTRL_U }}</span></td>
-                            <td class="violation-col"><span class="badge {% if row.counts.CTRL_SHIFT_I>0 %}bg-danger{% else %}count-zero{% endif %} count-badge" id="count-CTRL_SHIFT_I-{{ row.attempt_id }}">{{ row.counts.CTRL_SHIFT_I }}</span></td>
-                            <td class="violation-col"><span class="badge {% if row.counts.FULLSCREEN_EXIT>0 %}bg-danger{% else %}count-zero{% endif %} count-badge" id="count-FULLSCREEN_EXIT-{{ row.attempt_id }}">{{ row.counts.FULLSCREEN_EXIT }}</span></td>
-                            <td><small class="small-muted" id="time-{{ row.attempt_id }}">{{ row.last_occurred }}</small></td>
-                        </tr>
-                        {% endfor %}
+                    {% for s in block.students %}
+                    <tr id="row-{{ s.attempt_id }}" data-exam-id="{{ block.exam.id }}" data-attempt-id="{{ s.attempt_id }}">
+                        <td>{{ loop.index }}</td>
+                        <td><strong>{{ s.student_name }}</strong><br><small class="small-muted">{{ s.student_id }}</small></td>
+                        <td>{{ s.section }}</td>
+                        <td><span class="badge bg-danger count-badge" id="score-{{ s.attempt_id }}">{{ s.security_score }}</span></td>
+                        <td><span class="badge bg-secondary count-badge" id="total-{{ s.attempt_id }}">{{ s.total_violations }}</span></td>
+                        <td><span class="badge badge-critical" id="last-{{ s.attempt_id }}">{{ s.last_violation_type or 'None' }}</span></td>
+                        <td><span class="badge bg-dark border border-warning text-warning" id="highest-{{ s.attempt_id }}">{{ s.highest_penalty_type or s.last_violation_type or 'None' }}</span></td>
+                        <td class="violation-col"><span class="badge {{ 'bg-danger' if s.counts.TAB_SWITCH>0 else 'count-zero' }} count-badge" id="count-TAB_SWITCH-{{ s.attempt_id }}">{{ s.counts.TAB_SWITCH }}</span></td>
+                        <td class="violation-col"><span class="badge {{ 'bg-danger' if s.counts.RIGHT_CLICK>0 else 'count-zero' }} count-badge" id="count-RIGHT_CLICK-{{ s.attempt_id }}">{{ s.counts.RIGHT_CLICK }}</span></td>
+                        <td class="violation-col"><span class="badge {{ 'bg-danger' if s.counts.TEXT_SELECTION>0 else 'count-zero' }} count-badge" id="count-TEXT_SELECTION-{{ s.attempt_id }}">{{ s.counts.TEXT_SELECTION }}</span></td>
+                        <td class="violation-col"><span class="badge {{ 'bg-danger' if s.counts.COPY>0 else 'count-zero' }} count-badge" id="count-COPY-{{ s.attempt_id }}">{{ s.counts.COPY }}</span></td>
+                        <td class="violation-col"><span class="badge {{ 'bg-danger' if s.counts.PASTE>0 else 'count-zero' }} count-badge" id="count-PASTE-{{ s.attempt_id }}">{{ s.counts.PASTE }}</span></td>
+                        <td class="violation-col"><span class="badge {{ 'bg-danger' if s.counts.CUT>0 else 'count-zero' }} count-badge" id="count-CUT-{{ s.attempt_id }}">{{ s.counts.CUT }}</span></td>
+                        <td class="violation-col"><span class="badge {{ 'bg-danger' if s.counts.F12>0 else 'count-zero' }} count-badge" id="count-F12-{{ s.attempt_id }}">{{ s.counts.F12 }}</span></td>
+                        <td class="violation-col"><span class="badge {{ 'bg-danger' if s.counts.CTRL_U>0 else 'count-zero' }} count-badge" id="count-CTRL_U-{{ s.attempt_id }}">{{ s.counts.CTRL_U }}</span></td>
+                        <td class="violation-col"><span class="badge {{ 'bg-danger' if s.counts.CTRL_SHIFT_I>0 else 'count-zero' }} count-badge" id="count-CTRL_SHIFT_I-{{ s.attempt_id }}">{{ s.counts.CTRL_SHIFT_I }}</span></td>
+                        <td class="violation-col"><span class="badge {{ 'bg-danger' if s.counts.FULLSCREEN_EXIT>0 else 'count-zero' }} count-badge" id="count-FULLSCREEN_EXIT-{{ s.attempt_id }}">{{ s.counts.FULLSCREEN_EXIT }}</span></td>
+                        <td><small class="small-muted" id="time-{{ s.attempt_id }}">{{ s.last_occurred }}</small></td>
+                    </tr>
+                    {% endfor %}
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
     {% endfor %}
-    </div>
-
-    <div id="emptyAll" class="text-center py-5 {% if exams_data %}d-none{% endif %}">
-        <h5 style="color:#e2e8f0;">No active exams 😴</h5>
-        <p class="small-muted">Active exams from View Exams will appear here automatically</p>
-    </div>
-
-    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index:9999;">
-        <div id="cheatToast" class="toast align-items-center text-bg-danger border-0" role="alert"><div class="d-flex"><div class="toast-body" id="cheatToastMsg">🚨 Cheating detected!</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div></div>
+    <div id="emptyAll" class="text-center py-5 {% if exams_data %}d-none{% endif %}"><h5 class="text-muted-readable">No active exams - waiting for students... <span class="live-dot"></span></h5></div>
     </div>
 </div>
 
+<div id="toastContainer" class="toast-container position-fixed top-0 end-0 p-3" style="z-index:9999"></div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-setInterval(()=>{ document.getElementById('liveClock').textContent = new Date().toLocaleTimeString(); }, 1000);
-const seenEvents = new Set();
-{% for block in exams_data %}{% for row in block.students %}{% for ev in row.raw_events %}seenEvents.add("{{ ev.id }}");{% endfor %}{% endfor %}{% endfor %}
+// Breathe effect for buttons
+document.addEventListener('click', e=>{
+  const btn = e.target.closest('.btn');
+  if(!btn) return;
+  btn.classList.remove('btn-breathe'); void btn.offsetWidth; btn.classList.add('btn-breathe');
+  setTimeout(()=>btn.classList.remove('btn-breathe'), 600);
+});
 
-function toast(name, type, score){
-    const el = document.getElementById('cheatToast');
-    document.getElementById('cheatToastMsg').innerHTML = `🚨 <strong>${name}</strong> - ${type}!<br>Score: ${score}`;
-    new bootstrap.Toast(el, {delay: 5000}).show();
-}
-function glow(id, cls){
-    const el = document.getElementById(id);
-    if(!el) return;
-    el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls);
-    setTimeout(()=> el.classList.remove(cls), 4500);
-}
+function glow(id, cls){ const el=document.getElementById(id); if(!el) return; el.classList.add(cls); setTimeout(()=>el.classList.remove(cls), 3000); }
 
-let seenPoll = new Set();
 async function pollSecurity(){
-    if(document.hidden) return;
     try{
-        const res = await fetch('/api/security-summary');
+        const res = await fetch('/api/security_logs_live', {headers:{'X-Requested-With':'XMLHttpRequest'}});
         if(!res.ok) return;
-        const list = await res.json();
-        list.forEach(d => handleViolation(d));
-    }catch{}
+        const data = await res.json();
+        const existingIds = new Set(Array.from(document.querySelectorAll('[id^="row-"]')).map(r=>r.id.replace('row-','')));
+        const newIds = new Set(data.map(d=>String(d.attempt_id)));
+        existingIds.forEach(id=>{
+            if(!newIds.has(id)){
+                const row=document.getElementById(`row-${id}`);
+                if(row){ row.style.transition='all 0.5s ease'; row.style.opacity='0'; row.style.transform='translateX(50px)'; setTimeout(()=>{ row.remove(); updateCounts(); }, 500); }
+            }
+        });
+        data.forEach(item=>{ upsertRow(item); });
+        document.querySelectorAll('.exam-security-card').forEach(card=>{
+            if(card.querySelectorAll('tbody tr').length===0){
+                card.classList.add('exiting');
+                setTimeout(()=>{ card.remove(); updateCounts(); if(document.querySelectorAll('.exam-security-card').length===0) document.getElementById('emptyAll').classList.remove('d-none'); }, 650);
+            }
+        });
+        document.getElementById('liveStatus').textContent='LIVE • '+new Date().toLocaleTimeString();
+        updateCounts();
+    }catch(e){ console.error('Poll error', e); }
 }
 
-function handleViolation(data){
-    const attemptId = data.attempt_id;
-    const examId = data.exam_id;
-    const isNew = !seenEvents.has(String(data.event_id));
-    if(isNew) seenEvents.add(String(data.event_id));
-
-    let row = document.getElementById(`row-${attemptId}`);
-    let examCard = document.getElementById(`exam-card-${examId}`);
-
-    // FIX 1: Correct routing by exam_id - if card doesn't exist, fetch exam info
+function upsertRow(data){
+    const examId=data.exam_id;
+    const attemptId=data.attempt_id;
+    let examCard=document.getElementById(`exam-card-${examId}`);
+    const container=document.getElementById('examsContainer');
     if(!examCard){
-        // Create new exam card block for this exam_id
-        const container = document.getElementById('examsContainer');
-        const newExamCard = document.createElement('div');
-        newExamCard.className = "card exam-security-card shadow-sm entering";
-        newExamCard.id = `exam-card-${examId}`;
-        newExamCard.dataset.examId = examId;
-        newExamCard.innerHTML = `
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start mb-3">
-                    <div><h4 class="mb-1">${data.exam_title || 'Exam '+examId} <span class="badge bg-danger ms-2" id="taking-${examId}">1 taking</span> <span class="badge bg-warning text-dark" id="cheating-${examId}">1 cheating!</span></h4><p class="text-muted-readable mb-1">Exam ID: ${examId}</p></div>
-                    <span class="badge bg-dark border border-success text-success"><span class="live-dot me-1"></span>LIVE</span>
-                </div>
-                <div class="table-responsive"><table class="table table-dark table-hover security-table mb-0"><thead><tr><th>#</th><th>Student</th><th>Section</th><th>Score</th><th>Total</th><th>Last Type</th><th>Highest</th><th>TAB</th><th>R-Click</th><th>Select</th><th>Copy</th><th>Paste</th><th>Cut</th><th>F12</th><th>Ctrl+U</th><th>Ctrl+Shift+I</th><th>FullScr</th><th>Time</th></tr></thead><tbody id="tbody-${examId}"></tbody></table></div>
-            </div>`;
-        container.prepend(newExamCard);
-        examCard = newExamCard;
+        const newCard=document.createElement('div');
+        newCard.className='card exam-security-card shadow-sm entering';
+        newCard.id=`exam-card-${examId}`;
+        newCard.dataset.examId=examId;
+        newCard.innerHTML=`<div class="card-body"><div class="d-flex justify-content-between mb-3"><h4>Exam ${examId} <span class="badge bg-danger ms-2" id="taking-${examId}">1 taking</span> <span class="badge bg-warning text-dark" id="cheating-${examId}">0 cheating!</span></h4><span class="badge bg-dark border border-success text-success"><span class="live-dot me-1"></span>LIVE</span></div><div class="table-responsive"><table class="table table-dark security-table mb-0"><thead><tr><th>#</th><th>Student</th><th>Section</th><th>Score</th><th>Total</th><th>Last</th><th>Highest</th><th>TAB</th><th>R-Click</th><th>Select</th><th>Copy</th><th>Paste</th><th>Cut</th><th>F12</th><th>Ctrl+U</th><th>Ctrl+Shift+I</th><th>FS</th><th>Time</th></tr></thead><tbody id="tbody-${examId}"></tbody></table></div></div>`;
+        container.prepend(newCard);
+        examCard=newCard;
         document.getElementById('emptyAll')?.classList.add('d-none');
     }
-
-    let tbody = document.getElementById(`tbody-${examId}`);
-    if(!tbody){ tbody = examCard.querySelector('tbody'); }
-
+    let row=document.getElementById(`row-${attemptId}`);
+    let tbody=document.getElementById(`tbody-${examId}`);
+    if(!tbody) tbody=examCard.querySelector('tbody');
     if(!row){
-        const tr = document.createElement('tr');
-        tr.id = `row-${attemptId}`;
-        tr.dataset.examId = examId;
-        tr.className = "entering glow-cheating";
-        tr.innerHTML = `
-            <td>1</td>
+        const tr=document.createElement('tr');
+        tr.id=`row-${attemptId}`;
+        tr.dataset.examId=examId;
+        tr.dataset.attemptId=attemptId;
+        tr.className='entering glow-cheating';
+        tr.innerHTML=`
+            <td>#</td>
             <td><strong>${data.student_name}</strong><br><small class="small-muted">${data.student_id}</small></td>
             <td>${data.section||''}</td>
             <td><span class="badge bg-danger count-badge" id="score-${attemptId}">${data.security_score}</span></td>
             <td><span class="badge bg-secondary count-badge" id="total-${attemptId}">${data.total_violations}</span></td>
-            <td><span class="badge badge-critical" id="last-${attemptId}">${data.event_type}</span></td>
-            <td><span class="badge bg-dark border border-warning text-warning" id="highest-${attemptId}">${data.highest_penalty_type||data.event_type}</span></td>
-            <td class="violation-col"><span class="badge count-zero count-badge" id="count-TAB_SWITCH-${attemptId}">0</span></td>
-            <td class="violation-col"><span class="badge count-zero count-badge" id="count-RIGHT_CLICK-${attemptId}">0</span></td>
-            <td class="violation-col"><span class="badge count-zero count-badge" id="count-TEXT_SELECTION-${attemptId}">0</span></td>
-            <td class="violation-col"><span class="badge count-zero count-badge" id="count-COPY-${attemptId}">0</span></td>
-            <td class="violation-col"><span class="badge count-zero count-badge" id="count-PASTE-${attemptId}">0</span></td>
-            <td class="violation-col"><span class="badge count-zero count-badge" id="count-CUT-${attemptId}">0</span></td>
-            <td class="violation-col"><span class="badge count-zero count-badge" id="count-F12-${attemptId}">0</span></td>
-            <td class="violation-col"><span class="badge count-zero count-badge" id="count-CTRL_U-${attemptId}">0</span></td>
-            <td class="violation-col"><span class="badge count-zero count-badge" id="count-CTRL_SHIFT_I-${attemptId}">0</span></td>
-            <td class="violation-col"><span class="badge count-zero count-badge" id="count-FULLSCREEN_EXIT-${attemptId}">0</span></td>
+            <td><span class="badge badge-critical" id="last-${attemptId}">${data.last_violation_type||'None'}</span></td>
+            <td><span class="badge bg-dark border border-warning text-warning" id="highest-${attemptId}">${data.highest_penalty_type||'None'}</span></td>
+            ${['TAB_SWITCH','RIGHT_CLICK','TEXT_SELECTION','COPY','PASTE','CUT','F12','CTRL_U','CTRL_SHIFT_I','FULLSCREEN_EXIT'].map(k=>`<td class="violation-col"><span class="badge ${data.counts[k]>0?'bg-danger':'count-zero'} count-badge" id="count-${k}-${attemptId}">${data.counts[k]||0}</span></td>`).join('')}
             <td><small class="small-muted" id="time-${attemptId}">${data.occurred_at}</small></td>
         `;
         tbody.prepend(tr);
-        setTimeout(()=>{
-            const c = document.getElementById(`count-${data.event_type}-${attemptId}`);
-            if(c){ c.textContent="1"; c.classList.remove('count-zero'); c.classList.add('bg-danger','glow-count'); }
-        }, 100);
-        if(isNew) toast(data.student_name, data.event_type, data.security_score);
-        updateCounts();
+        setTimeout(()=>{ tr.classList.remove('entering'); }, 1000);
         return;
     }
-
-    if(isNew){
-        document.getElementById(`score-${attemptId}`).textContent = data.security_score;
-        glow(`score-${attemptId}`, 'glow-score');
-        document.getElementById(`total-${attemptId}`).textContent = data.total_violations;
-        document.getElementById(`last-${attemptId}`).textContent = data.event_type;
-        document.getElementById(`highest-${attemptId}`).textContent = data.highest_penalty_type || data.event_type;
-        document.getElementById(`time-${attemptId}`).textContent = data.occurred_at;
-
-        const countEl = document.getElementById(`count-${data.event_type}-${attemptId}`);
-        if(countEl){
-            let cur = parseInt(countEl.textContent)||0;
-            countEl.textContent = cur+1;
-            countEl.classList.remove('count-zero');
-            countEl.classList.remove('bg-warning');
-            countEl.classList.add('bg-danger');
-            glow(`count-${data.event_type}-${attemptId}`, 'glow-count');
+    const scoreEl=document.getElementById(`score-${attemptId}`);
+    if(scoreEl && scoreEl.textContent != data.security_score){ scoreEl.textContent=data.security_score; glow(`score-${attemptId}`, 'glow-score'); }
+    const totalEl=document.getElementById(`total-${attemptId}`);
+    if(totalEl && totalEl.textContent != data.total_violations){ totalEl.textContent=data.total_violations; glow(`total-${attemptId}`, 'glow-count'); }
+    const lastEl=document.getElementById(`last-${attemptId}`);
+    if(lastEl) lastEl.textContent=data.last_violation_type||'None';
+    const highEl=document.getElementById(`highest-${attemptId}`);
+    if(highEl) highEl.textContent=data.highest_penalty_type||data.last_violation_type||'None';
+    const timeEl=document.getElementById(`time-${attemptId}`);
+    if(timeEl) timeEl.textContent=data.occurred_at;
+    ['TAB_SWITCH','RIGHT_CLICK','TEXT_SELECTION','COPY','PASTE','CUT','F12','CTRL_U','CTRL_SHIFT_I','FULLSCREEN_EXIT'].forEach(type=>{
+        const el=document.getElementById(`count-${type}-${attemptId}`);
+        if(!el) return;
+        const count = data.counts[type]||0;
+        const oldVal=parseInt(el.textContent)||0;
+        if(oldVal !== count){
+            el.textContent=count;
+            if(count>0){ el.classList.remove('count-zero'); el.classList.add('bg-danger'); glow(`count-${type}-${attemptId}`, 'glow-count'); row.classList.add('glow-cheating'); setTimeout(()=>row.classList.remove('glow-cheating'), 3000); }
+            else{ el.classList.add('count-zero'); el.classList.remove('bg-danger'); }
         }
-
-        row.classList.add('glow-cheating');
-        setTimeout(()=> row.classList.remove('glow-cheating'), 5000);
-        tbody.prepend(row);
-        toast(data.student_name, data.event_type, data.security_score);
-        updateCounts();
-    }
+    });
 }
 
 function updateCounts(){
-    const allRows = document.querySelectorAll('[id^="row-"]');
-    document.getElementById('totalStudents').textContent = allRows.length;
-    document.getElementById('statStudents').textContent = allRows.length;
+    const allRows=document.querySelectorAll('[id^="row-"]');
+    document.getElementById('totalStudents').textContent=allRows.length;
+    document.getElementById('statStudents').textContent=allRows.length;
     document.querySelectorAll('.exam-security-card').forEach(card=>{
-        const examId = card.dataset.examId;
-        const rows = card.querySelectorAll('tbody tr');
-        const takingEl = document.getElementById(`taking-${examId}`);
-        const cheatingEl = document.getElementById(`cheating-${examId}`);
-        if(takingEl) takingEl.textContent = `${rows.length} taking`;
-        let cheating = 0;
-        rows.forEach(r=>{ const s = r.querySelector('[id^="score-"]'); if(s && parseInt(s.textContent)<100) cheating++; });
-        if(cheatingEl) cheatingEl.textContent = `${cheating} cheating!`;
+        const examId=card.dataset.examId;
+        const rows=card.querySelectorAll('tbody tr');
+        const takingEl=document.getElementById(`taking-${examId}`);
+        const cheatingEl=document.getElementById(`cheating-${examId}`);
+        if(takingEl) takingEl.textContent=`${rows.length} taking`;
+        let cheating=0;
+        rows.forEach(r=>{ const s=r.querySelector('[id^="score-"]'); if(s && parseInt(s.textContent)<100) cheating++; });
+        if(cheatingEl) cheatingEl.textContent=`${cheating} cheating!`;
     });
     let total=0;
     allRows.forEach(r=>{ const v=r.querySelector('[id^="total-"]'); if(v) total+=parseInt(v.textContent)||0; });
-    document.getElementById('statEvents').textContent = total;
-    document.getElementById('statExams').textContent = document.querySelectorAll('.exam-security-card').length;
-    const top = document.getElementById('statExamsTop');
-    if(top) top.textContent = document.querySelectorAll('.exam-security-card').length;
+    document.getElementById('statEvents').textContent=total;
+    document.getElementById('statExams').textContent=document.querySelectorAll('.exam-security-card').length;
+    const top=document.getElementById('statExamsTop');
+    if(top) top.textContent=document.querySelectorAll('.exam-security-card').length;
 }
-
-// FIX 2: Seamless archive - when exam archived in finished_exams, remove its card block here too
+function updateClock(){ document.getElementById('liveClock').textContent=new Date().toLocaleTimeString(); }
+setInterval(updateClock, 1000); updateClock();
+document.addEventListener('DOMContentLoaded', ()=>{ pollSecurity(); setInterval(pollSecurity, 3000); updateCounts(); });
 const examChannel = new BroadcastChannel('exam_moves');
-examChannel.onmessage = (e)=>{
-    const data = e.data;
-    if(data.action === 'archive'){
-        const card = document.getElementById(`exam-card-${data.exam_id}`);
-        if(card){
-            card.classList.add('exiting');
-            setTimeout(()=>{ 
-                card.remove(); 
-                updateCounts();
-                if(document.querySelectorAll('.exam-security-card').length===0){
-                    document.getElementById('emptyAll').classList.remove('d-none');
-                }
-            }, 650);
-        }
-    }
-};
-
-document.addEventListener('DOMContentLoaded', ()=>{ pollSecurity(); setInterval(pollSecurity, 10000); updateCounts(); setInterv
+examChannel.onmessage = (e)=>{ if(e.data.action === 'archive'){ const card=document.getElementById(`exam-card-${e.data.exam_id}`); if(card){ card.classList.add('exiting'); setTimeout(()=>{ card.remove(); updateCounts(); }, 650); } } };
 </script>
 </body>
 </html>

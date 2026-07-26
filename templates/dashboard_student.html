@@ -243,7 +243,46 @@ if (localStorage.getItem("darkMode") === "true") {
     }
 
 }
+.icon-flip{display:inline-block;transition:transform 0.5s cubic-bezier(0.175,0.885,0.32,1.275);} .btn:hover .icon-flip, .icon-flip:hover{transform:scale(1.2) rotateY(180deg);}
+
+/* === SOFT FRIENDLY THEME - SAME AS VIEW_EXAMS === */
+:root { --soft-bg:#fdfbff; }
+body, .main-content, h1,h2,h3,h4,h5, small,p,span,a,button,td,th,div, label, li { font-family: 'Nunito', system-ui, sans-serif !important; -webkit-font-smoothing: antialiased; }
+h5, h4 { font-weight:800; color:#2e334d; }
+
+.friendly-btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:9px 18px; border-radius:50px; font-weight:700; font-size:.84rem; letter-spacing:.02em; border:1.5px solid transparent; cursor:pointer; transition: all .32s cubic-bezier(.34,1.56,.64,1); box-shadow:0 3px 12px rgba(0,0,0,.04); text-decoration:none; }
+.friendly-btn:hover{transform:translateY(-2px); box-shadow:0 8px 22px rgba(0,0,0,.10);} .friendly-btn:active{transform:scale(.96);}
+.friendly-btn i{display:inline-block; transition:transform .55s cubic-bezier(.34,1.56,.64,1);}
+.friendly-btn[data-flip="pop"]:hover i{transform:translateY(-2px) scale(1.25);} .friendly-btn[data-flip="spin"]:hover i{transform:rotate(360deg) scale(1.2);} .friendly-btn[data-flip="spin-ccw"]:hover i{transform:rotate(-360deg) scale(1.2);} .friendly-btn[data-flip="y"]:hover i{transform:rotateY(360deg);} .friendly-btn[data-flip="x"]:hover i{transform:rotateX(360deg);} .friendly-btn[data-flip="bounce"]:hover i{animation:softBounce .6s cubic-bezier(.34,1.56,.64,1);} .friendly-btn[data-flip="wobble"]:hover i{animation:softWobble .65s ease;}
+@keyframes softBounce{0%{transform:translateY(0)}40%{transform:translateY(-5px) scale(1.2)}100%{transform:translateY(0) scale(1.1)}} @keyframes softWobble{0%{transform:rotate(0)}25%{transform:rotate(10deg) scale(1.15)}50%{transform:rotate(-8deg)}100%{transform:rotate(0)}}
+
+.friendly-btn.primary{background:#eef2ff;color:#5a6cf3;border-color:#d9e0ff;} .friendly-btn.primary:hover{background:#5a6cf3;color:#fff;}
+.friendly-btn.success{background:#e8f6eb;color:#3daa5e;border-color:#cde9d3;} .friendly-btn.success:hover{background:#3daa5e;color:#fff;}
+.friendly-btn.danger{background:#fff0f2;color:#ff6b7b;border-color:#ffdade;} .friendly-btn.danger:hover{background:#ff6b7b;color:#fff;}
+.friendly-btn.warning{background:#fff7e0;color:#d69e2e;border-color:#ffefb0;} .friendly-btn.warning:hover{background:#d69e2e;color:#fff;}
+.friendly-btn.secondary{background:#f5f5f9;color:#8b90a3;border-color:#ececf2;} .friendly-btn.secondary:hover{background:#8b90a3;color:#fff;}
+.friendly-btn.info{background:#eaf7ff;color:#4fb8e0;border-color:#cdefff;} .friendly-btn.info:hover{background:#4fb8e0;color:#fff;}
+.friendly-btn.outline-primary{background:#f8f9ff;color:#5a6cf3;border-color:#d9e0ff;} .friendly-btn.outline-primary:hover{background:#5a6cf3;color:#fff;}
+
+.card{border-radius:20px !important; border:1px solid #f2eefb !important; box-shadow:0 6px 28px rgba(120,100,180,0.07) !important;}
+.exam-card{border-radius:20px !important; transition: transform .25s ease, box-shadow .25s ease;}
+.exam-card:hover{transform:translateY(-3px); box-shadow:0 12px 30px rgba(0,0,0,0.08) !important;}
+.badge-soft{border-radius:50px; padding:6px 14px; font-weight:700; font-size:.75rem; border:1px solid transparent;}
+.badge-soft.success{background:#e8f6eb; color:#3daa5e; border-color:#cde9d3;}
+.badge-soft.warning{background:#fff7e0; color:#b78a1f; border-color:#ffefb0;}
+.badge-soft.danger{background:#fff0f2; color:#ff6b7b; border-color:#ffdade;}
+.badge-soft.secondary{background:#f5f5f9; color:#8b90a3; border-color:#ececf2;}
+.badge-soft.info{background:#eaf7ff; color:#4fb8e0; border-color:#cdefff;}
+.badge-soft.primary{background:#eef2ff; color:#5a6cf3; border-color:#d9e0ff;}
+
+.icon-flip{display:inline-block; transition:transform 0.55s cubic-bezier(0.175,0.885,0.32,1.275);}
+.friendly-btn:hover .icon-flip{transform:rotateY(180deg) scale(1.15);}
+
+.sidebar{background: linear-gradient(180deg, #4a5de8 0%, #6b7eff 100%) !important; border-radius:0 20px 20px 0;}
+.main-content{background:#fdfbff;}
+.table thead th{background:#2563eb !important; color:#fff !important; font-weight:800; font-size:.78rem; text-transform:uppercase; letter-spacing:.05em; border:none !important;}
 </style>
+
 
 </head>
 <body class="bg-light">
@@ -254,7 +293,7 @@ if (localStorage.getItem("darkMode") === "true") {
 
     <button
         id="sidebarToggle"
-        class="btn btn-light btn-sm me-2"
+        class="friendly-btn secondary btn-sm me-2" data-flip="x"
         type="button"
         data-bs-toggle="collapse"
         data-bs-target="#studentSidebar"
@@ -265,7 +304,7 @@ if (localStorage.getItem("darkMode") === "true") {
     </button>
 
     <span class="fw-bold">
-        🎓 Student Dashboard 
+        <i class="bi bi-mortarboard-fill"></i> Student Dashboard 
     </span>
 
 </div>
@@ -275,27 +314,27 @@ if (localStorage.getItem("darkMode") === "true") {
      class="collapse d-lg-block bg-primary text-white p-3 sidebar">
 
   <h5 class="text-center mb-4 d-none d-lg-block">
-      🎓 Student Dashboard
+      <i class="bi bi-mortarboard-fill"></i> Student Dashboard
   </h5>
 
   {% if session.get('role') == 'Admin' %}
-  <a href="{{ url_for('dashboard_admin') }}" class="btn btn-light w-100 mb-2">
-    <i class="bi bi-arrow-left"></i> Admin
+  <a href="{{ url_for('dashboard_admin') }}" class="friendly-btn secondary w-100 mb-2" style="background:#fff; color:#4a5de8;" data-flip="x">
+    <i class="bi bi-arrow-left icon-flip"></i> Admin
   </a>
   {% elif session.get('role') == 'Instructor' %}
-  <a href="{{ url_for('dashboard_instructor') }}" class="btn btn-light w-100 mb-2">
-    <i class="bi bi-arrow-left"></i> Instructor
+  <a href="{{ url_for('dashboard_instructor') }}" class="friendly-btn secondary w-100 mb-2" style="background:#fff; color:#4a5de8;" data-flip="x">
+    <i class="bi bi-arrow-left icon-flip"></i> Instructor
   </a>
   {% endif %}
 
   <!-- EXAMS BUTTON -->
   <a href="#exam-section" class="btn btn-warning w-100 mb-2">
-    <i class="bi bi-pencil-square"></i>
+    <i class="bi bi-pencil-square icon-flip"></i>
     Exams
   </a>
 
-  <a href="{{ url_for('change_password') }}" class="btn btn-light w-100 mb-2">
-    <i class="bi bi-lock-fill"></i>
+  <a href="{{ url_for('change_password') }}" class="friendly-btn secondary w-100 mb-2" style="background:#fff; color:#4a5de8;" data-flip="x">
+    <i class="bi bi-lock-fill icon-flip"></i>
     Change Password
   </a>
 
@@ -306,7 +345,7 @@ if (localStorage.getItem("darkMode") === "true") {
   <hr>
 
   <a href="{{ url_for('logout') }}" class="btn btn-danger w-100">
-    <i class="bi bi-box-arrow-right"></i>
+    <i class="bi bi-box-arrow-right icon-flip"></i>
     Logout
   </a>
 
@@ -332,7 +371,7 @@ if (localStorage.getItem("darkMode") === "true") {
 <div class="card shadow-sm p-3">
 
   <h4 class="mb-3">
-    <i class="bi bi-bar-chart-fill"></i>
+    <i class="bi bi-bar-chart-fill icon-flip"></i>
     Your Grades
   </h4>
 
@@ -374,7 +413,7 @@ if (localStorage.getItem("darkMode") === "true") {
               subject=g.subject | urlencode) }}"
               class="btn btn-primary btn-sm">
 
-              <i class="bi bi-eye-fill"></i>
+              <i class="bi bi-eye-fill icon-flip"></i>
               View
 
             </a>
@@ -416,7 +455,7 @@ if (localStorage.getItem("darkMode") === "true") {
 <div class="card shadow-sm p-3 mt-4" id="exam-section">
 
   <h4 class="mb-3">
-    <i class="bi bi-pencil-square"></i>
+    <i class="bi bi-pencil-square icon-flip"></i>
     Available Exams
   </h4>
 
@@ -467,7 +506,7 @@ if (localStorage.getItem("darkMode") === "true") {
 
             <button
                 type="button"
-                class="btn btn-success"
+                class="friendly-btn success" data-flip="y"
 
                 data-bs-toggle="modal"
                 data-bs-target="#examInfoModal"
@@ -497,7 +536,7 @@ if (localStorage.getItem("darkMode") === "true") {
 
             <button 
                 id="request-btn-{{ exam.id }}"
-                class="btn btn-primary"
+                class="friendly-btn primary" data-flip="spin"
 
                 data-bs-toggle="modal"
                 data-bs-target="#requestExamModal"
@@ -560,7 +599,7 @@ if (localStorage.getItem("darkMode") === "true") {
         </div>
 
         <div class="modal-footer">
-          <button type="submit" class="btn btn-success">
+          <button type="submit" class="friendly-btn success" data-flip="y">
             Submit Request
           </button>
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
@@ -579,7 +618,7 @@ if (localStorage.getItem("darkMode") === "true") {
 <div class="card shadow-sm p-3 mt-4">
 
     <h4 class="mb-3">
-        <i class="bi bi-clipboard-data"></i>
+        <i class="bi bi-clipboard-data icon-flip"></i>
         Examination Results
     </h4>
 
@@ -739,7 +778,7 @@ if (localStorage.getItem("darkMode") === "true") {
             <div class="modal-header">
 
                 <h5 class="modal-title">
-                    📄 Examination Information
+                    <i class="bi bi-file-earmark-text"></i> Examination Information
                 </h5>
 
                 <button type="button"
@@ -803,7 +842,7 @@ if (localStorage.getItem("darkMode") === "true") {
                 <hr>
 
                 <h5 class="mt-4">
-                    ⚠ Examination Rules
+                    <i class="bi bi-exclamation-triangle"></i> Examination Rules
                 </h5>
 
                 <ul class="list-group">
@@ -851,8 +890,7 @@ if (localStorage.getItem("darkMode") === "true") {
             </div>
             <div class="modal-footer">
 
-                <button class="btn btn-secondary"
-                        data-bs-dismiss="modal">
+                <button class="friendly-btn secondary" data-flip="x" data-bs-dismiss="modal">
 
                     Cancel
 
@@ -860,7 +898,7 @@ if (localStorage.getItem("darkMode") === "true") {
 
                 <a id="startExamButton"
                    href="#"
-                   class="btn btn-success disabled"
+                   class="friendly-btn success disabled" data-flip="y"
                    aria-disabled="true">
 
                     Start Examination

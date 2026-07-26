@@ -1,1401 +1,421 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Add Question Builder</title>
-
-<link rel="icon" type="image/png"
-      href="{{ url_for('static', filename='favicon.png') }}">
-
-<!-- BOOTSTRAP -->
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-      rel="stylesheet">
-
-<!-- BOOTSTRAP ICONS -->
-<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
-      rel="stylesheet">
-
-<!-- BOOTSTRAP JS -->
+<title>Add Question Builder - {{ exam.subject.subject_code if exam.subject else 'Exam' }}</title>
+<link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
-<!-- SORTABLE -->
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-
-<script>
-if (localStorage.getItem("darkMode") === "true") {
-    document.documentElement.classList.add("dark-mode");
-}
-</script>
-
 <style>
-
-/* ===================================== */
-/* DARK MODE */
-/* ===================================== */
-
-.dark-mode {
-    background-color: #121212 !important;
-    color: #e0e0e0 !important;
-}
-
-.dark-mode .container,
-.dark-mode .card,
-.dark-mode .modal-content,
-.dark-mode .list-group-item {
-    background-color: #1e1e1e !important;
-    color: white !important;
-}
-
-.dark-mode .form-control,
-.dark-mode .form-select {
-    background-color: #2a2a2a !important;
-    color: white !important;
-    border: 1px solid #444 !important;
-}
-
-.dark-mode .form-control::placeholder {
-    color: #aaa !important;
-}
-
-.dark-mode .card-header {
-    background-color: #14532d !important;
-}
-
-.dark-mode .border-end {
-    border-color: #444 !important;
-}
-
-/* ===================================== */
-/* QUESTION CARDS */
-/* ===================================== */
-
-.question-card {
-    border-left: 5px solid #198754;
-    transition: 0.2s ease;
-}
-
-.question-card:hover {
-    transform: scale(1.01);
-}
-
-.drag-handle {
-    cursor: move;
-}
-
-.preview-box {
-    background: rgba(0,0,0,0.03);
-    border-radius: 8px;
-    padding: 10px;
-}
-
-.dark-mode .preview-box {
-    background: rgba(255,255,255,0.05);
-}
-
+.question-card{border-left:5px solid #198754;transition:0.2s ease}
+.drag-handle{cursor:move}
+.preview-box{background:rgba(0,0,0,0.03);border-radius:8px;padding:12px;border:1px dashed #ccc}
+.question-counter{font-size:0.85rem;font-weight:700;background:#198754;color:white;border-radius:20px;padding:2px 10px}
+.choice-row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.choice-label{font-weight:800;min-width:28px;height:36px;display:flex;align-items:center;justify-content:center;background:#f1f3f5;border-radius:6px;border:1px solid #dee2e6}
+.identification-wrapper{border:2px solid #ffc107;background:rgba(255,193,7,0.08);border-radius:8px;padding:12px}
+.preview-choice{padding:4px 8px;border-radius:6px;margin-bottom:4px;background:rgba(0,0,0,0.04)}
+.preview-choice.is-correct{border:1px solid #198754;background:rgba(25,135,84,0.15);font-weight:600}
+.soft-deleted{background:#fff3cd!important;border-left:5px solid #ffc107}
+.paste-hint{font-size:0.75rem;color:#198754;background:rgba(25,135,84,0.1);border:1px dashed #198754;border-radius:4px;padding:4px 8px;margin-top:4px;display:none}
+.paste-hint.show{display:block}
+.bi, .reactive-icon {display:inline-block;transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1), filter 0.25s ease;will-change:transform;}
+.btn:hover .bi, .list-group-item:hover .bi {transform: scale(1.25) rotate(-6deg);filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));}
+.bi:hover {transform: scale(1.35) rotate(8deg) translateY(-2px) !important;}
+.drag-handle:hover .bi-grip-vertical {animation: wiggle 0.4s ease-in-out infinite;}
+@keyframes wiggle {0%,100%{transform: translateX(0) scale(1.2);}25%{transform: translateX(-2px) rotate(-8deg) scale(1.2);}75%{transform: translateX(2px) rotate(8deg) scale(1.2);}}
+.btn-danger:hover .bi-x, .btn-danger:hover .bi-trash {animation: shake 0.35s ease-in-out;}
+@keyframes shake {0%,100%{transform: translateX(0) scale(1.3);}20%{transform: translateX(-3px) scale(1.3);}40%{transform: translateX(3px) scale(1.3);}60%{transform: translateX(-2px) scale(1.3);}80%{transform: translateX(2px) scale(1.3);}}
+.btn {position:relative;transition: transform 0.12s ease, box-shadow 0.12s ease;}
+.btn:active {animation: breathe 0.45s ease-out;}
+@keyframes breathe {0%{transform: scale(1);}30%{transform: scale(0.92);}60%{transform: scale(1.08);}100%{transform: scale(1);}}
+.icon-success {animation: popSuccess 0.6s cubic-bezier(0.34,1.56,0.64,1) !important;color:#198754 !important;}
+@keyframes popSuccess {0%{transform: scale(1);}30%{transform: scale(1.6) rotate(15deg);}60%{transform: scale(0.9) rotate(-10deg);}100%{transform: scale(1) rotate(0);}}
+.choice-row.added {animation: slideIn 0.35s ease-out;}
+@keyframes slideIn {from{opacity:0; transform: translateY(-10px) scale(0.95);}to{opacity:1; transform: translateY(0) scale(1);}}
+.bulk-bar{position:sticky;top:0;z-index:5;background:#fff;border:1px solid #dee2e6;border-radius:8px;padding:8px 12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 2px 6px rgba(0,0,0,0.05)}
 </style>
-
 </head>
-
 <body class="bg-light">
-
 <div class="container py-4">
-
 <div class="card shadow-sm">
-
-<!-- ===================================== -->
-<!-- HEADER -->
-<!-- ===================================== -->
-
 <div class="card-header bg-success text-white">
-
-    <div class="d-flex justify-content-between align-items-center">
-
-        <h4 class="mb-0">
-
-            Add Questions -
-            {{ exam.subject.subject_code if exam.subject else 'Unknown' }}
-
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <h4 class="mb-0">Add Questions - {{ exam.subject.subject_code if exam.subject else 'Unknown' }}
+            <span class="badge bg-light text-success ms-2"><i class="bi bi-database reactive-icon"></i> <span id="existingCount">{{ active_count if active_count is defined else 0 }}</span> saved</span>
+            <span class="badge bg-warning text-dark ms-1 d-none" id="builderCountBadge"><span id="builderCount">1</span> draft</span>
         </h4>
-
-        <div class="d-flex gap-2">
-
-            <!-- ADMIN -->
-            <a href="{{ url_for('dashboard_admin') }}"
-               class="btn btn-light btn-sm">
-
-                Admin
-
-            </a>
-
-            <!-- VIEW EXAMS -->
-            <a href="{{ url_for('view_exams') }}"
-               class="btn btn-primary btn-sm">
-
-                View Exams
-
-            </a>
-
-        </div>
-
+        <div class="d-flex gap-2"><a href="{{ url_for('dashboard_admin') }}" class="btn btn-light btn-sm"><i class="bi bi-person-gear"></i> Admin</a><a href="{{ url_for('view_exams') }}" class="btn btn-primary btn-sm"><i class="bi bi-eye"></i> View Exams</a></div>
     </div>
-
 </div>
-
-<!-- ===================================== -->
-<!-- BODY -->
-<!-- ===================================== -->
-
-<div class="card-body">
-
-<div class="row">
-
-<!-- ===================================== -->
-<!-- LEFT SIDE -->
-<!-- ===================================== -->
-
+<div class="card-body"><div class="row">
 <div class="col-md-4 border-end">
-
-    <h5 class="mb-3">
-
-        Import Questions
-
-    </h5>
-
-    <!-- ================================= -->
-    <!-- IMPORT EXCEL -->
-    <!-- ================================= -->
-
-    <div class="card bg-light mb-3 shadow-sm">
-
-        <div class="card-body">
-
-            <form method="POST"
-                  enctype="multipart/form-data"
-                  action="{{ url_for('import_questions',
-                                     exam_id=exam.id) }}">
-
-                <div class="mb-3">
-
-                    <label class="form-label fw-bold">
-
-                        Upload Excel / CSV
-
-                    </label>
-
-                    <input type="file"
-                           name="questions_file"
-                           class="form-control"
-                           required>
-
-                    <small class="text-muted">
-
-                        Upload multiple questions instantly.
-
-                    </small>
-
-                </div>
-
-                <!-- GUIDE -->
-                <div class="alert alert-info small">
-
-                    <strong>Excel Columns:</strong>
-
-                    <hr>
-
-                    question |
-                    question_type |
-                    choice_a |
-                    choice_b |
-                    choice_c |
-                    choice_d |
-                    correct_answer |
-                    points
-
-                </div>
-
-                <div class="d-grid gap-2">
-
-                    <!-- IMPORT -->
-                    <button class="btn btn-primary">
-
-                        Import Questions
-
-                    </button>
-
-                    <!-- TEMPLATE -->
-                    <a href="{{ url_for('export_question_template') }}"
-                       class="btn btn-outline-success">
-
-                        Download Template
-
-                    </a>
-
-                    <!-- EXPORT -->
-                    <a href="{{ url_for('export_questions',
-                                        exam_id=exam.id) }}"
-                       class="btn btn-success">
-
-                        Export Questions
-
-                    </a>
-
-                </div>
-
-            </form>
-
-        </div>
-
+    <h5><i class="bi bi-cloud-arrow-up"></i> Import Questions</h5>
+    <div class="card bg-light mb-3 shadow-sm"><div class="card-body">
+        <form method="POST" enctype="multipart/form-data" action="{{ url_for('import_questions', exam_id=exam.id) }}">
+            <label class="form-label fw-bold">Upload Excel / CSV (A-Z)</label>
+            <input type="file" name="questions_file" class="form-control mb-2" required>
+            <div class="alert alert-info small">Columns: question | question_type | choice_a ... choice_z | correct_answer | points</div>
+            <div class="d-grid gap-2"><button class="btn btn-primary"><i class="bi bi-upload"></i> Import A-Z</button><a href="{{ url_for('export_question_template') }}" class="btn btn-outline-success"><i class="bi bi-file-earmark-spreadsheet"></i> Template A-Z</a><a href="{{ url_for('export_questions', exam_id=exam.id) }}" class="btn btn-success"><i class="bi bi-download"></i> Export A-Z</a></div>
+        </form>
+    </div></div>
+    <div class="card shadow-sm border-primary"><div class="card-header bg-primary text-white d-flex justify-content-between"><span><i class="bi bi-box-arrow-in-down"></i> Import Existing</span><span class="badge bg-light text-primary" id="importedSelectedCount">0 selected</span></div>
+        <div class="card-body"><label class="form-label fw-bold">Select Subject (A-Z sorted)</label><select class="form-select" id="subjectSelect"><option value="">-- Choose Subject --</option>{% for s in subjects %}<option value="{{ s.id }}">{{ s.subject_code }} - {{ s.subject_name }}</option>{% endfor %}</select><small class="text-muted">Alphabetical by subject name.</small><button type="button" class="btn btn-outline-primary w-100 mt-2" id="openImportModalBtn" disabled><i class="bi bi-search"></i> Browse Questions</button></div>
     </div>
-
-    <!-- ================================= -->
-    <!-- IMPORT EXISTING -->
-    <!-- ================================= -->
-
-    <div class="card shadow-sm">
-
-        <div class="card-header bg-primary text-white">
-
-            Import Existing Questions
-
-        </div>
-
-        <div class="card-body">
-
-            <form method="POST"
-                  action="{{ url_for('import_existing_questions',
-                                     exam_id=exam.id) }}">
-
-                <div class="mb-3">
-
-                    <label class="form-label fw-bold">
-
-                        Select Subject
-
-                    </label>
-
-                    <select class="form-select"
-                            name="subject_id">
-
-                        <option value="">
-                            -- Choose Subject --
-                        </option>
-
-                        {% for s in subjects %}
-
-                        <option value="{{ s.id }}">
-
-                            {{ s.subject_code }}
-                            -
-                            {{ s.subject_name }}
-
-                        </option>
-
-                        {% endfor %}
-
-                    </select>
-
-                </div>
-
-                <button class="btn btn-primary w-100">
-
-                    Import Selected Questions
-
-                </button>
-
-            </form>
-
-        </div>
-
-    </div>
-
 </div>
-
-<!-- ===================================== -->
-<!-- RIGHT SIDE BUILDER -->
-<!-- ===================================== -->
-
 <div class="col-md-8">
-
-<div class="d-flex justify-content-between align-items-center mb-3">
-
-    <h5 class="mb-0">
-
-        Drag & Drop Question Builder
-
-    </h5>
-
-    <button type="button"
-            class="btn btn-success btn-sm"
-            onclick="addCard()">
-
-        + Add Question
-
-    </button>
-
+<div class="d-flex justify-content-between mb-3"><h5><i class="bi bi-tools"></i> Builder <span class="badge bg-success" id="builderBadge">1 draft</span></h5><div class="d-flex gap-2"><button type="button" class="btn btn-outline-success btn-sm" onclick="addCard()"><i class="bi bi-plus-lg"></i> Add</button><button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearAllCards()"><i class="bi bi-trash3"></i> Clear</button></div></div>
+<form method="POST" id="mainForm"><div id="builder">
+<div class="question-card card p-3 mb-3 shadow-sm" data-index="0">
+    <div class="d-flex justify-content-between mb-2"><div class="d-flex gap-2"><span class="drag-handle btn btn-outline-secondary btn-sm"><i class="bi bi-grip-vertical"></i></span><span class="question-counter">Question #1</span></div><div class="d-flex gap-2"><span class="badge bg-info choice-count-badge">4 choices</span><button type="button" class="btn btn-danger btn-sm del"><i class="bi bi-x"></i></button></div></div>
+    <div class="mb-2"><label class="form-label fw-bold">Question Type</label><select class="form-select type" name="question_type[]"><option value="mcq">Multiple Choice (A-Z)</option><option value="identification">Identification</option></select></div>
+    <div class="mb-2"><label class="form-label fw-bold">Question <small class="text-success">- Paste with a) b) c) d) auto-splits!</small></label><textarea class="form-control question-input" rows="4" name="question_text[]" placeholder="Paste here..."></textarea><div class="paste-hint">✨ Auto-detected choices!</div></div>
+    <div class="mcq-section"><div class="d-flex justify-content-between mb-2"><label class="form-label fw-bold mb-0">Choices (A-Z)</label><div class="btn-group btn-group-sm"><button type="button" class="btn btn-outline-success add-choice-btn"><i class="bi bi-plus"></i></button><button type="button" class="btn btn-outline-danger remove-choice-btn"><i class="bi bi-dash"></i></button></div></div><div class="choices-container"></div><div class="mt-2"><label class="form-label">Correct Answer</label><input class="form-control correct-answer-input" name="correct_answer[]" placeholder="e.g., B"></div></div>
+    <div class="identification-section d-none"><div class="identification-wrapper"><label class="form-label fw-bold">Identification Answer</label><input class="form-control identification-answer-input" name="correct_identification[]" placeholder="Correct answer"></div></div>
+    <div class="mb-2 mt-2"><label class="form-label fw-bold">Points</label><input type="number" class="form-control points-input" name="points[]" value="1" min="1"></div>
+    <div class="preview-box"><strong><i class="bi bi-eye"></i> Live Preview</strong><span class="badge bg-secondary ms-2 preview-type-badge">MCQ</span><hr class="my-2"><div class="preview-question fst-italic text-muted">Preview...</div><div class="preview-choices mt-2"></div></div>
 </div>
-
-<form method="POST">
-
-<div id="builder">
-
-<!-- ===================================== -->
-<!-- DEFAULT QUESTION CARD -->
-<!-- ===================================== -->
-
-<div class="question-card card p-3 mb-3 shadow-sm">
-
-    <!-- TOP BAR -->
-    <div class="d-flex justify-content-between align-items-center mb-2">
-
-        <span class="drag-handle btn btn-outline-secondary btn-sm">
-
-            Drag
-
-        </span>
-
-        <button type="button"
-                class="btn btn-danger btn-sm del">
-
-            Delete
-
-        </button>
-
-    </div>
-
-    <!-- TYPE -->
-    <div class="mb-2">
-
-        <label class="form-label fw-bold">
-
-            Question Type
-
-        </label>
-
-        <select class="form-select type"
-                name="question_type[]">
-
-            <option value="mcq">
-
-                Multiple Choice
-
-            </option>
-
-            <option value="identification">
-
-                Identification
-
-            </option>
-
-        </select>
-
-    </div>
-
-    <!-- QUESTION -->
-    <div class="mb-2">
-
-        <label class="form-label fw-bold">
-
-            Question
-
-        </label>
-
-        <textarea class="form-control question-input"
-                  rows="3"
-                  name="question_text[]"
-                  placeholder="Type the full question here..."></textarea>
-
-    </div>
-
-    <!-- MCQ -->
-    <div class="mcq-section">
-
-        <label class="form-label fw-bold">
-
-            Choices
-
-        </label>
-
-        <input class="form-control mb-2"
-               name="choice_a[]"
-               placeholder="Choice A">
-
-        <input class="form-control mb-2"
-               name="choice_b[]"
-               placeholder="Choice B">
-
-        <input class="form-control mb-2"
-               name="choice_c[]"
-               placeholder="Choice C">
-
-        <input class="form-control mb-2"
-               name="choice_d[]"
-               placeholder="Choice D">
-
-        <input class="form-control mb-2"
-               name="correct_answer[]"
-               placeholder="Correct Answer">
-
-    </div>
-
-    <!-- IDENTIFICATION -->
-    <div class="identification-section d-none">
-
-        <label class="form-label fw-bold">
-
-            Identification Answer
-
-        </label>
-
-        <input class="form-control mb-2"
-               name="correct_identification[]"
-               placeholder="Type the correct answer">
-
-    </div>
-
-    <!-- POINTS -->
-    <div class="mb-2">
-
-        <label class="form-label fw-bold">
-
-            Points
-
-        </label>
-
-        <input type="number"
-               class="form-control"
-               name="points[]"
-               value="1"
-               placeholder="Points">
-
-    </div>
-
-    <!-- AI CHECK -->
-    <div class="form-check form-switch mb-3">
-
-        <input class="form-check-input"
-               type="checkbox"
-               name="ai_checking[]">
-
-        <label class="form-check-label">
-
-            Enable AI-assisted answer checking
-
-        </label>
-
-    </div>
-
-    <!-- PREVIEW -->
-    <div class="preview-box">
-
-        <strong>
-
-            Live Preview
-
-        </strong>
-
-        <hr>
-
-        <div class="preview-question">
-
-            Your question preview will appear here...
-
-        </div>
-
-    </div>
-
+</div><button class="btn btn-success w-100 mt-3 btn-lg" type="submit"><i class="bi bi-floppy"></i> Save All (<span class="save-count">1 draft</span>)</button></form>
 </div>
-
 </div>
-
-<!-- SAVE -->
-<button class="btn btn-success w-100 mt-3">
-
-    Save All Questions
-
-</button>
-
-</form>
-
-</div>
-
-</div>
-
-<!-- ===================================== -->
-<!-- EXISTING QUESTIONS -->
-<!-- ===================================== -->
 
 <hr>
-
-<h5 class="mt-4">
-
-    Existing Questions
-
-</h5>
-
-{% if questions %}
-
-<div style="max-height:500px; overflow-y:auto;">
-
-<ul class="list-group">
-
-{% for q in questions %}
-
-<li class="list-group-item question-item-{{ q.id }}" id="q-{{ q.id }}">
-
-    <!-- TOP -->
-    <div class="d-flex justify-content-between align-items-start">
-
-        <div style="width:85%;">
-
-            <strong class="question-title">
-
-                {{ q.question_text }}
-
-            </strong>
-
-        </div>
-
-        <!-- DELETE -->
-        <div class="d-flex gap-2">
-
-            <button
-                class="btn btn-warning btn-sm edit-question-btn"
-                data-id="{{ q.id }}">
-
-                <i class="bi bi-pencil-square"></i>
-                Edit
-
-            </button>
-
-            <button
-                class="btn btn-danger btn-sm delete-question-btn"
-                data-id="{{ q.id }}">
-
-                <i class="bi bi-trash-fill"></i>
-                Delete
-
-            </button>
-
-        </div>
-
-    </div>
-
-    <br>
-
-    {% if q.question_type == "mcq" %}
-
-        <div class="ms-2 question-choices">
-
-            <div class="choice-a">
-                A. {{ q.choice_a }}
-            </div>
-
-            <div class="choice-b">
-                B. {{ q.choice_b }}
-            </div>
-
-            <div class="choice-c">
-                C. {{ q.choice_c }}
-            </div>
-
-            <div class="choice-d">
-                D. {{ q.choice_d }}
-            </div>
-
-        </div>
-
-    {% else %}
-
-        <span class="badge bg-warning text-dark">
-
-            Identification Question
-
-        </span>
-
-    {% endif %}
-
-    <br><br>
-
-    <span class="badge bg-success correct-answer">
-
-        Correct:
-        {{ q.correct_answer }}
-
-    </span>
-
-    <span class="badge bg-primary question-points">
-
-        {{ q.points }} pts
-
-    </span>
-
-</li>
-
-{% endfor %}
-
+<ul class="nav nav-tabs mt-4">
+  <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#activeTab"><i class="bi bi-check-circle"></i> Active <span class="badge bg-success">{{ active_count if active_count is defined else 0 }}</span></button></li>
+  <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#deletedTab"><i class="bi bi-eye-slash"></i> Hidden / Deleted <span class="badge bg-warning text-dark">{{ hidden_count if hidden_count is defined else 0 }}</span></button></li>
 </ul>
-
-</div>
-
-{% else %}
-
-<div class="alert alert-secondary">
-
-    No questions added yet.
-
-</div>
-
-{% endif %}
-
-</div>
-</div>
-</div>
-
-<!-- ===================================== -->
-<!-- JAVASCRIPT -->
-<!-- ===================================== -->
-
-<script>
-
-let selectedQuestionId = null;
-
-document.addEventListener("DOMContentLoaded", function () {
-
-    // =========================
-    // OPEN MODAL
-    // =========================
-    document.addEventListener("click", function (e) {
-
-        const btn = e.target.closest(".delete-question-btn");
-        if (!btn) return;
-
-        selectedQuestionId = btn.dataset.id;
-
-        const modalEl = document.getElementById("deleteQuestionModal");
-
-        let modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-        modal.show();
-    });
-
-    // =========================
-    // OPEN EDIT MODAL
-    // =========================
-    document.addEventListener("click", function (e) {
-
-        const btn = e.target.closest(".edit-question-btn");
-
-        if (!btn) return;
-
-        const questionId = btn.dataset.id;
-
-        fetch(`/edit-question/${questionId}`, {
-
-            headers: {
-                "X-Requested-With": "XMLHttpRequest"
-            }
-
-        })
-
-        .then(response => response.json())
-
-        .then(data => {
-
-            document.getElementById("editQuestionId").value =
-                data.id;
-
-            document.getElementById("editQuestionText").value =
-                data.question_text;
-
-            document.getElementById("editQuestionType").value =
-                data.question_type;
-
-            document.getElementById("editChoiceA").value =
-                data.choice_a || "";
-
-            document.getElementById("editChoiceB").value =
-                data.choice_b || "";
-
-            document.getElementById("editChoiceC").value =
-                data.choice_c || "";
-
-            document.getElementById("editChoiceD").value =
-                data.choice_d || "";
-
-            document.getElementById("editCorrectAnswer").value =
-                data.correct_answer || "";
-
-            document.getElementById("editPoints").value =
-                data.points;
-
-            const isMCQ = data.question_type === "mcq";
-
-            document
-                .querySelectorAll(
-                    "#editQuestionModal .mcq-edit"
-                )
-                .forEach(el => {
-
-                    el.style.display =
-                        isMCQ ? "" : "none";
-
-                });
-
-            bootstrap.Modal.getOrCreateInstance(
-                document.getElementById("editQuestionModal")
-            ).show();
-
-        });
-
-    });
-
-    // =========================
-    // CONFIRM DELETE
-    // =========================
-    const confirmBtn = document.getElementById("confirmDeleteQuestion");
-
-    if (confirmBtn) {
-
-        confirmBtn.addEventListener("click", async function () {
-
-            if (!selectedQuestionId) return;
-
-            try {
-
-                const response = await fetch(`/delete-question/${selectedQuestionId}`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    }
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-
-                    const el = document.querySelector(
-                        `.question-item-${selectedQuestionId}`
-                    );
-
-                    if (el) el.remove();
-
-                    const successAlert = document.getElementById("deleteSuccessAlert");
-
-                    if (successAlert) {
-                        successAlert.classList.remove("d-none");
-
-                        setTimeout(() => {
-                            successAlert.classList.add("d-none");
-                        }, 2500);
-                    }
-
-                } else {
-                    alert("Delete failed.");
-                }
-
-            } catch (err) {
-                console.error(err);
-                alert("Server error while deleting.");
-            }
-
-            // CLOSE MODAL
-            const modalEl = document.getElementById("deleteQuestionModal");
-            const modal = bootstrap.Modal.getInstance(modalEl);
-
-            if (modal) modal.hide();
-
-            selectedQuestionId = null;
-        });
-    }
-});
-
-</script>
-
-
-<script>
-
-// =====================================
-// DRAG & DROP
-// =====================================
-
-new Sortable(document.getElementById("builder"), {
-    animation: 150,
-    handle: '.drag-handle'
-});
-
-// =====================================
-// ADD QUESTION CARD
-// =====================================
-
-function addCard() {
-
-    let div = document.createElement("div");
-
-    div.className = "question-card card p-3 mb-3 shadow-sm";
-
-    div.innerHTML = `
-
-        <div class="d-flex justify-content-between align-items-center mb-2">
-
-            <span class="drag-handle btn btn-outline-secondary btn-sm">
-
-                Drag
-
-            </span>
-
-            <button type="button"
-                    class="btn btn-danger btn-sm del">
-
-                Delete
-
-            </button>
-
-        </div>
-
-        <div class="mb-2">
-
-            <label class="form-label fw-bold">
-
-                Question Type
-
-            </label>
-
-            <select class="form-select type"
-                    name="question_type[]">
-
-                <option value="mcq">
-
-                    Multiple Choice
-
-                </option>
-
-                <option value="identification">
-
-                    Identification
-
-                </option>
-
-            </select>
-
-        </div>
-
-        <div class="mb-2">
-
-            <label class="form-label fw-bold">
-
-                Question
-
-            </label>
-
-            <textarea class="form-control question-input"
-                      rows="3"
-                      name="question_text[]"
-                      placeholder="Type the full question here..."></textarea>
-
-        </div>
-
-        <div class="mcq-section">
-
-            <label class="form-label fw-bold">
-
-                Choices
-
-            </label>
-
-            <input class="form-control mb-2"
-                   name="choice_a[]"
-                   placeholder="Choice A">
-
-            <input class="form-control mb-2"
-                   name="choice_b[]"
-                   placeholder="Choice B">
-
-            <input class="form-control mb-2"
-                   name="choice_c[]"
-                   placeholder="Choice C">
-
-            <input class="form-control mb-2"
-                   name="choice_d[]"
-                   placeholder="Choice D">
-
-            <input class="form-control mb-2"
-                   name="correct_answer[]"
-                   placeholder="Correct Answer">
-
-        </div>
-
-        <div class="identification-section d-none">
-
-            <label class="form-label fw-bold">
-
-                Identification Answer
-
-            </label>
-
-            <input class="form-control mb-2"
-                   name="correct_identification[]"
-                   placeholder="Type the correct answer">
-
-        </div>
-
-        <div class="mb-2">
-
-            <label class="form-label fw-bold">
-
-                Points
-
-            </label>
-
-            <input type="number"
-                   class="form-control"
-                   name="points[]"
-                   value="1">
-
-        </div>
-
-        <div class="form-check form-switch mb-3">
-
-            <input class="form-check-input"
-                   type="checkbox"
-                   name="ai_checking[]">
-
-            <label class="form-check-label">
-
-                Enable AI-assisted answer checking
-
-            </label>
-
-        </div>
-
-        <div class="preview-box">
-
-            <strong>
-
-                Live Preview
-
-            </strong>
-
-            <hr>
-
-            <div class="preview-question">
-
-                Your question preview will appear here...
-
-            </div>
-
-        </div>
-    `;
-
-    document.getElementById("builder").appendChild(div);
-}
-
-// =====================================
-// TOGGLE QUESTION TYPE
-// =====================================
-
-document.addEventListener("change", function(e){
-
-    if(e.target.classList.contains("type")){
-
-        let card = e.target.closest(".question-card");
-
-        let mcq = card.querySelector(".mcq-section");
-        let identification = card.querySelector(".identification-section");
-
-        if(e.target.value === "mcq"){
-
-            mcq.classList.remove("d-none");
-            identification.classList.add("d-none");
-
-        } else {
-
-            mcq.classList.add("d-none");
-            identification.classList.remove("d-none");
-        }
-    }
-});
-
-// =====================================
-// DELETE CARD
-// =====================================
-
-document.addEventListener("click", function(e){
-
-    if(e.target.classList.contains("del")){
-
-        e.target.closest(".question-card").remove();
-    }
-});
-
-// =====================================
-// LIVE PREVIEW
-// =====================================
-
-document.addEventListener("input", function(e){
-
-    if(e.target.classList.contains("question-input")){
-
-        let card = e.target.closest(".question-card");
-
-        let preview = card.querySelector(".preview-question");
-
-        preview.innerText = e.target.value;
-    }
-});
-
-</script>
-
-<div class="modal fade" id="deleteQuestionModal" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-
-      <div class="modal-header bg-danger text-white">
-        <h5 class="modal-title">Delete Question</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-      </div>
-
-      <div class="modal-body">
-        Are you sure you want to delete this question?
-      </div>
-
-      <div class="modal-footer">
-        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button class="btn btn-danger" id="confirmDeleteQuestion">
-            Delete
-        </button>
-      </div>
-
-    </div>
+<div class="tab-content border p-2">
+<!-- ACTIVE TAB WITH BULK -->
+<div class="tab-pane fade show active" id="activeTab">
+<div class="bulk-bar">
+  <div class="d-flex align-items-center gap-2">
+    <input type="checkbox" class="form-check-input" id="selectAllActive">
+    <label for="selectAllActive" class="form-check-label fw-bold small">Select All</label>
+    <span class="badge bg-secondary" id="activeSelectedCount">0 selected</span>
+  </div>
+  <div class="d-flex gap-2">
+    <input type="text" id="searchExisting" class="form-control form-control-sm" placeholder="Search..." style="width:180px">
+    <button class="btn btn-secondary btn-sm" id="bulkSoftDeleteBtn" disabled><i class="bi bi-eye-slash"></i> Soft Delete Selected</button>
   </div>
 </div>
-
-<!-- ===================================== -->
-<!-- EDIT QUESTION MODAL -->
-<!-- ===================================== -->
-
-<div class="modal fade"
-     id="editQuestionModal"
-     tabindex="-1">
-
-    <div class="modal-dialog modal-lg">
-
-        <div class="modal-content">
-
-            <div class="modal-header bg-warning">
-
-                <h5 class="modal-title">
-                    ✏ Edit Question
-                </h5>
-
-                <button
-                    type="button"
-                    class="btn-close"
-                    data-bs-dismiss="modal">
-                </button>
-
-            </div>
-
-            <div class="modal-body">
-
-                <input
-                    type="hidden"
-                    id="editQuestionId">
-
-                <div class="mb-3">
-
-                    <label class="form-label fw-bold">
-                        Question
-                    </label>
-
-                    <textarea
-                        id="editQuestionText"
-                        class="form-control"
-                        rows="3">
-                    </textarea>
-
-                </div>
-
-                <div class="mb-3">
-
-                    <label class="form-label fw-bold">
-                        Question Type
-                    </label>
-
-                    <select
-                        id="editQuestionType"
-                        class="form-select">
-
-                        <option value="mcq">
-                            Multiple Choice
-                        </option>
-
-                        <option value="identification">
-                            Identification
-                        </option>
-
-                    </select>
-
-                </div>
-
-                <div class="row mcq-edit">
-
-                    <div class="col-md-6">
-
-                        <label class="form-label">
-                            Choice A
-                        </label>
-
-                        <input
-                            id="editChoiceA"
-                            class="form-control">
-
-                    </div>
-
-                    <div class="col-md-6">
-
-                        <label class="form-label">
-                            Choice B
-                        </label>
-
-                        <input
-                            id="editChoiceB"
-                            class="form-control">
-
-                    </div>
-
-                </div>
-
-                <div class="row mcq-edit">
-
-                    <div class="col-md-6">
-
-                        <label class="form-label">
-                            Choice C
-                        </label>
-
-                        <input
-                            id="editChoiceC"
-                            class="form-control">
-
-                    </div>
-
-                    <div class="col-md-6">
-
-                        <label class="form-label">
-                            Choice D
-                        </label>
-
-                        <input
-                            id="editChoiceD"
-                            class="form-control">
-
-                    </div>
-
-                </div>
-
-                <div class="row mt-3">
-
-                    <div class="col-md-6">
-
-                        <label class="form-label">
-                            Correct Answer
-                        </label>
-
-                        <input
-                            id="editCorrectAnswer"
-                            class="form-control">
-
-                    </div>
-
-                    <div class="col-md-6">
-
-                        <label class="form-label">
-                            Points
-                        </label>
-
-                        <input
-                            id="editPoints"
-                            type="number"
-                            class="form-control">
-
-                    </div>
-
-                </div>
-
-            </div>
-
-            <div class="modal-footer">
-
-                <button
-                    class="btn btn-warning"
-                    id="saveQuestionChanges">
-
-                    💾 Save Changes
-
-                </button>
-
-                <button
-                    class="btn btn-secondary"
-                    data-bs-dismiss="modal">
-
-                    Cancel
-
-                </button>
-
-            </div>
-
-        </div>
-
-    </div>
-
+<div style="max-height:600px;overflow-y:auto" id="existingList"><ul class="list-group" id="activeListGroup">
+{% for q in active_questions %}
+<li class="list-group-item question-item-{{ q.id }} existing-question-item" data-text="{{ q.question_text|lower }}">
+<div class="d-flex justify-content-between">
+  <div class="d-flex gap-2" style="width:80%">
+    <input type="checkbox" class="form-check-input mt-1 active-checkbox" value="{{ q.id }}">
+    <div><strong class="question-title">{{ loop.index }}. {{ q.question_text }}</strong> <span class="badge bg-{{ 'warning text-dark' if q.question_type=='identification' else 'info' }} ms-1">{{ q.question_type }}</span><div class="small mt-1 question-choices-display">{% for letter, txt in q.choices.items() %}<div>{{ letter }}. {{ txt }}</div>{% endfor %}</div></div>
+  </div>
+  <div class="d-flex gap-1 align-items-start"><button class="btn btn-warning btn-sm edit-question-btn" data-id="{{ q.id }}"><i class="bi bi-pencil"></i></button><button class="btn btn-secondary btn-sm soft-delete-btn" data-id="{{ q.id }}"><i class="bi bi-eye-slash"></i></button><button class="btn btn-danger btn-sm delete-question-btn" data-id="{{ q.id }}"><i class="bi bi-trash"></i></button></div>
 </div>
+<div class="mt-2 ms-4"><span class="badge bg-success correct-answer">Correct: {{ q.correct_answer }}</span> <span class="badge bg-primary question-points">{{ q.points }} pts</span></div>
+</li>
+{% endfor %}
+</ul></div>
+</div>
+
+<!-- HIDDEN TAB WITH BULK RESTORE -->
+<div class="tab-pane fade" id="deletedTab">
+<div class="bulk-bar bg-warning-subtle">
+  <div class="d-flex align-items-center gap-2">
+    <input type="checkbox" class="form-check-input" id="selectAllHidden">
+    <label for="selectAllHidden" class="form-check-label fw-bold small">Select All Hidden</label>
+    <span class="badge bg-secondary" id="hiddenSelectedCount">0 selected</span>
+  </div>
+  <div class="d-flex gap-2">
+    <button class="btn btn-success btn-sm" id="bulkRestoreBtn" disabled><i class="bi bi-arrow-counterclockwise"></i> Restore Selected</button>
+    <button class="btn btn-outline-danger btn-sm" id="bulkHardDeleteBtn" disabled><i class="bi bi-trash"></i> Hard Delete Selected</button>
+  </div>
+</div>
+<h6 class="my-2 small text-muted">Hidden (Not visible in take_exam.html) - Click Restore to make visible again</h6>
+<ul class="list-group" id="hiddenListGroup">
+{% for q in hidden_questions %}
+<li class="list-group-item soft-deleted question-item-{{ q.id }}"><div class="d-flex justify-content-between"><div class="d-flex gap-2" style="width:75%"><input type="checkbox" class="form-check-input mt-1 hidden-checkbox" value="{{ q.id }}"><div><strong>{{ q.question_text }}</strong> {% if q.is_deleted %}<span class="badge bg-danger">Deleted</span>{% else %}<span class="badge bg-warning text-dark">Inactive</span>{% endif %}<div class="small text-muted mt-1">{% for letter, txt in q.choices.items() %}{{ letter }}. {{ txt }} | {% endfor %}</div></div></div><div class="d-flex gap-1"><button class="btn btn-success btn-sm restore-btn" data-id="{{ q.id }}"><i class="bi bi-arrow-counterclockwise"></i> Restore</button><button class="btn btn-outline-danger btn-sm hard-delete-btn" data-id="{{ q.id }}"><i class="bi bi-trash"></i> Hard Delete</button></div></div></li>
+{% endfor %}
+</ul>
+</div>
+</div>
+</div>
+</div></div>
+
+<!-- Modals -->
+<div class="modal fade" id="deleteQuestionModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header bg-danger text-white"><h5 class="modal-title"><i class="bi bi-exclamation-triangle"></i> Delete</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="form-check"><input class="form-check-input" type="radio" name="deleteMode" value="soft" id="softDel" checked><label class="form-check-label" for="softDel"><strong>Soft Delete</strong> - Hide from exam</label></div><div class="form-check mt-2"><input class="form-check-input" type="radio" name="deleteMode" value="hard" id="hardDel"><label class="form-check-label" for="hardDel"><strong>Hard Delete</strong> - Permanent from NeonDB</label></div></div><div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-danger" id="confirmDeleteQuestion"><i class="bi bi-trash"></i> Confirm</button></div></div></div></div>
+
+<div class="modal fade" id="editQuestionModal" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header bg-warning"><h5 class="modal-title">✏ Edit Question - Choices update instantly</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="editQuestionId"><div class="mb-3"><label class="form-label fw-bold">Question</label><textarea id="editQuestionText" class="form-control" rows="3"></textarea></div><div class="mb-3"><label class="form-label fw-bold">Type</label><select id="editQuestionType" class="form-select"><option value="mcq">MCQ A-Z</option><option value="identification">Identification</option></select></div><div id="editChoicesContainer" class="row"></div><div class="row mt-3"><div class="col-md-6"><label class="form-label">Correct Answer</label><input id="editCorrectAnswer" class="form-control"></div><div class="col-md-6"><label class="form-label">Points</label><input id="editPoints" type="number" class="form-control"></div></div></div><div class="modal-footer"><button class="btn btn-warning" id="saveQuestionChanges"><i class="bi bi-floppy"></i> Save Changes</button><button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button></div></div></div></div>
+
+<div class="modal fade" id="importQuestionsModal" tabindex="-1"><div class="modal-dialog modal-xl modal-dialog-scrollable"><div class="modal-content"><div class="modal-header bg-primary text-white"><h5 class="modal-title">Import from <span id="importSubjectName">Subject</span></h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="d-flex justify-content-between mb-3"><input type="text" id="importSearch" class="form-control form-control-sm" placeholder="Search..." style="width:250px"><div class="d-flex gap-2"><button class="btn btn-outline-secondary btn-sm" id="selectAllImport">Select All</button><button class="btn btn-outline-secondary btn-sm" id="deselectAllImport">Deselect</button></div></div><div id="importLoading" class="text-center py-4"><div class="spinner-border text-primary"></div></div><div id="importList" class="list-group d-none"></div><div id="importEmpty" class="alert alert-secondary d-none">No questions.</div></div><div class="modal-footer"><span class="me-auto"><span id="importCount">0</span> selected</span><button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary" id="confirmImportBtn">Add</button></div></div></div></div>
+
+<div id="deleteSuccessAlert" class="alert alert-success position-fixed top-0 end-0 m-4 shadow d-none" style="z-index:9999"></div>
+<div id="editSuccessToast" class="toast position-fixed top-0 end-0 m-4 text-bg-success border-0" style="z-index:9999"><div class="d-flex"><div class="toast-body">✅ Updated</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div></div>
+<div id="restoreSuccessToast" class="toast position-fixed top-0 end-0 m-4 text-bg-success border-0" style="z-index:9999"><div class="d-flex"><div class="toast-body">✅ Restored!</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div></div>
 
 <script>
-
-document.getElementById("saveQuestionChanges")
-
-.addEventListener("click", function () {
-
-    const questionId =
-        document.getElementById("editQuestionId").value;
-
-    fetch(`/edit-question/${questionId}`, {
-
-        method: "POST",
-
-        headers: {
-
-            "Content-Type": "application/json"
-
-        },
-
-        body: JSON.stringify({
-
-            question_text:
-                document.getElementById("editQuestionText").value,
-
-            question_type:
-                document.getElementById("editQuestionType").value,
-
-            choice_a:
-                document.getElementById("editChoiceA").value,
-
-            choice_b:
-                document.getElementById("editChoiceB").value,
-
-            choice_c:
-                document.getElementById("editChoiceC").value,
-
-            choice_d:
-                document.getElementById("editChoiceD").value,
-
-            correct_answer:
-                document.getElementById("editCorrectAnswer").value,
-
-            points:
-                document.getElementById("editPoints").value
-
-        })
-
-    })
-
-    .then(response => response.json())
-
-    .then(data => {
-
-        if (data.success) {
-
-            const card = document.querySelector(
-                `.question-item-${questionId}`
-            );
-
-            if (card) {
-
-                card.querySelector(".question-title").textContent =
-                    document.getElementById("editQuestionText").value;
-
-                const choiceA = card.querySelector(".choice-a");
-                if (choiceA)
-                    choiceA.textContent =
-                        "A. " + document.getElementById("editChoiceA").value;
-
-                const choiceB = card.querySelector(".choice-b");
-                if (choiceB)
-                    choiceB.textContent =
-                        "B. " + document.getElementById("editChoiceB").value;
-
-                const choiceC = card.querySelector(".choice-c");
-                if (choiceC)
-                    choiceC.textContent =
-                        "C. " + document.getElementById("editChoiceC").value;
-
-                const choiceD = card.querySelector(".choice-d");
-                if (choiceD)
-                    choiceD.textContent =
-                        "D. " + document.getElementById("editChoiceD").value;
-
-                const correct = card.querySelector(".correct-answer");
-                if (correct)
-                    correct.textContent =
-                        "Correct: " +
-                        document.getElementById("editCorrectAnswer").value;
-
-                const points = card.querySelector(".question-points");
-                if (points)
-                    points.textContent =
-                        document.getElementById("editPoints").value + " pts";
-
-            }
-
-            bootstrap.Modal.getInstance(
-                document.getElementById("editQuestionModal")
-            ).hide();
-
-            bootstrap.Toast.getOrCreateInstance(
-                document.getElementById("editSuccessToast")
-            ).show();
-
-        }
-
-    });
-
+let selectedQuestionId=null;
+const ALPHABET=Array.from({length:26},(_,i)=>String.fromCharCode(65+i));
+const EXAM_ID={{ exam.id }};
+function updateQuestionCount(){
+    const cards=document.querySelectorAll('#builder .question-card');
+    const count=cards.length;
+    document.getElementById('builderCount').textContent=count;
+    document.getElementById('builderBadge').textContent= count + (count===1?' draft':' drafts');
+    document.querySelectorAll('.save-count').forEach(el=>el.textContent= count + (count===1?' draft':' drafts'));
+    cards.forEach((c,i)=>{c.querySelector('.question-counter').textContent=`Question #${i+1}`;c.dataset.index=i;});
+}
+function createChoiceRow(letter,value='',card){
+    const div=document.createElement('div');div.className='choice-row added';div.dataset.letter=letter;
+    div.innerHTML=`<span class="choice-label">${letter}</span><input class="form-control choice-input flex-grow-1" data-letter="${letter}" name="choice_${letter.toLowerCase()}[]" placeholder="Choice ${letter}" value="${value.replace(/"/g,'&quot;')}"><button type="button" class="btn btn-sm btn-outline-danger remove-single-choice"><i class="bi bi-x"></i></button>`;
+    setTimeout(()=>div.classList.remove('added'),400);
+    return div;
+}
+function initChoices(card,letters=4){const container=card.querySelector('.choices-container');container.innerHTML='';for(let i=0;i<letters;i++) container.appendChild(createChoiceRow(ALPHABET[i],'',card));updateChoiceCountBadge(card);updatePreview(card);}
+function updateChoiceCountBadge(card){const count=card.querySelectorAll('.choices-container .choice-row').length;const badge=card.querySelector('.choice-count-badge');if(badge) badge.textContent=`${count} choices`;}
+function updatePreview(card){
+    if(!card) return;
+    const qInput=card.querySelector('.question-input');
+    const type=card.querySelector('.type')?.value||'mcq';
+    const previewQ=card.querySelector('.preview-question');
+    const previewChoices=card.querySelector('.preview-choices');
+    const typeBadge=card.querySelector('.preview-type-badge');
+    if(typeBadge){typeBadge.textContent=type==='mcq'?'MCQ A-Z':'Identification';}
+    const qText=qInput?.value.trim()||'';
+    if(previewQ){previewQ.textContent=qText||'Preview...';}
+    if(previewChoices) previewChoices.innerHTML='';
+    if(type==='mcq'){
+        const rows=card.querySelectorAll('.choices-container .choice-row');
+        const correctVal=(card.querySelector('.correct-answer-input')?.value||'').toUpperCase();
+        const correctLetters=correctVal.split(',').map(s=>s.trim()).filter(Boolean);
+        rows.forEach(row=>{
+            const letter=row.dataset.letter;
+            const val=row.querySelector('.choice-input')?.value.trim()||'';
+            if(!val) return;
+            const div=document.createElement('div');
+            div.className=`preview-choice ${correctLetters.includes(letter)?'is-correct':''}`;
+            div.innerHTML=`<strong>${letter}.</strong> ${val}`;
+            previewChoices.appendChild(div);
+        });
+    }else{
+        const ans=card.querySelector('.identification-answer-input')?.value||'';
+        if(previewChoices) previewChoices.innerHTML=`<div class="preview-choice"><strong>Answer:</strong> ${ans||'Not set'}</div>`;
+    }
+}
+function parsePastedQuestionBlock(text){
+    const lines = text.split(/\n/).map(l=>l.trim()).filter(l=>l);
+    if(lines.length < 2) return null;
+    let choices = {};
+    let choicePattern = /^([a-zA-Z])[\).\-:]\s*(.+)/;
+    let foundChoiceStart = -1;
+    for(let i=0;i<lines.length;i++){ if(choicePattern.test(lines[i]) && i>0){ foundChoiceStart = i; break; } }
+    if(foundChoiceStart === -1) return null;
+    let rawQuestion = lines.slice(0, foundChoiceStart).join(' ');
+    rawQuestion = rawQuestion.replace(/^\d+[\).\-]\s*/, '').trim();
+    for(let i=foundChoiceStart;i<lines.length;i++){ const m = lines[i].match(choicePattern); if(m){ const letter = m[1].toUpperCase(); choices[letter]=m[2].trim(); } }
+    if(Object.keys(choices).length < 2) return null;
+    return {question: rawQuestion, choices};
+}
+function handleQuestionPaste(e){
+    const textarea = e.target;
+    const clipboard = (e.clipboardData || window.clipboardData).getData('text');
+    if(!clipboard || !clipboard.includes('\n')) return;
+    const parsed = parsePastedQuestionBlock(clipboard);
+    if(!parsed) return;
+    e.preventDefault();
+    const card = textarea.closest('.question-card');
+    textarea.value = parsed.question;
+    const container = card.querySelector('.choices-container');
+    container.innerHTML = '';
+    Object.keys(parsed.choices).sort().forEach(letter=>{ container.appendChild(createChoiceRow(letter, parsed.choices[letter], card)); });
+    updateChoiceCountBadge(card); updatePreview(card);
+    let hint = card.querySelector('.paste-hint'); hint.textContent = `✨ Auto-detected ${Object.keys(parsed.choices).length} choices`; hint.classList.add('show'); setTimeout(()=>hint.classList.remove('show'),4000);
+}
+new Sortable(document.getElementById("builder"),{animation:150,handle:'.drag-handle',onEnd:updateQuestionCount});
+function addCard(){
+    let div=document.createElement("div");div.className="question-card card p-3 mb-3 shadow-sm";
+    div.innerHTML=`<div class="d-flex justify-content-between mb-2"><div class="d-flex gap-2"><span class="drag-handle btn btn-outline-secondary btn-sm"><i class="bi bi-grip-vertical"></i></span><span class="question-counter">Question #</span></div><div class="d-flex gap-2"><span class="badge bg-info choice-count-badge">4 choices</span><button type="button" class="btn btn-danger btn-sm del"><i class="bi bi-x"></i></button></div></div><div class="mb-2"><label class="form-label fw-bold">Question Type</label><select class="form-select type" name="question_type[]"><option value="mcq">Multiple Choice (A-Z)</option><option value="identification">Identification</option></select></div><div class="mb-2"><label class="form-label fw-bold">Question</label><textarea class="form-control question-input" rows="4" name="question_text[]" placeholder="Paste full question..."></textarea><div class="paste-hint">Auto-filled!</div></div><div class="mcq-section"><div class="d-flex justify-content-between mb-2"><label class="form-label fw-bold mb-0">Choices (A-Z)</label><div class="btn-group btn-group-sm"><button type="button" class="btn btn-outline-success add-choice-btn"><i class="bi bi-plus"></i></button><button type="button" class="btn btn-outline-danger remove-choice-btn"><i class="bi bi-dash"></i></button></div></div><div class="choices-container"></div><div class="mt-2"><label class="form-label">Correct Answer</label><input class="form-control correct-answer-input" name="correct_answer[]" placeholder="e.g., B"></div></div><div class="identification-section d-none"><div class="identification-wrapper"><label class="form-label fw-bold">Identification Answer</label><input class="form-control identification-answer-input" name="correct_identification[]" placeholder="Correct answer"></div></div><div class="mb-2 mt-2"><label class="form-label fw-bold">Points</label><input type="number" class="form-control points-input" name="points[]" value="1" min="1"></div><div class="preview-box"><strong>Preview</strong><hr class="my-2"><div class="preview-question fst-italic text-muted">Preview...</div><div class="preview-choices mt-2"></div></div>`;
+    document.getElementById("builder").appendChild(div);initChoices(div,4);updateQuestionCount(); div.querySelector('.question-input').addEventListener('paste', handleQuestionPaste);
+}
+function clearAllCards(){if(!confirm('Clear all?')) return;document.getElementById('builder').innerHTML='';addCard();}
+document.addEventListener('DOMContentLoaded',()=>{
+    const first=document.querySelector('#builder .question-card');
+    if(first) initChoices(first,4);
+    updateQuestionCount();
+    document.querySelectorAll('.question-input').forEach(el=>el.addEventListener('paste', handleQuestionPaste));
 });
+document.addEventListener("click",function(e){
+    if(e.target.closest(".del")){e.target.closest(".question-card").remove();updateQuestionCount();}
+    if(e.target.closest(".add-choice-btn")){const card=e.target.closest('.question-card');const container=card.querySelector('.choices-container');const current=container.querySelectorAll('.choice-row').length;if(current>=26){alert('Max 26');return;}container.appendChild(createChoiceRow(ALPHABET[current],'',card));updateChoiceCountBadge(card);updatePreview(card);}
+    if(e.target.closest(".remove-choice-btn")){const card=e.target.closest('.question-card');const container=card.querySelector('.choices-container');const rows=container.querySelectorAll('.choice-row');if(rows.length<=2){alert('At least 2');return;}rows[rows.length-1].remove();updateChoiceCountBadge(card);updatePreview(card);}
+    if(e.target.closest(".remove-single-choice")){const card=e.target.closest('.question-card');const row=e.target.closest('.choice-row');const container=card.querySelector('.choices-container');if(container.querySelectorAll('.choice-row').length<=2){alert('At least 2');return;}row.remove();container.querySelectorAll('.choice-row').forEach((r,i)=>{const letter=ALPHABET[i];r.dataset.letter=letter;r.querySelector('.choice-label').textContent=letter;});updateChoiceCountBadge(card);updatePreview(card);}
+    if(e.target.closest(".soft-delete-btn")){selectedQuestionId=e.target.closest(".soft-delete-btn").dataset.id;document.querySelector('input[value="soft"]').checked=true;new bootstrap.Modal(document.getElementById("deleteQuestionModal")).show();}
+    if(e.target.closest(".delete-question-btn")){selectedQuestionId=e.target.closest(".delete-question-btn").dataset.id;new bootstrap.Modal(document.getElementById("deleteQuestionModal")).show();}
+    if(e.target.closest(".restore-btn")){ const btn=e.target.closest(".restore-btn"); restoreQuestion(btn.dataset.id, btn); }
+    if(e.target.closest(".hard-delete-btn")){ const btn=e.target.closest(".hard-delete-btn"); if(confirm('Permanent delete from NeonDB?')) hardDeleteQuestion(btn.dataset.id, btn); }
+});
+document.addEventListener("change",function(e){if(e.target.classList.contains("type")){let card=e.target.closest(".question-card");let mcq=card.querySelector(".mcq-section");let identification=card.querySelector(".identification-section");if(e.target.value==="mcq"){mcq.classList.remove("d-none");identification.classList.add("d-none");}else{mcq.classList.add("d-none");identification.classList.remove("d-none");}updatePreview(card);}});
+document.addEventListener("input",function(e){if(e.target.classList.contains("question-input")||e.target.classList.contains("choice-input")||e.target.classList.contains("correct-answer-input")||e.target.classList.contains("identification-answer-input")||e.target.classList.contains("points-input")){updatePreview(e.target.closest(".question-card"));}});
+document.getElementById('searchExisting')?.addEventListener('input',function(){const term=this.value.toLowerCase();document.querySelectorAll('.existing-question-item').forEach(item=>{item.style.display=(item.dataset.text||'').includes(term)?'':'none';});});
 
+document.getElementById("confirmDeleteQuestion")?.addEventListener("click", async function(){
+    if(!selectedQuestionId) return;
+    const mode=document.querySelector('input[name="deleteMode"]:checked')?.value||'soft';
+    try{
+        const res=await fetch(`/delete-question/${selectedQuestionId}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({mode})});
+        const data=await res.json();
+        if(data.success){
+            document.getElementById("deleteSuccessAlert").textContent=data.action==='hard_deleted'?'Permanently deleted':'Hidden (soft deleted) - moved to Hidden/Deleted tab'; document.getElementById("deleteSuccessAlert").classList.remove("d-none"); setTimeout(()=>{document.getElementById("deleteSuccessAlert").classList.add("d-none"); location.reload();},900);
+        }
+    }catch(err){alert('Error deleting');}
+    bootstrap.Modal.getInstance(document.getElementById("deleteQuestionModal"))?.hide();selectedQuestionId=null;
+});
+async function restoreQuestion(id, btnEl){
+    try{
+        const res=await fetch(`/restore-question/${id}`,{method:"POST",headers:{"Content-Type":"application/json"}});
+        const data=await res.json();
+        if(data.success){
+            bootstrap.Toast.getOrCreateInstance(document.getElementById("restoreSuccessToast")).show();
+            setTimeout(()=>location.reload(),600);
+        }else{ alert("Restore failed: "+(data.message||"unknown")); }
+    }catch(err){ console.error(err); alert("Restore error"); }
+}
+async function hardDeleteQuestion(id, btnEl){
+    try{
+        const res=await fetch(`/hard-delete-question/${id}`,{method:"POST",headers:{"Content-Type":"application/json"}});
+        const data=await res.json();
+        if(data.success){
+            document.querySelector(`.question-item-${id}`)?.remove();
+            setTimeout(()=>location.reload(),400);
+        }
+    }catch(err){ alert('Hard delete error'); }
+}
+// ===== BULK LOGIC =====
+function updateBulkCounts(){
+    const activeChecked=document.querySelectorAll('.active-checkbox:checked').length;
+    const hiddenChecked=document.querySelectorAll('.hidden-checkbox:checked').length;
+    document.getElementById('activeSelectedCount').textContent=activeChecked+' selected';
+    document.getElementById('hiddenSelectedCount').textContent=hiddenChecked+' selected';
+    document.getElementById('bulkSoftDeleteBtn').disabled=activeChecked===0;
+    document.getElementById('bulkRestoreBtn').disabled=hiddenChecked===0;
+    document.getElementById('bulkHardDeleteBtn').disabled=hiddenChecked===0;
+}
+document.addEventListener('change', e=>{
+    if(e.target.classList.contains('active-checkbox')||e.target.classList.contains('hidden-checkbox')) updateBulkCounts();
+});
+document.getElementById('selectAllActive')?.addEventListener('change', function(){
+    document.querySelectorAll('.active-checkbox').forEach(cb=>{cb.checked=this.checked;});
+    updateBulkCounts();
+});
+document.getElementById('selectAllHidden')?.addEventListener('change', function(){
+    document.querySelectorAll('.hidden-checkbox').forEach(cb=>{cb.checked=this.checked;});
+    updateBulkCounts();
+});
+document.getElementById('bulkSoftDeleteBtn')?.addEventListener('click', async function(){
+    const ids=Array.from(document.querySelectorAll('.active-checkbox:checked')).map(cb=>cb.value);
+    if(ids.length===0) return;
+    if(!confirm(`Soft delete ${ids.length} questions? They will move to Hidden tab.`)) return;
+    const res=await fetch('/bulk-soft-delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ids})});
+    const data=await res.json();
+    if(data.success){ location.reload(); }
+});
+document.getElementById('bulkRestoreBtn')?.addEventListener('click', async function(){
+    const ids=Array.from(document.querySelectorAll('.hidden-checkbox:checked')).map(cb=>cb.value);
+    if(ids.length===0) return;
+    const res=await fetch('/bulk-restore',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ids})});
+    const data=await res.json();
+    if(data.success){ location.reload(); }
+});
+document.getElementById('bulkHardDeleteBtn')?.addEventListener('click', async function(){
+    const ids=Array.from(document.querySelectorAll('.hidden-checkbox:checked')).map(cb=>cb.value);
+    if(ids.length===0) return;
+    if(!confirm(`PERMANENTLY delete ${ids.length} questions from NeonDB?`)) return;
+    for(let id of ids){
+        await fetch(`/hard-delete-question/${id}`,{method:'POST',headers:{'Content-Type':'application/json'}});
+    }
+    location.reload();
+});
 </script>
-
-<!-- DELETE SUCCESS ALERT -->
-<div id="deleteSuccessAlert"
-     class="alert alert-success position-fixed top-0 end-0 m-4 shadow d-none"
-     style="z-index:9999; min-width:250px;">
-
-    <i class="bi bi-check-circle-fill"></i>
-    Question deleted successfully.
-
-</div>
-<div id="editSuccessToast"
-     class="toast position-fixed top-0 end-0 m-4 text-bg-success border-0"
-     role="alert"
-     style="z-index:9999;">
-
-    <div class="d-flex">
-
-        <div class="toast-body">
-
-            ✅ Question updated successfully.
-
-        </div>
-
-        <button
-            type="button"
-            class="btn-close btn-close-white me-2 m-auto"
-            data-bs-dismiss="toast">
-        </button>
-
-    </div>
-
-</div>
-
+<script>
+// ===== EDIT MODAL FIXED =====
+document.getElementById("editQuestionModal")?.addEventListener("hidden.bs.modal",function(){document.getElementById("editQuestionId").value='';});
+document.addEventListener("click",function(e){
+    if(e.target.closest(".edit-question-btn")){
+        const btn=e.target.closest(".edit-question-btn");
+        const id=btn.dataset.id;
+        // FIX: call /edit-question with header so Flask returns JSON (not 404)
+        fetch(`/edit-question/${id}`,{
+            method:'GET',
+            headers:{'X-Requested-With':'XMLHttpRequest','Accept':'application/json'}
+        })
+        .then(r=>{
+            if(!r.ok) throw new Error('HTTP '+r.status);
+            return r.json();
+        })
+        .then(data=>{
+            if(data.error){alert(data.error);return;}
+            if(data.message && !data.id){alert('Question not found - check route');return;}
+            document.getElementById("editQuestionId").value=data.id;
+            document.getElementById("editQuestionText").value=data.question_text;
+            document.getElementById("editQuestionType").value=data.question_type;
+            document.getElementById("editCorrectAnswer").value=data.correct_answer||"";
+            document.getElementById("editPoints").value=data.points;
+            const container=document.getElementById('editChoicesContainer');container.innerHTML='';
+            if(data.question_type==='mcq'){
+                const choices=data.choices||{A:data.choice_a,B:data.choice_b,C:data.choice_c,D:data.choice_d};
+                Object.keys(choices).sort().forEach(letter=>{ if(!choices[letter]) return; container.innerHTML+=`<div class="col-md-6 mb-2"><label class="form-label">Choice ${letter}</label><input id="editChoice${letter}" class="form-control" value="${choices[letter].replace(/"/g,'&quot;')}"></div>`; });
+                container.innerHTML+=`<div class="col-12 mt-2"><button type="button" class="btn btn-sm btn-outline-success" id="addEditChoiceBtn"><i class="bi bi-plus"></i> Add Choice</button></div>`;
+                setTimeout(()=>{document.getElementById('addEditChoiceBtn')?.addEventListener('click',()=>{ const existingLetters=Array.from(document.querySelectorAll('#editChoicesContainer input[id^="editChoice"]')).map(i=>i.id.replace('editChoice','')); const nextLetter=ALPHABET.find(l=>!existingLetters.includes(l)); if(!nextLetter){alert('Max Z');return;} const div=document.createElement('div');div.className='col-md-6 mb-2';div.innerHTML=`<label class="form-label">Choice ${nextLetter}</label><input id="editChoice${nextLetter}" class="form-control" placeholder="Choice ${nextLetter}">`; container.insertBefore(div, document.getElementById('addEditChoiceBtn').parentNode); });},100);
+            }else{ container.innerHTML='<div class="col-12"><div class="alert alert-warning">Identification - answer is in Correct Answer field</div></div>'; }
+            bootstrap.Modal.getOrCreateInstance(document.getElementById("editQuestionModal")).show();
+        })
+        .catch(err=>{
+            console.error(err);
+            alert('Failed to load question '+id+': '+err.message+' - Make sure /edit-question route exists (it now does) and you restarted Flask');
+        });
+    }
+});
+document.getElementById("saveQuestionChanges")?.addEventListener("click",function(){
+    const questionId=document.getElementById("editQuestionId").value;
+    const payload={question_text:document.getElementById("editQuestionText").value,question_type:document.getElementById("editQuestionType").value,correct_answer:document.getElementById("editCorrectAnswer").value,points:document.getElementById("editPoints").value,choices:{}};
+    document.querySelectorAll('#editChoicesContainer input[id^="editChoice"]').forEach(inp=>{const letter=inp.id.replace('editChoice','');payload.choices[letter]=inp.value;});
+    fetch(`/edit-question/${questionId}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)})
+    .then(r=>r.json()).then(data=>{
+        if(data.success){
+            const card=document.querySelector(`.question-item-${questionId}`);
+            if(card){
+                const titleEl=card.querySelector('.question-title'); if(titleEl) titleEl.textContent=payload.question_text;
+                const correctEl=card.querySelector('.correct-answer'); if(correctEl) correctEl.textContent='Correct: '+payload.correct_answer;
+                const pointsEl=card.querySelector('.question-points'); if(pointsEl) pointsEl.textContent=payload.points+' pts';
+                card.style.background='#d1e7dd'; setTimeout(()=>card.style.background='',1000);
+            }
+            bootstrap.Modal.getInstance(document.getElementById("editQuestionModal")).hide();
+            bootstrap.Toast.getOrCreateInstance(document.getElementById("editSuccessToast")).show();
+            setTimeout(()=>location.reload(),600);
+        }
+    });
+});
+const subjectSelect=document.getElementById('subjectSelect');
+const openImportBtn=document.getElementById('openImportModalBtn');
+const importModal= new bootstrap.Modal(document.getElementById('importQuestionsModal'));
+subjectSelect?.addEventListener('change',function(){openImportBtn.disabled=!this.value;if(this.value) openImportModal();});
+openImportBtn?.addEventListener('click',openImportModal);
+function openImportModal(){
+    const subjectId=subjectSelect.value; const subjectText=subjectSelect.options[subjectSelect.selectedIndex]?.text||'Subject';
+    if(!subjectId) return; document.getElementById('importSubjectName').textContent=subjectText;
+    document.getElementById('importLoading').classList.remove('d-none'); document.getElementById('importList').classList.add('d-none'); document.getElementById('importEmpty').classList.add('d-none'); document.getElementById('importList').innerHTML=''; document.getElementById('importCount').textContent='0'; importModal.show();
+    fetch(`/api/questions-by-subject/${subjectId}?exclude_exam=${EXAM_ID}`).then(r=>r.json()).then(data=>{ document.getElementById('importLoading').classList.add('d-none'); if(!data.questions||data.questions.length===0){document.getElementById('importEmpty').classList.remove('d-none');}else{renderImportList(data.questions);document.getElementById('importList').classList.remove('d-none');} });
+}
+function renderImportList(questions){
+    const list=document.getElementById('importList');list.innerHTML='';
+    questions.forEach((q,idx)=>{ const item=document.createElement('label');item.className='list-group-item list-group-item-action d-flex gap-3'; item.innerHTML=`<input class="form-check-input mt-2 import-checkbox" type="checkbox" value="${q.id}"><div class="flex-grow-1"><strong>${idx+1}. ${q.question_text}</strong><div class="small mt-2 text-muted">${Object.entries(q.choices||{}).map(([k,v])=>v?`<div>${k}. ${v}</div>`:'').join('')}</div><div class="mt-2"><span class="badge bg-success">Correct: ${q.correct_answer}</span></div></div>`; list.appendChild(item); });
+    document.querySelectorAll('.import-checkbox').forEach(cb=>cb.addEventListener('change',()=>{document.getElementById('importCount').textContent=document.querySelectorAll('.import-checkbox:checked').length;}));
+}
+document.getElementById('confirmImportBtn')?.addEventListener('click',function(){
+    const selectedIds=Array.from(document.querySelectorAll('.import-checkbox:checked')).map(cb=>cb.value);
+    if(selectedIds.length===0){alert('Select at least one');return;}
+    const btn=this;btn.disabled=true;btn.innerHTML='<i class="bi bi-hourglass-split"></i> Importing...';
+    fetch(`/import-existing-questions/${EXAM_ID}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question_ids:selectedIds})}).then(r=>r.json()).then(data=>{ if(data.success){importModal.hide();location.reload();} else{alert('Import failed');btn.disabled=false;btn.innerHTML='Add';} });
+});
+</script>
 </body>
 </html>
