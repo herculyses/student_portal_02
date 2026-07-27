@@ -399,17 +399,73 @@ if (localStorage.getItem("darkMode") === "true") {
 
     <!-- DURATION -->
     <div class="mb-3">
-
-        <label class="form-label">
-            Duration (minutes)
-        </label>
-
-        <input type="number"
-               name="duration_minutes"
-               class="form-control"
-               value="{{ exam.duration_minutes }}">
-
+        <label class="form-label">Duration</label>
+        <div class="row g-2">
+            <div class="col-6">
+                <label class="form-label small text-muted mb-1">Hours</label>
+                <input type="number"
+                       id="duration_hours"
+                       class="form-control"
+                       min="0"
+                       max="23"
+                       placeholder="0"
+                       value="{{ (exam.duration_minutes // 60) if exam.duration_minutes else 0 }}">
+            </div>
+            <div class="col-6">
+                <label class="form-label small text-muted mb-1">Minutes</label>
+                <input type="number"
+                       id="duration_minutes_input"
+                       class="form-control"
+                       min="0"
+                       max="59"
+                       placeholder="0"
+                       value="{{ (exam.duration_minutes % 60) if exam.duration_minutes else 0 }}">
+            </div>
+        </div>
+        <small class="text-muted" id="duration_preview"></small>
+        <!-- Hidden field that actually gets submitted to Flask -->
+        <input type="hidden" name="duration_minutes" id="duration_minutes_total" value="{{ exam.duration_minutes or 30 }}">
     </div>
+
+    <script>
+    (function() {
+        const hoursInput = document.getElementById('duration_hours');
+        const minsInput = document.getElementById('duration_minutes_input');
+        const totalInput = document.getElementById('duration_minutes_total');
+        const preview = document.getElementById('duration_preview');
+
+        function updateDuration() {
+            let h = parseInt(hoursInput.value) || 0;
+            let m = parseInt(minsInput.value) || 0;
+            if (m >= 60) {
+                h += Math.floor(m / 60);
+                m = m % 60;
+                minsInput.value = m;
+                hoursInput.value = h;
+            }
+            const total = (h * 60) + m;
+            totalInput.value = total;
+            if (total > 0) {
+                let parts = [];
+                if (h > 0) parts.push(h + ' hr' + (h > 1 ? 's' : ''));
+                if (m > 0) parts.push(m + ' min' + (m > 1 ? 's' : ''));
+                preview.textContent = 'Total: ' + parts.join(' ') + ' (' + total + ' minutes)';
+            } else {
+                preview.textContent = 'Duration cannot be 0';
+            }
+        }
+        hoursInput.addEventListener('input', updateDuration);
+        minsInput.addEventListener('input', updateDuration);
+        updateDuration();
+        document.querySelector('form').addEventListener('submit', function(e) {
+            updateDuration();
+            if ((parseInt(totalInput.value) || 0) <= 0) {
+                e.preventDefault();
+                alert('Please set a valid duration (at least 1 minute).');
+            }
+        });
+    })();
+    </script>
 
     <!-- EXCEL -->
     <div class="mb-3">

@@ -185,17 +185,39 @@ if (localStorage.getItem("darkMode") === "true") {
 
                 </div>
 
-                <!-- DURATION -->
+                <!-- DURATION - HOURS + MINUTES -->
                 <div class="mb-4">
-
-                    {{ form.duration_minutes.label(class="form-label fw-bold") }}
-
-                    {{ form.duration_minutes(
-                        class="form-control",
-                        placeholder="Example: 30"
-                    ) }}
-
+                    <label class="form-label fw-bold">Duration</label>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <label class="small text-muted">Hours</label>
+                            <input type="number" id="duration_hours_create" class="form-control" min="0" max="23" placeholder="0" value="0">
+                        </div>
+                        <div class="col-6">
+                            <label class="small text-muted">Minutes</label>
+                            <input type="number" id="duration_minutes_create" class="form-control" min="0" max="59" placeholder="30" value="30">
+                        </div>
+                    <small class="text-muted" id="duration_preview_create">Total: 30 minutes</small>
+                    {{ form.duration_minutes(id="duration_minutes_total_create", type="hidden") }}
                 </div>
+
+                <script>
+                (function(){
+                    const h=document.getElementById('duration_hours_create');
+                    const m=document.getElementById('duration_minutes_create');
+                    const total=document.getElementById('duration_minutes_total_create');
+                    const preview=document.getElementById('duration_preview_create');
+                    function upd(){
+                        let hours=parseInt(h.value)||0, mins=parseInt(m.value)||0;
+                        if(mins>=60){hours+=Math.floor(mins/60); mins=mins%60; m.value=mins; h.value=hours;}
+                        const tot=hours*60+mins; total.value=tot;
+                        let p=[]; if(hours>0)p.push(hours+' hr'+(hours>1?'s':'')); if(mins>0)p.push(mins+' min'+(mins>1?'s':''));
+                        preview.textContent= tot>0 ? 'Total: '+(p.join(' ')||'0 mins')+' ('+tot+' mins)' : 'Duration cannot be 0';
+                    }
+                    h.addEventListener('input',upd); m.addEventListener('input',upd); upd();
+                    document.querySelector('form').addEventListener('submit',e=>{upd(); if((parseInt(total.value)||0)<=0){e.preventDefault(); alert('Set at least 1 minute');}});
+                })();
+                </script>
 
                 <!-- SUBMIT -->
                 <div class="d-grid">

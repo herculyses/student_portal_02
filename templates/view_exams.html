@@ -140,7 +140,7 @@ h2 { font-weight: 800; color: #2e334d; letter-spacing: -0.02em; }
                         <strong>Semester:</strong> {{ exam.semester or "No Semester" }} |
                         <strong>AY:</strong> {{ exam.school_year or "No School Year" }} |
                         <strong>Code:</strong>{{ exam.access_code or "No Code" }} |
-                        <strong>Duration:</strong> {{ exam.duration_minutes }} mins
+                        <strong>Duration:</strong> {{ (exam.duration_minutes // 60) }} hr {{ (exam.duration_minutes % 60) }} min ({{ exam.duration_minutes }} mins)
                     </small>
                 </div>
                 <div>
@@ -632,12 +632,27 @@ h2 { font-weight: 800; color: #2e334d; letter-spacing: -0.02em; }
           </div>
 
           <div class="mb-3">
-              <label>Duration (minutes)</label>
-              <input type="number"
-                     name="duration_minutes"
-                     class="form-control"
-                     value="30">
+              <label>Duration</label>
+              <div class="row g-2">
+                  <div class="col-6">
+                      <label class="small text-muted">Hours</label>
+                      <input type="number" id="duration_hours_modal" class="form-control" min="0" max="23" value="0">
+                  </div>
+                  <div class="col-6">
+                      <label class="small text-muted">Minutes</label>
+                      <input type="number" id="duration_mins_modal" class="form-control" min="0" max="59" value="30">
+                  </div>
+              </div>
+              <small class="text-muted" id="duration_preview_modal"></small>
+              <input type="hidden" name="duration_minutes" id="duration_total_modal" value="30">
           </div>
+          <script>
+          (function(){
+              const h=document.getElementById('duration_hours_modal'), m=document.getElementById('duration_mins_modal'), tot=document.getElementById('duration_total_modal'), prev=document.getElementById('duration_preview_modal');
+              if(!h) return;
+              function upd(){let hr=parseInt(h.value)||0, mn=parseInt(m.value)||0; if(mn>=60){hr+=Math.floor(mn/60); mn=mn%60; m.value=mn; h.value=hr;} tot.value=hr*60+mn; prev.textContent='Total: '+tot.value+' minutes';} h.addEventListener('input',upd); m.addEventListener('input',upd); upd();
+          })();
+          </script>
 
           </div>
 
@@ -1951,7 +1966,7 @@ examChannel.onmessage = async (e)=>{
             badge='Active'; badgeClass='bg-success';
             buttons=`<a href="/edit-exam/${exam.id}" class="friendly-btn primary" data-flip="spin"><i class="bi bi-pencil icon-flip"></i> Edit</a> <button class="btn btn-danger btn-sm js-end-exam" data-exam-id="${exam.id}"><i class="bi bi-stop-circle icon-flip"></i> End Exam</button>`;
         }
-        const html=`<div class="card shadow-sm mb-4 exam-card entering" id="exam-card-${exam.id}" data-exam-id="${exam.id}" style="border-left:5px solid #0d6efd;"><div class="card-body"><div class="d-flex justify-content-between align-items-start mb-3"><div><h4 class="mb-1">${exam.title} <span class="badge ${badgeClass} ms-2">${badge} • New!</span></h4><p class="text-muted mb-1">${exam.subject_code} - ${exam.subject_name}</p><small class="text-muted"><strong>Term:</strong> ${exam.term} | <strong>Type:</strong> ${exam.exam_type} | <strong>Duration:</strong> ${exam.duration} mins</small></div><span class="badge ${badgeClass}">${badge}</span></div><div class="d-flex flex-wrap gap-2 mb-3">${buttons}</div></div></div>`;
+        const html=`<div class="card shadow-sm mb-4 exam-card entering" id="exam-card-${exam.id}" data-exam-id="${exam.id}" style="border-left:5px solid #0d6efd;"><div class="card-body"><div class="d-flex justify-content-between align-items-start mb-3"><div><h4 class="mb-1">${exam.title} <span class="badge ${badgeClass} ms-2">${badge} • New!</span></h4><p class="text-muted mb-1">${exam.subject_code} - ${exam.subject_name}</p><small class="text-muted"><strong>Term:</strong> ${exam.term} | <strong>Type:</strong> ${exam.exam_type} | <strong>Duration:</strong> ${Math.floor(exam.duration/60)>0 ? Math.floor(exam.duration/60)+' hr ' : ''}${exam.duration%60>0 ? e</small></div><span class="badge ${badgeClass}">${badge}</span></div><div class="d-flex flex-wrap gap-2 mb-3">${buttons}</div></div></div>`;
         const first=document.querySelector('.exam-card');
         if(first) first.insertAdjacentHTML('beforebegin', html);
         else { const empty=document.getElementById('emptyMessage'); if(empty) empty.remove(); container.insertAdjacentHTML('beforeend', html); }
