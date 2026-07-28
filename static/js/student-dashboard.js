@@ -557,21 +557,22 @@ if (!window.studentId) {
 (function () {
 
     const sidebar = document.getElementById("studentSidebar");
+    const toggle = document.querySelector('[data-bs-target="#studentSidebar"]');
     const icon = document.getElementById("sidebarIcon");
 
-    if (!sidebar || !icon) return;
+    if (!sidebar || !toggle || !icon) return;
 
-    sidebar.addEventListener("show.bs.collapse", function () {
+    toggle.addEventListener("click", function () {
 
-        icon.classList.remove("bi-list");
-        icon.classList.add("bi-x-lg");
+        setTimeout(() => {
 
-    });
+            const isOpen =
+                sidebar.classList.contains("show");
 
-    sidebar.addEventListener("hide.bs.collapse", function () {
+            icon.classList.toggle("bi-list", !isOpen);
+            icon.classList.toggle("bi-x-lg", isOpen);
 
-        icon.classList.remove("bi-x-lg");
-        icon.classList.add("bi-list");
+        }, 20);
 
     });
 

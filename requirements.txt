@@ -11,3 +11,7 @@ openpyxl==3.1.2
 python-dotenv==1.0.1
 Werkzeug==3.0.3
 Flask-Caching==2.3.1
+# NEW FOR CALENDAR PDF/IMAGE OCR
+PyMuPDF==1.24.9
+Pillow==10.4.0
+pytesseract==0.3.13

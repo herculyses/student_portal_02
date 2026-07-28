@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+  <a href="{{ url_for('view_subjects') }}" class="btn btn-secondary btn-sm mb-3"><i class="bi bi-arrow-left"></i> Back to Subjects</a>
+  <div class="card shadow-sm p-4">
+    <h4>{{ subject.subject_code }} - {{ subject.subject_name }}</h4>
+    <p class="text-muted">Enrolled Students ({{ assignments|length }})</p>
+    <table class="table table-bordered">
+      <thead><tr><th>Student ID</th><th>Name</th><th>Semester</th><th>School Year</th><th>Assigned At</th></tr></thead>
+      <tbody>
+        {% for a in assignments %}
+        <tr>
+          <td><span class="badge" style="background:#eef2ff; color:#5a6cf3; border-radius:50px;">{{ a.student_id }}</span></td>
+          <td>{{ a.student_id }}</td>
+          <td>{{ a.semester }}</td>
+          <td>{{ a.school_year }}</td>
+          <td>{{ a.assigned_at.strftime('%b %d, %Y %I:%M %p') if a.assigned_at else '' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="text-center">No students assigned yet</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: student-portal-v2-chalakaboom
+    env: python
+    plan: free
+    pythonVersion: "3.11.11"
+    buildCommand: |
+      pip install --upgrade pip
+      pip install -r requirements.txt
+    startCommand: gunicorn -k gevent -w 1 --bind 0.0.0.0:$PORT app:app --timeout 120
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.11
+      - key: DATABASE_URL
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+      - key: MAIL_SERVER
+        value: smtp.gmail.com
+      - key: MAIL_PORT
+        value: 587
+      - key: MAIL_USERNAME
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false

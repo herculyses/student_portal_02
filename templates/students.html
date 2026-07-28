@@ -4,112 +4,239 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Students List</title>
-
-<link rel="icon" type="image/png"
-      href="{{ url_for('static', filename='favicon.png') }}">
-
+<link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Quicksand:wght@600;700&display=swap" rel="stylesheet">
+<style>
+/* ===== SOFT ELEGANT BASE ===== */
+body { background:#fdfbff !important; font-family:'Nunito', sans-serif !important; min-height:100vh; position:relative; overflow-x:hidden; }
+body::before{content:""; position:fixed; inset:0; z-index:-1; background:
+ radial-gradient(800px 400px at 10% -10%, #eef2ff 0%, transparent 60%),
+ radial-gradient(600px 500px at 95% 10%, #f3e8ff 0%, transparent 60%),
+ radial-gradient(500px 400px at 50% 120%, #e0f2fe 0%, transparent 60%);
+ pointer-events:none;
+}
+h3{ font-family:'Quicksand', sans-serif !important; font-weight:800; color:#2e334d; letter-spacing:-0.02em; }
+
+/* ===== FRIENDLY BUTTON SYSTEM ===== */
+.friendly-btn{
+ display:inline-flex; align-items:center; gap:8px; padding:10px 18px; border-radius:50px;
+ font-weight:700; font-size:0.86rem; border:1.5px solid transparent;
+ transition:all .34s cubic-bezier(.34,1.56,.64,1); text-decoration:none; cursor:pointer;
+ background:#fff !important; box-shadow:0 2px 12px rgba(120,100,180,0.06);
+ position:relative; overflow:hidden;
+}
+.friendly-btn:hover{ transform:translateY(-2px); box-shadow:0 10px 26px rgba(90,108,243,0.14); }
+.friendly-btn:active{ animation:breathPress 0.52s ease; transform:scale(0.96); }
+@keyframes breathPress{ 0%{transform:scale(1);} 25%{transform:scale(0.90);} 55%{transform:scale(1.06);} 80%{transform:scale(0.98);} 100%{transform:scale(1);} }
+.friendly-btn i{ display:inline-block; transition:transform 0.6s cubic-bezier(.34,1.56,.64,1); font-size:1.05rem; will-change:transform; }
+
+/* Unique hover effects - each different */
+.friendly-btn[data-flip="pop"]:hover i{ transform:translateY(-4px) scale(1.35); }
+.friendly-btn[data-flip="spin"]:hover i{ transform:rotate(360deg) scale(1.25); }
+.friendly-btn[data-flip="y"]:hover i{ transform:rotateY(360deg) scale(1.2); }
+.friendly-btn[data-flip="x"]:hover i{ transform:rotateX(360deg) scale(1.2); }
+.friendly-btn[data-flip="bounce"]:hover i{ animation:softBounce 0.65s cubic-bezier(.34,1.56,.64,1); }
+.friendly-btn[data-flip="wobble"]:hover i{ animation:softWobble 0.7s ease; }
+.friendly-btn[data-flip="send"]:hover i{ transform:translate(7px,-7px) scale(1.3) rotate(12deg); }
+.friendly-btn[data-flip="heart"]:hover i{ animation:heartBeat 0.6s ease infinite alternate; }
+.friendly-btn[data-flip="swing"]:hover i{ animation:swing 0.6s ease; }
+.friendly-btn[data-flip="float"]:hover i{ animation:floaty 0.8s ease-in-out infinite alternate; }
+.friendly-btn[data-flip="shake"]:hover i{ animation:shake 0.5s ease; }
+.friendly-btn[data-flip="back"]:hover i{ transform:translateX(-5px) scale(1.2); }
+.friendly-btn[data-flip="eye"]:hover i{ transform:scale(1.4); animation:blink 0.5s ease; }
+.friendly-btn[data-flip="pencil"]:hover i{ transform:rotate(-18deg) translateY(-3px) scale(1.3); }
+.friendly-btn[data-flip="trash"]:hover i{ animation:trashShake 0.55s ease; }
+
+@keyframes softBounce{ 0%{transform:translateY(0)} 40%{transform:translateY(-7px) scale(1.3)} 100%{transform:translateY(0) scale(1.15)} }
+@keyframes softWobble{ 0%{transform:rotate(0)} 20%{transform:rotate(14deg) scale(1.2)} 40%{transform:rotate(-12deg)} 70%{transform:rotate(8deg)} 100%{transform:rotate(0) scale(1.1)} }
+@keyframes heartBeat{ 0%{transform:scale(1)} 100%{transform:scale(1.35)} }
+@keyframes swing{ 0%{transform:rotate(0)} 25%{transform:rotate(18deg) scale(1.2)} 50%{transform:rotate(-14deg)} 100%{transform:rotate(0)} }
+@keyframes floaty{ 0%{transform:translateY(0)} 100%{transform:translateY(-6px) scale(1.15)} }
+@keyframes shake{ 0%,100%{transform:translateX(0)} 20%{transform:translateX(-4px) rotate(-6deg)} 40%{transform:translateX(4px) rotate(6deg)} 60%{transform:translateX(-3px)} 80%{transform:translateX(3px)} }
+@keyframes trashShake{ 0%{transform:rotate(0) scale(1)} 20%{transform:rotate(-18deg) scale(1.2)} 40%{transform:rotate(18deg)} 60%{transform:rotate(-10deg) scale(1.25)} 100%{transform:rotate(0)} }
+@keyframes blink{ 0%{transform:scaleY(1)} 50%{transform:scaleY(0.1) scale(1.4)} 100%{transform:scaleY(1) scale(1.4)} }
+
+/* Color variants - soft pastel */
+.friendly-btn.primary{ background:#ffffff !important; color:#5a6cf3 !important; border-color:#d9e0ff !important; } .friendly-btn.primary:hover{ background:#5a6cf3 !important; color:#fff !important; }
+.friendly-btn.success{ background:#ffffff !important; color:#3daa5e !important; border-color:#cde9d3 !important; } .friendly-btn.success:hover{ background:#3daa5e !important; color:#fff !important; }
+.friendly-btn.warning{ background:#ffffff !important; color:#b78a1f !important; border-color:#ffefb0 !important; } .friendly-btn.warning:hover{ background:#b78a1f !important; color:#fff !important; }
+.friendly-btn.danger{ background:#fff !important; color:#e05252 !important; border-color:#ffd0d0 !important; } .friendly-btn.danger:hover{ background:#e05252 !important; color:#fff !important; }
+.friendly-btn.secondary{ background:#fff !important; color:#6b7280 !important; border-color:#ececf2 !important; } .friendly-btn.secondary:hover{ background:#6b7280 !important; color:#fff !important; }
+.friendly-btn.info{ background:#fff !important; color:#4fb8e0 !important; border-color:#cdefff !important; } .friendly-btn.info:hover{ background:#4fb8e0 !important; color:#fff !important; }
+.friendly-btn.purple{ background:#fff !important; color:#7a5af0 !important; border-color:#e2d8ff !important; } .friendly-btn.purple:hover{ background:#7a5af0 !important; color:#fff !important; }
+
+/* Cards */
+.soft-card{ border-radius:26px !important; border:1px solid #f2eefb !important; box-shadow:0 8px 32px rgba(120,100,180,0.07) !important; background:#fff; transition:all .4s ease; }
+.soft-card:hover{ transform:translateY(-2px); box-shadow:0 16px 40px rgba(120,100,180,0.11) !important; }
+.header-card{ background: linear-gradient(135deg, #eef2ff 0%, #f3efff 50%, #fff0f8 100%) !important; }
+
+/* Search */
+.search-box{ border-radius:50px !important; padding:12px 44px 12px 46px; border:1.5px solid #e2e8ff; background:#fdfbff; transition:all .35s ease; font-weight:600; }
+.search-box:focus{ border-color:#a5b4fc; box-shadow:0 0 0 4px rgba(165,180,252,0.22); background:#fff; }
+.search-wrapper{ position:relative; }
+.search-wrapper i.search-icon{ position:absolute; left:18px; top:50%; transform:translateY(-50%); color:#7a5af0; font-size:1.15rem; transition:all .4s cubic-bezier(.34,1.56,.64,1); }
+.search-wrapper:hover i.search-icon{ transform:translateY(-50%) scale(1.2) rotate(8deg); color:#5a6cf3; }
+#clear-search{ position:absolute; right:10px; top:50%; transform:translateY(-50%); border:none; background:#eef2ff; border-radius:50px; padding:4px 12px; color:#5a6cf3; display:none; font-weight:700; }
+#clear-search:hover{ background:#5a6cf3; color:#fff; transform:translateY(-50%) scale(1.05); }
+
+/* Table */
+.table{ border-radius:18px; overflow:hidden; }
+.table thead th{ font-family:'Quicksand'; font-weight:700; background:#f8f7ff !important; color:#4b5563; border:none; padding:14px 12px; }
+.table tbody tr{ transition:all .25s ease; }
+.table tbody tr.student-row:hover{ background:#f8f7ff !important; transform:scale(1.005); box-shadow:0 2px 10px rgba(90,108,243,0.06); }
+.table td{ border-color:#f3f0ff; vertical-align:middle; padding:12px; }
+
+/* Title icon hover */
+.title-icon{ display:inline-block; transition:all .6s cubic-bezier(.34,1.56,.64,1); }
+h3:hover .title-icon{ transform:rotate(12deg) scale(1.25); color:#7a5af0; }
+
+/* Action group */
+.action-group{ display:flex; gap:6px; flex-wrap:wrap; }
+.btn-action{ border-radius:50px !important; font-weight:700 !important; font-size:0.78rem !important; padding:6px 12px !important; }
+</style>
 </head>
-<body class="bg-light">
+<body>
 
-<div class="container mt-5">
+<div class="container mt-4 mb-5">
 
-    <!-- Page Title and Action Buttons Toolbar -->
-    <div class="d-flex flex-wrap align-items-center justify-content-between mb-4">
-        <h3 class="text-primary mb-2 mb-md-0">Students List</h3>
+    <!-- HEADER -->
+    <div class="soft-card header-card p-4 mb-4 d-flex flex-wrap align-items-center justify-content-between">
+        <h3 class="mb-2 mb-md-0"><i class="bi bi-people-fill title-icon me-2" style="color:#5a6cf3;"></i>Students List
+            <small class="ms-2" style="font-size:0.9rem; background:#fff; color:#7a5af0; padding:5px 12px; border-radius:50px; font-weight:800; box-shadow:0 2px 8px rgba(0,0,0,0.05);"><i class="bi bi-stars"></i> {{ students|length }} total</small>
+        </h3>
         <div class="d-flex flex-wrap gap-2">
-            <!-- Back to Dashboard -->
-            <a href="{% if session['role'] == 'Admin' %}{{ url_for('dashboard_admin') }}
-                     {% elif session['role'] == 'Instructor' %}{{ url_for('dashboard_instructor') }}
-                     {% else %}{{ url_for('dashboard_student') }}{% endif %}" 
-              class="btn btn-secondary">← Dashboard</a>
-
+            <a href="{% if session['role'] == 'Admin' %}{{ url_for('dashboard_admin') }}{% elif session['role'] == 'Instructor' %}{{ url_for('dashboard_instructor') }}{% else %}{{ url_for('dashboard_student') }}{% endif %}" 
+              class="friendly-btn secondary" data-flip="back"><i class="bi bi-arrow-left-circle"></i> Dashboard</a>
             {% if session['role'] in ['Admin', 'Instructor'] %}
-                <a href="{{ url_for('add_student') }}" class="btn btn-primary">Add Student</a>
-                <a href="{{ url_for('upload_students') }}" class="btn btn-success">Upload CSV</a>
-                <button type="button" class="btn btn-danger" id="delete-selected" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal">
-                    Delete Selected
-                </button>
+                <a href="{{ url_for('add_student') }}" class="friendly-btn primary" data-flip="pop"><i class="bi bi-person-plus-fill"></i> Add Student</a>
+                <a href="{{ url_for('upload_students') }}" class="friendly-btn success" data-flip="send"><i class="bi bi-cloud-upload"></i> Upload CSV</a>
+                <button type="button" class="friendly-btn danger" id="delete-selected" data-flip="shake" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal"><i class="bi bi-trash3-fill"></i> Delete Selected</button>
             {% endif %}
         </div>
     </div>
 
-    <!-- Flash Messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         {% for category, message in messages %}
-          <div class="alert alert-{{ category }} flash">{{ message }}</div>
+          <div class="alert alert-{{ category }} flash" style="border-radius:18px; border:none; box-shadow:0 4px 18px rgba(0,0,0,0.06);">{{ message }}</div>
         {% endfor %}
       {% endif %}
     {% endwith %}
 
-    <!-- Students Table -->
+    <!-- SEARCH BOX -->
+    <div class="soft-card p-3 mb-4">
+        <div class="row g-3 align-items-center">
+            <div class="col-md-8">
+                <div class="search-wrapper">
+                    <i class="bi bi-search search-icon"></i>
+                    <input type="text" id="searchInput" class="form-control search-box" placeholder="Search by ID, Name, Subject, Grade, Remarks...">
+                    <button id="clear-search" type="button" data-flip="x" class="friendly-btn" style="padding:2px 10px;"><i class="bi bi-x-lg"></i> Clear</button>
+                </div>
+            </div>
+            <div class="col-md-4 text-md-end d-flex align-items-center justify-content-md-end gap-2">
+                <small class="text-muted" style="font-weight:600;"><i class="bi bi-funnel me-1"></i><span id="result-count">{{ students|length }}</span> • <span id="filtered-count">{{ students|length }}</span> shown</small>
+                <button class="friendly-btn secondary btn-sm" style="padding:6px 14px;" data-flip="spin" onclick="document.getElementById('searchInput').value=''; filterTable();"><i class="bi bi-arrow-clockwise"></i> Reset</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TABLE -->
     <form method="POST" action="{{ url_for('bulk_delete_students') }}" id="bulk-delete-form">
-        <div class="table-responsive shadow-sm bg-white p-3 rounded">
-            <table class="table table-bordered table-hover align-middle mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th><input type="checkbox" id="select-all"></th>
-                        <th>ID</th>
-                        <th>Student ID</th>
-                        <th>Name</th>
-                        <th>Subject</th>
-                        <th>Grade</th>
-                        <th>Remarks</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for student in students %}
-                    <tr>
-                        <td><input type="checkbox" name="student_ids" value="{{ student.student_id }}"></td>
-                        <td>{{ student.id }}</td>
-                        <td>{{ student.student_id }}</td>
-                        <td>{{ student.name }}</td>
-                        <td>{{ student.subject }}</td>
-                        <td>{{ student.final_grade }}</td>
-                        <td>{{ student.final_remarks }}</td>
-                        <td>
-                            {% if session['role'] in ['Admin', 'Instructor'] %}
-                                <a href="{{ url_for('subject_performance',
-    student_id=student.student_id,
-    subject=student.subject) }}"
-   class="btn btn-success btn-sm mb-1">
-   Performance
-</a>
-                                <a href="{{ url_for('student_grades', student_id=student.student_id) }}" class="btn btn-primary btn-sm mb-1">Grades</a>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="8" class="text-center">No students found.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        <div class="soft-card p-3">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" id="studentsTable">
+                    <thead>
+                        <tr>
+                            <th style="width:40px;"><input type="checkbox" id="select-all" style="width:18px; height:18px; accent-color:#5a6cf3;"></th>
+                            <th>ID</th>
+                            <th>Student ID</th>
+                            <th><i class="bi bi-person me-1"></i>Name</th>
+                            <th><i class="bi bi-journal me-1"></i>Subject</th>
+                            <th>Grade</th>
+                            <th>Remarks</th>
+                            <th style="min-width:240px;"><i class="bi bi-gear me-1"></i>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="studentsTbody">
+                        {% for student in students %}
+                        <tr class="student-row">
+                            <td><input type="checkbox" name="student_ids" value="{{ student.student_id }}" style="accent-color:#5a6cf3;"></td>
+                            <td><span class="badge" style="background:#eef2ff; color:#5a6cf3; border-radius:50px; padding:5px 10px;">{{ student.id }}</span></td>
+                            <td style="font-weight:700; color:#2e334d;">{{ student.student_id }}</td>
+                            <td style="font-weight:600;">{{ student.name }}</td>
+                            <td><span class="badge" style="background:#f3efff; color:#7a5af0; border-radius:50px;">{{ student.subject }}</span></td>
+                            <td><span class="badge" style="background:{% if student.final_grade %}#dcfce7{% else %}#fef3c7{% endif %}; color:{% if student.final_grade %}#166534{% else %}#92400e{% endif %}; border-radius:50px;">{{ student.final_grade or '—' }}</span></td>
+                            <td style="font-size:0.85rem;">{{ student.final_remarks }}</td>
+                            <td>
+                                {% if session['role'] in ['Admin', 'Instructor'] %}
+                                <div class="action-group">
+                                    <a href="{{ url_for('dashboard_student', student_id=student.student_id) }}"
+                                       class="friendly-btn primary btn-action" data-flip="eye">
+                                       <i class="bi bi-eye-fill"></i> 
+                                    </a>
+                                    <a href="{{ url_for('edit_student', student_id=student.student_id, subject=student.subject) }}"
+                                       class="friendly-btn warning btn-action" data-flip="pencil" title="Edit {{ student.name }}">
+                                       <i class="bi bi-pencil-square"></i> Edit
+                                    </a>
+                                    <button type="button" class="friendly-btn danger btn-action" data-flip="trash" onclick="openSingleDelete('{{ student.student_id }}','{{ student.subject }}','{{ student.name }}')">
+                                       <i class="bi bi-trash-fill"></i> 
+                                    </button>
+                                </div>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="8" class="text-center py-5"><i class="bi bi-inbox" style="font-size:2.5rem; color:#cbd5e1;"></i><br><span class="text-muted">No students found.</span></td></tr>
+                        {% endfor %}
+                        <tr id="no-results" style="display:none;"><td colspan="8" class="text-center py-5"><i class="bi bi-search-heart" style="font-size:2.5rem; color:#a5b4fc;"></i><br><span class="text-muted">No students match "<strong id="search-term"></strong>"</span><br><small>Try a different keyword</small></td></tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
 
-        <!-- Confirm Delete Modal -->
-        <div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteModalLabel" aria-hidden="true">
+        <!-- Bulk Delete Modal -->
+        <div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-hidden="true">
           <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content shadow-lg border-0">
-              <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title" id="confirmDeleteModalLabel">Confirm Bulk Delete</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="modal-content shadow-lg border-0" style="border-radius:26px;">
+              <div class="modal-header text-white" style="background: linear-gradient(135deg, #e05252 0%, #ff8a8a 100%); border-radius:26px 26px 0 0;">
+                <h5 class="modal-title"><i class="bi bi-exclamation-triangle-fill me-2"></i>Confirm Bulk Delete</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
               </div>
-              <div class="modal-body">
+              <div class="modal-body p-4">
                 <p id="modal-body-text">Are you sure you want to delete the selected students? This action cannot be undone.</p>
               </div>
-              <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="submit" class="btn btn-danger" id="confirm-delete-btn">Yes, Delete</button>
+              <div class="modal-footer border-0">
+                <button type="button" class="friendly-btn secondary" data-flip="back" data-bs-dismiss="modal"><i class="bi bi-x-circle"></i> Cancel</button>
+                <button type="submit" class="friendly-btn danger" data-flip="trash" id="confirm-delete-btn"><i class="bi bi-trash3"></i> Yes, Delete</button>
               </div>
             </div>
           </div>
         </div>
     </form>
+
+    <!-- Single Delete Modal -->
+    <div class="modal fade" id="singleDeleteModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg border-0" style="border-radius:26px;">
+          <div class="modal-header text-white" style="background: linear-gradient(135deg, #e05252 0%, #ff8a8a 100%); border-radius:26px 26px 0 0;">
+            <h5 class="modal-title"><i class="bi bi-person-x-fill me-2"></i> Delete Student</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body p-4">
+            <p>Delete <strong id="single-delete-name" style="color:#e05252;"></strong>?</p>
+            <div class="p-3" style="background:#fff5f5; border-radius:16px; border:1px solid #ffe0e0;">
+                <small class="text-muted">ID: <span id="single-delete-id" style="font-weight:700;"></span> | Subject: <span id="single-delete-subject" style="font-weight:700;"></span><br>This will also delete their login account.</small>
+            </div>
+          </div>
+          <div class="modal-footer border-0">
+            <button type="button" class="friendly-btn secondary" data-flip="back" data-bs-dismiss="modal"><i class="bi bi-x-circle"></i> Cancel</button>
+            <form method="POST" id="single-delete-form"><button type="submit" class="friendly-btn danger" data-flip="trash"><i class="bi bi-trash-fill"></i> Yes, Delete</button></form>
+          </div>
+        </div>
+      </div>
+    </div>
 
 </div>
 
@@ -117,41 +244,81 @@
 <script>
 document.addEventListener("DOMContentLoaded", function() {
     const selectAll = document.getElementById('select-all');
-    const checkboxes = document.querySelectorAll('input[name="student_ids"]');
     const deleteBtn = document.getElementById('delete-selected');
     const modalBodyText = document.getElementById('modal-body-text');
-    const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
-    const bulkForm = document.getElementById('bulk-delete-form');
+    const searchInput = document.getElementById('searchInput');
+    const clearBtn = document.getElementById('clear-search');
+    const filteredCount = document.getElementById('filtered-count');
+    const noResults = document.getElementById('no-results');
+    const searchTermSpan = document.getElementById('search-term');
+    const tbody = document.getElementById('studentsTbody');
 
-    selectAll.addEventListener('click', function() {
-        checkboxes.forEach(cb => cb.checked = this.checked);
-        updateDeleteButtonText();
-    });
-
-    checkboxes.forEach(cb => cb.addEventListener('change', updateDeleteButtonText));
-
-    function updateDeleteButtonText() {
-        const count = document.querySelectorAll('input[name="student_ids"]:checked').length;
-        deleteBtn.textContent = count > 0 ? `Delete Selected (${count})` : 'Delete Selected';
+    function filterTable(){
+        const term = searchInput.value.toLowerCase().trim();
+        let visible = 0;
+        tbody.querySelectorAll('tr.student-row').forEach(row => {
+            const show = row.textContent.toLowerCase().includes(term);
+            row.style.display = show ? '' : 'none';
+            if(show) visible++;
+        });
+        if(visible === 0 && term !== ''){
+            noResults.style.display = '';
+            searchTermSpan.textContent = searchInput.value;
+        } else {
+            noResults.style.display = 'none';
+        }
+        filteredCount.textContent = visible;
+        clearBtn.style.display = term ? 'inline-flex' : 'none';
     }
 
-    deleteBtn.addEventListener('click', function() {
-        const count = document.querySelectorAll('input[name="student_ids"]:checked').length;
-        if (count === 0) {
-            alert('Please select at least one student to delete.');
-            const modal = bootstrap.Modal.getInstance(document.getElementById('confirmDeleteModal'));
-            if (modal) modal.hide();
-            return;
+    searchInput.addEventListener('input', filterTable);
+    clearBtn.addEventListener('click', function(){
+        searchInput.value = '';
+        filterTable();
+        searchInput.focus();
+    });
+    window.filterTable = filterTable;
+
+    window.openSingleDelete = function(studentId, subject, name){
+        document.getElementById('single-delete-name').textContent = name;
+        document.getElementById('single-delete-id').textContent = studentId;
+        document.getElementById('single-delete-subject').textContent = subject;
+        const form = document.getElementById('single-delete-form');
+        form.action = `/dashboard/admin/students/delete/${encodeURIComponent(studentId)}/${encodeURIComponent(subject)}`;
+        if(window.location.pathname.includes('/instructor/')){
+            form.action = `/dashboard/instructor/students/delete/${encodeURIComponent(studentId)}/${encodeURIComponent(subject)}`;
         }
-        modalBodyText.textContent = `Are you sure you want to delete ${count} student(s)? This action cannot be undone.`;
-    });
+        new bootstrap.Modal(document.getElementById('singleDeleteModal')).show();
+    };
 
-    confirmDeleteBtn.addEventListener('click', function() {
-        bulkForm.submit();
-    });
-
-    const flashes = document.querySelectorAll(".flash");
-    flashes.forEach(flash => {
+    if(selectAll){
+        selectAll.addEventListener('click', function() {
+            const visibleRows = Array.from(document.querySelectorAll('tr.student-row')).filter(r => r.style.display !== 'none');
+            visibleRows.forEach(r => {
+                const cb = r.querySelector('input[name="student_ids"]');
+                if(cb) cb.checked = selectAll.checked;
+            });
+            updateDeleteButtonText();
+        });
+    }
+    document.querySelectorAll('input[name="student_ids"]').forEach(cb => cb.addEventListener('change', updateDeleteButtonText));
+    function updateDeleteButtonText() {
+        const count = document.querySelectorAll('input[name="student_ids"]:checked').length;
+        if(deleteBtn) deleteBtn.innerHTML = count > 0 ? `<i class="bi bi-trash3-fill"></i> Delete Selected (${count})` : `<i class="bi bi-trash3-fill"></i> Delete Selected`;
+    }
+    if(deleteBtn){
+        deleteBtn.addEventListener('click', function() {
+            const count = document.querySelectorAll('input[name="student_ids"]:checked').length;
+            if (count === 0) {
+                alert('Please select at least one student to delete.');
+                const modal = bootstrap.Modal.getInstance(document.getElementById('confirmDeleteModal'));
+                if (modal) modal.hide();
+                return;
+            }
+            modalBodyText.textContent = `Are you sure you want to delete ${count} student(s)? This action cannot be undone.`;
+        });
+    }
+    document.querySelectorAll(".flash").forEach(flash => {
         setTimeout(() => {
             flash.style.transition = "opacity 0.5s ease, transform 0.5s ease";
             flash.style.opacity = "0";
@@ -161,6 +328,5 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 });
 </script>
-
 </body>
 </html>

@@ -1,7 +1,6 @@
 
 {% extends "base.html" %}
 {% block title %}View Exams{% endblock %}
-
 {% block extra_css %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
@@ -106,21 +105,65 @@ h2 { font-weight: 800; color: #2e334d; letter-spacing: -0.02em; }
 .table thead th { background: #3b82f6 !important; color: #fff !important; font-weight: 800; font-size: 0.8rem; letter-spacing: 0.04em; text-transform: uppercase; border: none !important; padding: 14px 12px !important; }
 .table tbody td { font-weight: 500; color: #3d4156; vertical-align: middle; }
 .live-count { border-radius: 50px; padding: 5px 12px; font-weight: 800; background: #eef2ff !important; color: #5a6cf3 !important; border: 1px solid #d9e0ff; }
+
+/* STICKY HEADER - same smooth edges as exam cards (floating card style) */
+.sticky-exam-header {
+  position: sticky;
+  top: 14px;
+  z-index: 1030;
+  width: calc(100% - 32px);
+  max-width: 1320px;
+  margin: 0 auto 22px auto;
+  background: rgba(255, 255, 255, 0.90);
+  backdrop-filter: blur(16px) saturate(1.25);
+  -webkit-backdrop-filter: blur(16px) saturate(1.25);
+  border-radius: 22px !important;
+  border: 1px solid #f2eefb !important;
+  box-shadow: 0 6px 28px rgba(120,100,180,0.07) !important;
+  padding: 14px 20px;
+  transition: all 0.25s ease;
+}
+.sticky-exam-header-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  width: 100%;
+}
+.sticky-exam-header.scrolled {
+  background: rgba(255,255,255,0.97);
+  box-shadow: 0 10px 36px rgba(120,100,180,0.14) !important;
+}
+@media (max-width: 768px) {
+  .sticky-exam-header {
+    width: calc(100% - 16px);
+    top: 8px;
+    padding: 12px 14px;
+    border-radius: 18px !important;
+  }
+}
 </style>
 {% endblock %}
 
 
 {% block content %}
-<div class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+<div class="sticky-exam-header" id="stickyExamHeader">
+  <div class="sticky-exam-header-inner">
         <h2><i class="bi bi-journal-text" style="color:#7a5af0;"></i> View Exams <span id="examCount" class="badge bg-primary live-count ms-2">{{ exams|length }}</span></h2>
         <div class="d-flex gap-2 flex-wrap">
             <button type="button" class="friendly-btn primary" data-flip="spin" data-bs-toggle="modal" data-bs-target="#createExamModal"><i class="bi bi-plus-circle icon-flip"></i> Create Exam</button>
             <a href="{{ url_for('finished_exams') }}" class="friendly-btn success" data-flip="y"><i class="bi bi-check2-square icon-flip"></i> Finished Exams</a>
             <a href="{{ url_for('security_logs') }}" class="friendly-btn danger" data-flip="wobble"><i class="bi bi-shield-exclamation icon-flip"></i> Live Security Logs</a>
-            <a href="{{ url_for('dashboard_admin') }}" class="friendly-btn secondary" data-flip="x"><i class="bi bi-arrow-left icon-flip"></i> Back to Admin</a>
+{% set dashboard_url = 'dashboard_admin' if session.get('role') == 'Admin' else 'dashboard_instructor' %}
+<a href="{{ url_for(dashboard_url) }}" class="friendly-btn secondary" data-flip="x">
+    <i class="bi bi-arrow-left icon-flip"></i>
+    Back to {{ session.get('role') }}
+</a>
         </div>
     </div>
+</div>
+<div class="container py-4">
 
 {% for exam in exams %}
     <div class="card shadow-sm mb-4 exam-card" id="exam-card-{{ exam.id }}" data-exam-id="{{ exam.id }}">
@@ -162,23 +205,14 @@ h2 { font-weight: 800; color: #2e334d; letter-spacing: -0.02em; }
                     <i class="bi bi-plus-circle icon-flip"></i> Add Questions
                 </a>
                 <!-- replaced -->
-                    <button class="btn btn-danger btn-sm js-end-exam" data-exam-id="{{ exam.id }}"><i class="bi bi-stop-circle icon-flip"></i> End Exam</button>
-            </div>
-            <!-- DELETE -->
-            <div class="delete-zone">
-                <button class="friendly-btn danger" data-flip="bounce"
-                        data-bs-toggle="modal"
-                        data-bs-target="#deleteModal"
-                        onclick="setDeleteExam('{{ exam.id }}', '{{ exam.title }}')">
-                    <i class="bi bi-trash icon-flip"></i> Delete Exam
-                </button>
+                    <button class="friendly-btn danger btn-sm js-end-exam" data-flip="eye" data-exam-id="{{ exam.id }}"><i class="bi bi-stop-circle"></i> End Exam</button>
             </div>
             <!-- ============================= -->
             <!-- STUDENTS TABLE -->
             <!-- ============================= -->
             <div class="card shadow-sm border-0 mb-4">
 
-                <div class="card-header bg-primary text-white fw-bold">
+                <div class="card-header bg-primary text-yellow fw-bold">
                     <i class="bi bi-bar-chart-line-fill"></i> Exam Summary
                 </div>
 
@@ -379,7 +413,28 @@ h2 { font-weight: 800; color: #2e334d; letter-spacing: -0.02em; }
                                             Cancel
                                         </button>
                                     </div>
-                                {% elif access and access.status in ["approved", "completed", "rejected", "forced_submit"] %}
+                                {% elif access and access.status == "rejected" %}
+                                    <span class="text-muted"><i class="bi bi-dash-lg text-muted"></i></span>
+                                {% elif access and access.status == "approved" %}
+                                    <div class="d-flex justify-content-center gap-2">
+                                        <button
+                                            class="friendly-btn outline-primary" data-flip="pop"
+                                            onclick="reviewAttempt(
+                                                {{ exam.id }},
+                                                '{{ student.student_id }}'
+                                            )">
+                                            <i class="bi bi-eye"></i> Review
+                                        </button>
+                                             <button
+                                                class="friendly-btn danger force-submit-btn" data-flip="send"
+                                                onclick="forceSubmit(
+                                                    {{ exam.id }},
+                                                    '{{ student.student_id }}'
+                                                )">
+                                                <i class="bi bi-send-exclamation-fill"></i> Force Submit
+                                            </button>
+                                    </div>
+                                {% elif access and access.status in ["completed", "forced_submit"] %}
 
                                     <div class="d-flex justify-content-center gap-2">
 
@@ -827,7 +882,7 @@ adminStream.addEventListener("new_request", function (e) {
 });
 
 // ============================================
-// =========ðŸ‘‡SSE live_update listener========
+// =========   SSE live_update listener========
 // ============================================
 adminStream.addEventListener("live_update", function (e) {
 
@@ -857,7 +912,7 @@ adminStream.addEventListener("live_update", function (e) {
 });
 
 // ============================================
-// =========ðŸ‘‡SSE exam_ended listener=========
+// =========   SSE exam_ended listener=========
 // ============================================
 adminStream.addEventListener("exam_ended", function (e) {
 
@@ -868,7 +923,7 @@ adminStream.addEventListener("exam_ended", function (e) {
 });
 
 // ============================================
-// =========ðŸ‘‡Adds Row to Queue==========
+// =========   Adds Row to Queue==========
 // ============================================
 function addToQueue(data) {
 
@@ -914,7 +969,7 @@ function addToQueue(data) {
                 </button>
 
                 <button class="friendly-btn danger" data-flip="bounce"
-                        onclick="recycleExam(${data.exam_id}, '${data.student_id}')">
+                        onclick="cancelRequest(${data.access_id}, ${data.exam_id}, '${data.student_id}')">
                     Cancel
                 </button>
 
@@ -1004,7 +1059,7 @@ function addToQueue(data) {
 }
 
 // ============================================
-// =========ðŸ‘‡ Update Student Access==========
+// =========    Update Student Access==========
 // ============================================
 function updateStudentAccess(studentId, examId, status) {
 
@@ -1038,13 +1093,6 @@ function updateStudentAccess(studentId, examId, status) {
 
             </button>
 
-            <button
-                class="friendly-btn outline-warning" data-flip="spin"
-                onclick="recycleExam(${examId}, '${studentId}')">
-
-                <i class="bi bi-arrow-clockwise"></i> Reset
-
-            </button>
         `;
 
         statusBox.classList.add("approved-highlight");
@@ -1075,10 +1123,10 @@ function updateStudentAccess(studentId, examId, status) {
                 </button>
 
                 <button
-                    class="friendly-btn danger" data-flip="wobble"
+                    class="friendly-btn danger force-submit-btn"
+                    data-flip="send"
                     onclick="forceSubmit(${examId}, '${studentId}')">
-
-                    â›” Force Submit
+                    <i class="bi bi-send-exclamation-fill"></i> Force Submit
 
                 </button>
 
@@ -1119,7 +1167,7 @@ function updateStudentAccess(studentId, examId, status) {
         `;
     }
 
-    // ================= REJECTED =================
+    // ================= REJECTED / CANCELLED - NO RESET BUTTON =================
     else if (status === "rejected") {
 
         statusBox.innerHTML = `
@@ -1129,13 +1177,7 @@ function updateStudentAccess(studentId, examId, status) {
         `;
 
         actionBox.innerHTML = `
-            <button
-                class="friendly-btn outline-warning" data-flip="spin"
-                onclick="recycleExam(${examId}, '${studentId}')">
-
-                <i class="bi bi-arrow-clockwise"></i> Reset
-
-            </button>
+            <span class="text-muted"><i class="bi bi-dash-lg text-muted"></i></span>
         `;
 
         statusBox.classList.add("approved-highlight");
@@ -1143,6 +1185,19 @@ function updateStudentAccess(studentId, examId, status) {
         setTimeout(() => {
             statusBox.classList.remove("approved-highlight");
         }, 3000);
+    }
+
+    else if (status === "cancelled" || status === "canceled") {
+
+        statusBox.innerHTML = `
+            <span class="badge bg-secondary">
+                Cancelled
+            </span>
+        `;
+
+        actionBox.innerHTML = `
+            <span class="text-muted"><i class="bi bi-dash-lg text-muted"></i></span>
+        `;
     }
 
     else if (status === "forced_submit") {
@@ -1205,7 +1260,7 @@ function updateStudentAccess(studentId, examId, status) {
 }
 
 // ============================================
-// =========ðŸ‘‡ Updates Student Row==========
+// =========    Updates Student Row==========
 // ============================================
 function updateStudentRow(data) {
 
@@ -1329,7 +1384,7 @@ function updateStudentRow(data) {
 }
 
 // ============================================
-// =========ðŸ‘‡ Updates Summary Cards==========
+// =========    Updates Summary Cards==========
 // ============================================
 function updateSummaryCards(examId, summary) {
 
@@ -1361,20 +1416,56 @@ function updateSummaryCards(examId, summary) {
 }
 
 // ============================================
-// =======ðŸ‘‡ Updates Approve Request========
+// =======    Updates Approve Request========
 // ============================================
 function approveRequest(accessId) {
 
     fetch(`/approve-request/${accessId}`, {
-        method: "GET"
+        method: "GET",
+        headers: {"X-Requested-With": "XMLHttpRequest"}
     })
-    .then(response => {
-
-        console.log("APPROVE RESPONSE:", response);
-
+    .then(r=>r.json())
+    .then(data=>{
+        console.log("APPROVE RESPONSE:", data);
+        if(data.status){
+            updateStudentAccess(data.student_id, data.exam_id, data.status);
+        }
     })
     .catch(error => {
         console.error("APPROVE ERROR:", error);
+    });
+}
+
+function cancelRequest(accessId, examId, studentId){
+    if(!confirm("Cancel this request? This will truly cancel/reject it, not approve as retake.")) return;
+    fetch(`/reject-request/${accessId}`, {
+        method: "POST",
+        headers: {"X-Requested-With": "XMLHttpRequest"}
+    })
+    .then(r=>r.json())
+    .then(data=>{
+        console.log("CANCEL RESPONSE:", data);
+        if(data.success){
+            updateStudentAccess(data.student_id || studentId, data.exam_id || examId, data.status || "rejected");
+            const toastEl = document.getElementById("liveToast");
+            const toastMsg = document.getElementById("toastMessage");
+            if(toastEl && toastMsg){
+                toastMsg.textContent = data.message || "Request cancelled.";
+                toastEl.classList.remove("text-bg-danger");
+                toastEl.classList.add("text-bg-success");
+                new bootstrap.Toast(toastEl).show();
+            }
+        }
+    })
+    .catch(err=>{
+        console.error(err);
+        fetch("/cancel-request-admin", {
+            method: "POST",
+            headers: {"Content-Type":"application/json"},
+            body: JSON.stringify({exam_id: examId, student_id: studentId})
+        }).then(r=>r.json()).then(data=>{
+            if(data.success) updateStudentAccess(studentId, examId, data.status);
+        });
     });
 }
 </script>
@@ -1492,7 +1583,7 @@ document.addEventListener("DOMContentLoaded", function () {
 </script>
 
 <! ============================================>
-<! ============ðŸ‘‡ Reset Feature==============>
+<! ============    Reset Feature==============>
 <! ============================================>
 <script>
 function recycleExam(examId, studentId) {
@@ -1562,7 +1653,7 @@ function recycleExam(examId, studentId) {
 }
 
 // ============================================
-// =========ðŸ‘‡ Review Student Attempt==========
+// =========   Review Student Attempt==========
 // ============================================
 function reviewAttempt(examId, studentId) {
 
@@ -1821,7 +1912,7 @@ function reviewAttempt(examId, studentId) {
 }
 
 // ============================================
-// =========ðŸ‘‡ Force Submit ===================
+// =========   Force Submit ===================
 // ============================================
 function forceSubmit(examId, studentId) {
 
@@ -1883,32 +1974,6 @@ function forceSubmit(examId, studentId) {
 <!-- ============================================ -->
 <!-- =============== LIVE TOAST ================= -->
 <!-- ============================================ -->
-
-<div class="toast-container position-fixed bottom-0 end-0 p-3">
-
-    <div id="liveToast"
-         class="toast align-items-center text-bg-success border-0"
-         role="alert">
-
-        <div class="d-flex">
-
-            <div class="toast-body" id="toastMessage">
-                Success
-            </div>
-
-            <button
-                type="button"
-                class="btn-close btn-close-white me-2 m-auto"
-                data-bs-dismiss="toast">
-            </button>
-
-        </div>
-
-    </div>
-
-</div>
-
-
 <!-- END EXAM MODAL -->
 <div class="modal fade" id="endExamModal" tabindex="-1" data-bs-backdrop="static">
   <div class="modal-dialog modal-dialog-centered">
@@ -1923,95 +1988,101 @@ function forceSubmit(examId, studentId) {
 
 
 <script>
+// make these GLOBAL so any button can use them
 const examChannel = new BroadcastChannel('exam_moves');
-function updateLiveCount(){
+window.broadcastMove = function(action, exam_id, title){
+    examChannel.postMessage({action, exam_id, title, timestamp:Date.now()});
+    localStorage.setItem('last_exam_move', JSON.stringify({action, exam_id, title, timestamp:Date.now()}));
+}
+window.updateLiveCount = function(){
     const badge=document.getElementById('examCountBadge');
     if(!badge) return;
     const count=document.querySelectorAll('.exam-card').length;
     badge.textContent=count;
-    badge.classList.add('bump'); setTimeout(()=>badge.classList.remove('bump'),300);
-    const emptyMsg=document.getElementById('emptyMessage');
-    const container=document.querySelector('.container');
-    if(count===0 && !emptyMsg && container){
-        let msg='<div id="emptyMessage" class="text-center py-5 exam-card entering"><h5 class="text-muted">No exams here <i class="bi bi-stars"></i></h5></div>';
-        const page=window.location.pathname;
-        if(page.includes('view-exams')) msg='<div id="emptyMessage" class="text-center py-5 exam-card entering"><h5 class="text-muted">No active exams <i class="bi bi-dash-lg text-muted"></i> all finished! <i class="bi bi-balloon"></i></h5><a href="/finished-exams" class="btn btn-primary mt-3">Go to Finished Exams</a></div>';
-        else if(page.includes('finished-exams')) msg='<div id="emptyMessage" class="text-center py-5 exam-card entering"><h5 class="text-muted">No finished exams</h5><a href="/view-exams" class="btn btn-primary mt-2">Active</a> <a href="/archived-exams" class="btn btn-secondary mt-2">Archived</a></div>';
-        else if(page.includes('archived-exams')) msg='<div id="emptyMessage" class="text-center py-5 exam-card entering"><h5 class="text-muted">No archived exams</h5></div>';
-        container.insertAdjacentHTML('beforeend', msg);
-    } else if(count>0 && emptyMsg){ emptyMsg.remove(); }
 }
+
 examChannel.onmessage = async (e)=>{
     const data=e.data;
     if(document.getElementById(`exam-card-${data.exam_id}`)) return;
-    let should=false;
     const cur=window.location.pathname;
+    let should=false;
     if(data.action==='end' && cur.includes('finished-exams')) should=true;
     if(data.action==='archive' && cur.includes('archived-exams')) should=true;
     if(data.action==='restore' && cur.includes('finished-exams')) should=true;
     if(data.action==='start' && cur.includes('view-exams')) should=true;
     if(!should) return;
-    try{
-        const res=await fetch(`/api/exam/${data.exam_id}/card`);
-        const exam=await res.json();
-        const container=document.querySelector('.container');
-        let badge='', badgeClass='', buttons='';
-        if(data.action==='end' || data.action==='restore'){
-            badge='Finished'; badgeClass='bg-warning text-dark';
-            buttons=`<a href="/edit-exam/${exam.id}" class="friendly-btn primary" data-flip="spin"><i class="bi bi-pencil icon-flip"></i> Edit</a> <button class="btn btn-warning btn-sm js-start-exam" data-exam-id="${exam.id}"><i class="bi bi-play-circle icon-flip"></i> Start Exam</button> <button class="btn btn-secondary btn-sm js-archive-exam" data-exam-id="${exam.id}"><i class="bi bi-archive icon-flip"></i> Archive</button>`;
-        } else if(data.action==='archive'){
-            badge='Archived'; badgeClass='bg-secondary';
-            buttons=`<button class="btn btn-success btn-sm js-restore-exam" data-exam-id="${exam.id}"><i class="bi bi-arrow-counterclockwise icon-flip"></i> Restore</button>`;
-        } else if(data.action==='start'){
-            badge='Active'; badgeClass='bg-success';
-            buttons=`<a href="/edit-exam/${exam.id}" class="friendly-btn primary" data-flip="spin"><i class="bi bi-pencil icon-flip"></i> Edit</a> <button class="btn btn-danger btn-sm js-end-exam" data-exam-id="${exam.id}"><i class="bi bi-stop-circle icon-flip"></i> End Exam</button>`;
-        }
-        const html=`<div class="card shadow-sm mb-4 exam-card entering" id="exam-card-${exam.id}" data-exam-id="${exam.id}" style="border-left:5px solid #0d6efd;"><div class="card-body"><div class="d-flex justify-content-between align-items-start mb-3"><div><h4 class="mb-1">${exam.title} <span class="badge ${badgeClass} ms-2">${badge} • New!</span></h4><p class="text-muted mb-1">${exam.subject_code} - ${exam.subject_name}</p><small class="text-muted"><strong>Term:</strong> ${exam.term} | <strong>Type:</strong> ${exam.exam_type} | <strong>Duration:</strong> ${Math.floor(exam.duration/60)>0 ? Math.floor(exam.duration/60)+' hr ' : ''}${exam.duration%60>0 ? e</small></div><span class="badge ${badgeClass}">${badge}</span></div><div class="d-flex flex-wrap gap-2 mb-3">${buttons}</div></div></div>`;
-        const first=document.querySelector('.exam-card');
-        if(first) first.insertAdjacentHTML('beforebegin', html);
-        else { const empty=document.getElementById('emptyMessage'); if(empty) empty.remove(); container.insertAdjacentHTML('beforeend', html); }
-        updateLiveCount();
-        const el=document.getElementById('liveToast'); const m=document.getElementById('toastMessage');
-        if(el && m){ m.textContent=`<i class="bi bi-stars"></i> "${exam.title}" arrived automatically!`; el.className='toast align-items-center border-0 text-bg-primary'; new bootstrap.Toast(el,{delay:4000}).show(); }
-        setTimeout(()=>{ const b=document.querySelector(`#exam-card-${exam.id} .badge`); if(b) b.textContent=badge; },5000);
-    }catch(err){ console.error(err); }
+    location.reload(); // simple reload is safer than building HTML
 };
-function broadcastMove(action, exam_id, title){
-    examChannel.postMessage({action, exam_id, title, timestamp:Date.now()});
-    localStorage.setItem('last_exam_move', JSON.stringify({action, exam_id, title, timestamp:Date.now()}));
+
+function toast(msg,type){
+  const el=document.getElementById('liveToast'); 
+  const m=document.getElementById('toastMessage'); 
+  if(!el||!m) return;
+  m.innerHTML=msg; 
+  el.className=`toast align-items-center border-0 text-bg-${type}`; 
+  new bootstrap.Toast(el,{delay:4000}).show(); 
 }
-</script>
 
-
-<script>
 document.addEventListener('DOMContentLoaded', ()=>{
-  let selId=null, selCard=null, selTitle='';
+  let selId=null, selCard=null;
   const modalEl=document.getElementById('endExamModal');
   const bsModal=modalEl? new bootstrap.Modal(modalEl):null;
   const titleEl=document.getElementById('endExamTitle');
   const confirmBtn=document.getElementById('confirmEndExamBtn');
 
-  function toast(msg,type){ const el=document.getElementById('liveToast'); const m=document.getElementById('toastMessage'); m.textContent=msg; el.className=`toast align-items-center border-0 text-bg-${type}`; new bootstrap.Toast(el,{delay:4000}).show(); }
-
   document.addEventListener('click', e=>{
     const btn=e.target.closest('.js-end-exam');
     if(!btn) return;
-    e.preventDefault(); e.stopImmediatePropagation();
-    selId=btn.dataset.examId; selCard=document.getElementById(`exam-card-${selId}`); selTitle=selCard? selCard.querySelector('h4').innerText.trim().split('\n')[0] : 'this exam';
-    if(titleEl) titleEl.textContent=`"${selTitle}"`; if(bsModal) bsModal.show();
+    e.preventDefault();
+    selId=btn.dataset.examId; 
+    selCard=document.getElementById(`exam-card-${selId}`);
+    const rawTitle=selCard? selCard.querySelector('h4').innerText.trim().split('\n')[0] : 'this exam';
+    if(titleEl) titleEl.textContent=`"${rawTitle}"`;
+    if(bsModal) bsModal.show();
   });
 
   if(confirmBtn) confirmBtn.addEventListener('click', async ()=>{
     if(!selId||!selCard) return;
-    const orig=confirmBtn.innerHTML; confirmBtn.disabled=true; confirmBtn.innerHTML='<span class="spinner-border spinner-border-sm"></span> Ending...';
+    const orig=confirmBtn.innerHTML; 
+    confirmBtn.disabled=true; 
+    confirmBtn.innerHTML='<span class="spinner-border spinner-border-sm"></span> Ending...';
     try{
-      const res=await fetch(`/end-exam/${selId}`,{method:'POST', headers:{'X-Requested-With':'XMLHttpRequest'}});
-      const data=await res.json(); if(!data.success) throw new Error();
-      broadcastMove('end', selId, data.title);
+      const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
+      const res=await fetch(`/end-exam/${selId}`,{
+        method:'POST', 
+        headers:{
+          'X-Requested-With':'XMLHttpRequest',
+          'X-CSRFToken': csrf,
+          'Content-Type': 'application/json'
+        },
+        credentials: 'same-origin'
+      });
+      
+      if(!res.ok){
+        const txt = await res.text();
+        console.error(txt);
+        throw new Error(`Server returned ${res.status}`);
+      }
+      const data=await res.json(); 
+      if(!data.success) throw new Error(data.message||'Failed');
+
+      // success
+      window.broadcastMove('end', selId, data.title);
       if(bsModal) bsModal.hide();
-      selCard.classList.add('exiting');
-      setTimeout(()=>{ selCard.remove(); updateLiveCount(); toast(`<i class="bi bi-box-seam"></i> "${data.title}" <i class="bi bi-arrow-right"></i> Finished`, 'warning'); },750);
-    }catch(e){ toast('Failed','danger'); if(bsModal) bsModal.hide(); } finally{ confirmBtn.disabled=false; confirmBtn.innerHTML=orig; }
+      if(selCard) selCard.classList.add('exiting');
+      setTimeout(()=>{ 
+        if(selCard) selCard.remove(); 
+        window.updateLiveCount(); 
+        toast(`"${data.title}" → Finished`, 'success'); 
+      },400);
+    }catch(e){ 
+      console.error(e);
+      toast('Failed to end: '+ e.message,'danger'); 
+      if(bsModal) bsModal.hide(); 
+    } finally{ 
+      confirmBtn.disabled=false; 
+      confirmBtn.innerHTML=orig; 
+    }
   });
 
   if(modalEl) modalEl.addEventListener('hidden.bs.modal', ()=>{ selId=null; selCard=null; });
@@ -2090,8 +2161,16 @@ function recycleExamFixed(examId, studentId) {
 // Override original functions with fixed ones
 window.reviewAttempt = reviewAttemptFixed;
 window.recycleExam = recycleExamFixed;
+
+// Sticky header shadow on scroll
+document.addEventListener('DOMContentLoaded', ()=>{
+  const header = document.getElementById('stickyExamHeader');
+  if(!header) return;
+  window.addEventListener('scroll', ()=>{
+    if(window.scrollY > 10) header.classList.add('scrolled');
+    else header.classList.remove('scrolled');
+  }, {passive:true});
+});
 </script>
 
-</body>
-</html>
 {% endblock %}

@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <a href="{{ url_for('view_subjects') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i> Back to Subjects</a>
+      <h3 class="mt-2 mb-0"><span class="badge" style="background:#eef2ff; color:#5a6cf3; border-radius:50px;">{{ subject.subject_code }}</span> {{ subject.subject_name }}</h3>
+      <small class="text-muted">{{ subject.semester or '' }} {{ subject.school_year or '' }}</small>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <span class="badge bg-primary rounded-pill" style="font-size:1rem;">{{ students|length }} enrolled</span>
+      <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#assignStudentModalMain" style="border-radius:50px; font-weight:700;">
+        <i class="bi bi-person-plus"></i> Add Student
+      </button>
+    </div>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead class="table-light"><tr><th>Student ID</th><th>Name</th><th>Course</th><th>Year/Section</th></tr></thead>
+        <tbody>
+          {% for s in students %}
+          <tr>
+            <td><span class="badge" style="background:#eef2ff; color:#5a6cf3; border-radius:50px;">{{ s.student_id }}</span></td>
+            <td style="font-weight:600;">{{ s.name }}</td>
+            <td>{{ s.course or s.subject or '—' }}</td>
+            <td>{{ s.year or '' }} {{ s.section or '' }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="4" class="text-center py-4 text-muted">No students enrolled yet. Click "Add Student" to add one.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ADD STUDENT MODAL WITH SEARCHABLE FIELD -->
+<div class="modal fade" id="assignStudentModalMain" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content" style="border-radius:22px;">
+      <form method="POST" action="{{ url_for('assign_student_to_subject') }}" class="assign-form">
+        <div class="modal-header" style="background: linear-gradient(135deg, #5a6cf3 0%, #7a5af0 100%); color:#fff; border-radius:22px 22px 0 0;">
+          <h5 class="modal-title"><i class="bi bi-person-plus"></i> Assign Student to {{ subject.subject_code }}</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" name="subject_id" value="{{ subject.id }}">
+          <div class="mb-3">
+            <label class="form-label fw-bold">Select Student (ID Priority)</label>
+            <div class="position-relative searchable-student-wrapper">
+              <input type="text" class="form-control search-student-input" placeholder="Type Student ID or Name..." autocomplete="off" required style="border-radius:12px; padding-left: 38px;">
+              <i class="bi bi-search position-absolute" style="left:12px; top:50%; transform:translateY(-50%); color:#888;"></i>
+              <input type="hidden" name="student_id" class="selected-student-id" required>
+              <div class="search-dropdown shadow" style="position:absolute; top:100%; left:0; right:0; background:#fff; border-radius:12px; border:1px solid #e5e7eb; max-height:220px; overflow-y:auto; display:none; z-index:2000; margin-top:6px;"></div>
+              <div class="selected-preview mt-2" style="display:none;">
+                <span class="badge" style="background:#eef2ff; color:#5a6cf3; border-radius:50px; padding:6px 12px;"><i class="bi bi-person-check"></i> <span class="preview-text"></span></span>
+                <button type="button" class="btn btn-sm btn-link text-danger clear-selection p-0 ms-2"><small>Clear</small></button>
+              </div>
+            </div>
+            <small class="text-muted">Type to search - ID has priority. This will update dashboard_student.html instantly</small>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Semester (for filtering in dashboard_student)</label>
+            <select name="semester" class="form-select" style="border-radius:12px;">
+              <option value="1st" {% if subject.semester=='1st' %}selected{% endif %}>1st Semester</option>
+              <option value="2nd" {% if subject.semester=='2nd' %}selected{% endif %}>2nd Semester</option>
+              <option value="Summer">Summer</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">School Year</label>
+            <input type="text" name="school_year" class="form-control" style="border-radius:12px;" placeholder="2026-2027" value="{{ subject.school_year or current_year or '2026-2027' }}">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-success" style="border-radius:50px; font-weight:700;">Assign Subject</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<style>
+.search-dropdown .dropdown-item-custom{
+  padding:10px 14px;
+  cursor:pointer;
+  border-bottom:1px solid #f3f4f6;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  transition: background .15s;
+}
+.search-dropdown .dropdown-item-custom:hover,
+.search-dropdown .dropdown-item-custom.active{
+  background:#eef2ff;
+}
+</style>
+
+<script>
+const ALL_STUDENTS_MAIN = [
+  {% for s in all_students %}
+  { id: "{{ s.student_id }}", name: "{{ s.name|e }}", display: "{{ s.student_id }} - {{ s.name|e }}" },
+  {% endfor %}
+];
+
+document.addEventListener('DOMContentLoaded', function(){
+  initSearchable();
+  const modal = document.getElementById('assignStudentModalMain');
+  if(modal){
+    modal.addEventListener('shown.bs.modal', () => {
+      modal.querySelector('.search-student-input')?.focus();
+    });
+    modal.addEventListener('hidden.bs.modal', () => {
+      clearSelectionMain(modal);
+    });
+  }
+});
+
+function initSearchable(){
+  document.querySelectorAll('.searchable-student-wrapper').forEach(wrapper => {
+    const input = wrapper.querySelector('.search-student-input');
+    const hiddenInput = wrapper.querySelector('.selected-student-id');
+    const dropdown = wrapper.querySelector('.search-dropdown');
+    const preview = wrapper.querySelector('.selected-preview');
+    const previewText = wrapper.querySelector('.preview-text');
+    const clearBtn = wrapper.querySelector('.clear-selection');
+
+    input.addEventListener('input', function(){
+      const query = this.value.toLowerCase().trim();
+      hiddenInput.value = "";
+      if(preview) preview.style.display = "none";
+      
+      if(!query){
+        dropdown.style.display = "none";
+        return;
+      }
+
+      let filtered = ALL_STUDENTS_MAIN.filter(s => 
+        s.id.toLowerCase().includes(query) || s.name.toLowerCase().includes(query)
+      );
+
+      filtered.sort((a,b) => {
+        const q = query;
+        const aId = a.id.toLowerCase();
+        const bId = b.id.toLowerCase();
+        const aStarts = aId.startsWith(q) ? 0 : 1;
+        const bStarts = bId.startsWith(q) ? 0 : 1;
+        if(aStarts !== bStarts) return aStarts - bStarts;
+        const aIdContains = aId.includes(q) ? 0 : 1;
+        const bIdContains = bId.includes(q) ? 0 : 1;
+        if(aIdContains !== bIdContains) return aIdContains - bIdContains;
+        return a.id.localeCompare(b.id);
+      });
+
+      filtered = filtered.slice(0, 50);
+
+      if(filtered.length === 0){
+        dropdown.innerHTML = '<div class="p-3 text-muted text-center"><small>No student found</small></div>';
+        dropdown.style.display = "block";
+        return;
+      }
+
+      dropdown.innerHTML = filtered.map(s => `
+        <div class="dropdown-item-custom" data-id="${s.id}" data-display="${s.display}">
+          <div><strong style="color:#5a6cf3;">${s.id}</strong> <span>- ${s.name}</span></div>
+          <small>ID</small>
+        </div>
+      `).join('');
+
+      dropdown.style.display = "block";
+
+      dropdown.querySelectorAll('.dropdown-item-custom').forEach(item => {
+        item.addEventListener('click', function(){
+          hiddenInput.value = this.getAttribute('data-id');
+          input.value = this.getAttribute('data-display');
+          if(previewText) previewText.textContent = this.getAttribute('data-display');
+          if(preview) preview.style.display = "block";
+          dropdown.style.display = "none";
+        });
+      });
+    });
+
+    clearBtn?.addEventListener('click', () => clearSelectionMain(wrapper));
+
+    document.addEventListener('click', function(e){
+      if(!wrapper.contains(e.target)){
+        dropdown.style.display = "none";
+      }
+    });
+
+    const form = wrapper.closest('form');
+    if(form){
+      form.addEventListener('submit', function(e){
+        if(!hiddenInput.value){
+          const typed = input.value.trim().toLowerCase();
+          const exact = ALL_STUDENTS_MAIN.find(s => s.id.toLowerCase() === typed || s.display.toLowerCase() === typed);
+          if(exact){
+            hiddenInput.value = exact.id;
+          } else if (typed) {
+            e.preventDefault();
+            alert('Please select a student from the list. Type ID or name and click a result.');
+            return false;
+          }
+        }
+      });
+    }
+  });
+}
+
+function clearSelectionMain(context){
+  const wrappers = context.querySelectorAll ? context.querySelectorAll('.searchable-student-wrapper') : [context];
+  wrappers.forEach(w => {
+    const inp = w.querySelector('.search-student-input');
+    const hid = w.querySelector('.selected-student-id');
+    const dd = w.querySelector('.search-dropdown');
+    const prev = w.querySelector('.selected-preview');
+    if(inp) inp.value = "";
+    if(hid) hid.value = "";
+    if(dd) dd.style.display = "none";
+    if(prev) prev.style.display = "none";
+  });
+}
+</script>
+{% endblock %}

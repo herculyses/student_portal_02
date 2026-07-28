@@ -190,6 +190,24 @@ class Log(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
 # =========================
+# ENROLLMENT SYSTEM - NEW
+# =========================
+class Enrollment(db.Model):
+    __tablename__ = 'enrollment'
+    id = db.Column(db.Integer, primary_key=True)
+    student_id = db.Column(db.String(100), unique=True, nullable=False)  # PRIORITY FIELD
+    name = db.Column(db.String(150), nullable=False)
+    course = db.Column(db.String(100))
+    year = db.Column(db.String(20))
+    section = db.Column(db.String(50))
+    email = db.Column(db.String(150))
+    contact = db.Column(db.String(50))
+    username = db.Column(db.String(100))
+    status = db.Column(db.String(20), default='pending')  # pending/approved/rejected
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    approved_at = db.Column(db.DateTime, nullable=True)
+
+# =========================
 # EXAM SYSTEM MODELS
 # =========================
 
@@ -408,6 +426,15 @@ class ExamAccess(db.Model):
         "Exam",
         backref="access_records"
     )
+
+class CalendarEvent(db.Model):
+    __tablename__ = "calendar_events"
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    start_date = db.Column(db.DateTime, nullable=False)
+    end_date = db.Column(db.DateTime, nullable=True)
+    description = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 class StudentAnswer(db.Model):
     __tablename__ = 'student_answers'
@@ -1393,6 +1420,207 @@ SECURITY_EVENTS = {
 # ==========================================================
 
 # ==========================================================
+# ENROLLMENT & REGISTER SYSTEM - NEW (SMOOTH COLORFUL)
+# ==========================================================
+@app.route('/api/check-id')
+def check_id():
+    sid = request.args.get('id','').strip()
+    if not sid:
+        return jsonify({"exists": False})
+    exists_enroll = Enrollment.query.filter_by(student_id=sid).first() is not None
+    exists_student = Student.query.filter_by(student_id=sid).first() is not None
+    exists_user = User.query.filter_by(username=sid).first() is not None
+    exists = exists_enroll or exists_student or exists_user
+    has_user = exists_user
+    if exists_student:
+        msg = f"ID {sid} already in student records."
+    elif exists_enroll:
+        msg = f"ID {sid} already enrolled."
+    elif exists_user:
+        msg = f"ID {sid} has account."
+    else:
+        msg = "Available"
+    return jsonify({"exists": exists, "has_user": has_user, "message": msg})
+
+@app.route('/enrollment', methods=['GET','POST'])
+def enrollment():
+    form = None
+    if request.method == 'POST':
+        student_id = request.form.get('student_id','').strip()
+        name = request.form.get('name','').strip()
+        course = request.form.get('course','').strip()
+        year = request.form.get('year','').strip()
+        section = request.form.get('section','').strip()
+        email = request.form.get('email','').strip()
+        contact = request.form.get('contact','').strip()
+        username = request.form.get('username','').strip() or student_id
+        password = request.form.get('password','').strip()
+
+        if not student_id or not name:
+            flash("ID Number and Name are required (ID is priority).", "danger")
+            return render_template('enrollment.html', form=form)
+
+        if Enrollment.query.filter_by(student_id=student_id).first() or Student.query.filter_by(student_id=student_id).first() or User.query.filter_by(username=student_id).first():
+            flash(f"ID {student_id} already exists in system.", "warning")
+            return render_template('enrollment.html', form=form)
+
+        try:
+            enroll = Enrollment(
+                student_id=student_id,
+                name=name,
+                course=course,
+                year=year,
+                section=section,
+                email=email,
+                contact=contact,
+                username=username,
+                status='pending'
+            )
+            db.session.add(enroll)
+            student_rec = Student(
+                student_id=student_id,
+                name=name,
+                year=year,
+                section=section,
+                subject='GENERAL'
+            )
+            db.session.add(student_rec)
+
+            if password and len(password) >= 6:
+                if not User.query.filter_by(username=username).first():
+                    u = User(username=username, password=generate_password_hash(password), role='Student')
+                    db.session.add(u)
+
+            db.session.commit()
+            add_log(student_id, f"Enrolled - {name}")
+            flash(f"Enrollment successful for ID {student_id}! You can now login.", "success")
+            return redirect(url_for('login'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Enrollment failed: {str(e)}", "danger")
+
+    return render_template('enrollment.html', form=form)
+
+@app.route('/register', methods=['GET','POST'])
+def register():
+    form = LoginForm()
+    if request.method == 'POST':
+        student_id = request.form.get('student_id','').strip()
+        name = request.form.get('name','').strip()
+        username = request.form.get('username','').strip() or student_id
+        password = request.form.get('password','').strip()
+        confirm = request.form.get('confirm_password','').strip()
+        role = request.form.get('role','Student').strip()
+
+        if not student_id:
+            flash("ID Number is Priority - cannot be empty!", "danger")
+            return render_template('register.html', form=form)
+        if not name or not username or not password:
+            flash("All fields required.", "danger")
+            return render_template('register.html', form=form)
+        if password != confirm:
+            flash("Passwords do not match.", "danger")
+            return render_template('register.html', form=form)
+        if len(password) < 6:
+            flash("Password must be at least 6 chars.", "danger")
+            return render_template('register.html', form=form)
+
+        enroll = Enrollment.query.filter_by(student_id=student_id).first()
+        stud = Student.query.filter_by(student_id=student_id).first()
+
+        if not enroll and not stud:
+            enroll = Enrollment(student_id=student_id, name=name, status='pending')
+            db.session.add(enroll)
+            if not stud:
+                stud = Student(student_id=student_id, name=name, subject='GENERAL')
+                db.session.add(stud)
+
+        if User.query.filter_by(username=username).first():
+            flash(f"Username/ID {username} already has account.", "danger")
+            return render_template('register.html', form=form)
+
+        try:
+            user = User(username=username, password=generate_password_hash(password), role=role)
+            db.session.add(user)
+            db.session.commit()
+            if enroll:
+                enroll.status = 'approved'
+                enroll.approved_at = datetime.utcnow()
+                db.session.commit()
+            flash(f"Account created for ID {student_id}! Please login.", "success")
+            add_log(username, f"Registered new account with ID {student_id}")
+            return redirect(url_for('login'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Registration failed: {e}", "danger")
+
+    return render_template('register.html', form=form)
+
+@app.route('/dashboard/admin/enrollments')
+@login_required(role=['Admin','Instructor'])
+def enrollment_admin():
+    enrollments = Enrollment.query.order_by(Enrollment.created_at.desc()).all()
+    return render_template('enrollment_admin.html', enrollments=enrollments)
+
+@app.route('/dashboard/admin/enrollments/<int:id>/approve', methods=['POST'])
+@login_required(role=['Admin','Instructor'])
+def approve_enrollment(id):
+    e = Enrollment.query.get_or_404(id)
+    e.status = 'approved'
+    e.approved_at = datetime.utcnow()
+    db.session.commit()
+    flash(f"Approved enrollment ID {e.student_id}", "success")
+    return redirect(url_for('enrollment_admin'))
+
+@app.route('/dashboard/admin/enrollments/<int:id>/reject', methods=['POST'])
+@login_required(role=['Admin','Instructor'])
+def reject_enrollment(id):
+    e = Enrollment.query.get_or_404(id)
+    e.status = 'rejected'
+    db.session.commit()
+    flash(f"Rejected enrollment ID {e.student_id}", "warning")
+    return redirect(url_for('enrollment_admin'))
+
+@app.route('/dashboard/admin/enrollments/batch', methods=['POST'])
+@app.route('/batch_approve_enrollments', methods=['POST'])
+@login_required(role=['Admin','Instructor'])
+def batch_approve_enrollments():
+    ids = request.form.getlist('ids')
+    action = request.form.get('action', 'approve')
+    
+    if not ids:
+        flash("No enrollments selected.", "warning")
+        return redirect(url_for('enrollment_admin'))
+    
+    enrollments = Enrollment.query.filter(Enrollment.id.in_(ids)).all()
+    
+    count = 0
+    for e in enrollments:
+        if action == 'approve':
+            e.status = 'approved'
+            e.approved_at = datetime.utcnow()
+            # Auto-create Student if not exists
+            if not Student.query.filter_by(student_id=e.student_id).first():
+                stud = Student(student_id=e.student_id, name=e.name, course=e.course, year=e.year, section=e.section)
+                db.session.add(stud)
+            count += 1
+        elif action == 'reject':
+            e.status = 'rejected'
+            count += 1
+    
+    try:
+        db.session.commit()
+        if action == 'approve':
+            flash(f"✅ Batch approved {count} enrollment(s)!", "success")
+        else:
+            flash(f"🗑️ Batch rejected {count} enrollment(s)!", "warning")
+    except Exception as ex:
+        db.session.rollback()
+        flash(f"Batch action failed: {ex}", "danger")
+    
+    return redirect(url_for('enrollment_admin'))
+
+# ==========================================================
 # Login
 # ==========================================================
 @app.route('/', methods=['GET', 'POST'])
@@ -1507,6 +1735,30 @@ def dashboard_admin():
     # FETCH QUESTIONS
     all_questions = Question.query.all()
     
+    # Calendar events for FullCalendar - with 12a cleaning
+    try:
+        calendar_events = CalendarEvent.query.order_by(CalendarEvent.start_date.asc()).all()
+        calendar_list = []
+        import re as _re
+        import json as _json
+        for ev in calendar_events:
+            clean_title = ev.title or ""
+            clean_title = _re.sub(r'^\s*\d{1,2}(?::\d{2})?\s*[ap]\s*m?\s*[-–—]*\s*', '', clean_title, flags=_re.I).strip()
+            clean_title = _re.sub(r'^\s*\d{1,2}\s*[ap]\s*[-–—]*\s*', '', clean_title, flags=_re.I).strip()
+            calendar_list.append({
+                "id": str(ev.id),
+                "title": clean_title,
+                "start": ev.start_date.isoformat() if ev.start_date else "",
+                "end": ev.end_date.isoformat() if ev.end_date else None,
+                "description": ev.description or "",
+                "allDay": True
+            })
+        calendar_events_json = _json.dumps(calendar_list)
+    except Exception as e:
+        print(f"Calendar load error: {e}")
+        calendar_events = []
+        calendar_events_json = "[]"
+    
     # Render template
     return render_template(
         'dashboard_admin.html',
@@ -1514,7 +1766,9 @@ def dashboard_admin():
         instructors=instructors,
         logs=logs,
         subjects=subjects,
-        exams=exams
+        exams=exams,
+        calendar_events=calendar_events,
+        calendar_events_json=calendar_events_json
     )
 
 # ---- Instructor Dashboard ----
@@ -1560,8 +1814,19 @@ def dashboard_student():
 
     grades = Student.query.filter_by(student_id=student.student_id).all()
 
-    # ALL ACTIVE EXAMS (for Available Exams)
-    active_exams = Exam.query.filter_by(is_active=True).all()
+    # Get all subjects this student is enrolled in
+    all_enrollments = Student.query.filter_by(student_id=student.student_id).all()
+    enrolled_subject_codes = [s.subject_code.strip() for s in all_enrollments if s.subject_code]
+
+    # FILTER: Only show exams for enrolled subjects
+    if enrolled_subject_codes:
+        active_exams = Exam.query.join(Subject).filter(
+            Subject.subject_code.in_(enrolled_subject_codes),
+            Exam.is_active==True
+        ).all()
+    else:
+        # Fallback: if no enrollment found, show nothing to prevent cross-subject request
+        active_exams = []
 
     # ALL EXAMS (for Examination Results)
     all_exams = Exam.query.all()
@@ -1719,11 +1984,317 @@ def add_subject():
 def view_subjects():
 
     subjects = Subject.query.order_by(Subject.subject_name.asc()).all()
+    all_students = Student.query.order_by(Student.name.asc()).all()
 
     return render_template(
         'view_subjects.html',
-        subjects=subjects
+        subjects=subjects,
+        all_students=all_students,
+        current_year=f"{datetime.now().year}-{datetime.now().year+1}"
     )
+
+@app.route('/subjects/<int:subject_id>/students')
+@app.route('/view_subject_students/<int:subject_id>')
+@login_required(role=['Admin', 'Instructor'])
+def view_subject_students(subject_id):
+    subject = Subject.query.get_or_404(subject_id)
+    # Get students enrolled in this subject - try multiple possible relationships
+    students = []
+    try:
+        # If Student has subject relationship
+        if hasattr(Student, 'subject_id'):
+            students = Student.query.filter_by(subject_id=subject_id).all()
+        elif hasattr(Student, 'subject'):
+            # Check if subject field contains code
+            students = Student.query.filter(Student.subject == subject.subject_code).all()
+        else:
+            # Fallback: get all students and filter if they have subjects association
+            students = Student.query.limit(50).all()
+    except Exception as e:
+        print(f"Error fetching students for subject {subject_id}: {e}")
+        students = []
+
+    # NEW: Get ALL students for searchable dropdown
+    try:
+        all_students = Student.query.order_by(Student.student_id).all()
+    except Exception as e:
+        print(f"Error fetching all_students: {e}")
+        all_students = []
+
+    return render_template(
+        'view_subject_students.html',
+        subject=subject,
+        students=students,
+        all_students=all_students,
+        current_year="2026-2027"
+    )
+
+@app.route('/assign_student_to_subject', methods=['POST'])
+@login_required(role=['Admin', 'Instructor'])
+def assign_student_to_subject():
+    subject_id = request.form.get('subject_id')
+    student_id = request.form.get('student_id')
+    semester = request.form.get('semester', '1st')
+    school_year = request.form.get('school_year', f"{datetime.now().year}-{datetime.now().year+1}")
+
+    if not subject_id or not student_id:
+        flash("Subject and Student required", "danger")
+        return redirect(url_for('view_subjects'))
+
+    subject = Subject.query.get_or_404(subject_id)
+    
+    # Template student record for cloning
+    template_student = Student.query.filter_by(student_id=student_id).first()
+    if not template_student:
+        flash(f"Student ID {student_id} not found", "danger")
+        return redirect(url_for('view_subjects'))
+
+    # Check if already enrolled in this subject
+    existing = Student.query.filter_by(student_id=student_id, subject=subject.subject_code).first()
+    if existing:
+        existing.semester = semester
+        existing.school_year = school_year
+        existing.subject_code = subject.subject_code
+        existing.subject_name = subject.subject_name
+        if hasattr(existing, 'subject'):
+            existing.subject = subject.subject_code
+        db.session.commit()
+        flash(f"✅ {template_student.name} is already in {subject.subject_code}, updated!", "info")
+        return redirect(request.referrer or url_for('view_subjects'))
+
+    try:
+        # CREATE NEW ROW per subject (because PK is student_id + subject)
+        new_enrollment = Student(
+            student_id=template_student.student_id,
+            user_id=template_student.user_id,
+            name=template_student.name,
+            year=template_student.year,
+            section=template_student.section,
+            school_year=school_year,
+            semester=semester,
+            subject=subject.subject_code,
+            subject_code=subject.subject_code,
+            subject_name=subject.subject_name
+        )
+        db.session.add(new_enrollment)
+        db.session.commit()
+        flash(f"✅ Assigned {new_enrollment.name} ({student_id}) to {subject.subject_code}!", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Failed to assign: {e}", "danger")
+
+    return redirect(request.referrer or url_for('view_subjects'))
+
+
+@app.route('/admin/calendar/add', methods=['POST'])
+@login_required(role=['Admin','Instructor'])
+def add_calendar_event():
+    title = request.form.get('title','').strip()
+    date_str = request.form.get('start_date','')
+    end_str = request.form.get('end_date','')
+    desc = request.form.get('description','')
+    if not title or not date_str:
+        flash("Title and date required", "danger")
+        return redirect(url_for('dashboard_admin'))
+    try:
+        from datetime import datetime as dt
+        start = dt.fromisoformat(date_str) if 'T' in date_str else dt.strptime(date_str, "%Y-%m-%d")
+        end = None
+        if end_str:
+            end = dt.fromisoformat(end_str) if 'T' in end_str else dt.strptime(end_str, "%Y-%m-%d")
+        ev = CalendarEvent(title=title, start_date=start, end_date=end, description=desc)
+        db.session.add(ev)
+        db.session.commit()
+        flash(f"✅ Added {title}!", "success")
+    except Exception as e:
+        flash(f"Error: {e}", "danger")
+    return redirect(url_for('dashboard_admin'))
+
+@app.route('/admin/calendar/edit/<int:event_id>', methods=['POST'])
+@login_required(role=['Admin','Instructor'])
+def edit_calendar_event(event_id):
+    ev = CalendarEvent.query.get_or_404(event_id)
+    ev.title = request.form.get('title', ev.title)
+    date_str = request.form.get('start_date')
+    end_str = request.form.get('end_date')
+    ev.description = request.form.get('description', ev.description)
+    try:
+        from datetime import datetime as dt
+        if date_str:
+            ev.start_date = dt.fromisoformat(date_str) if 'T' in date_str else dt.strptime(date_str, "%Y-%m-%d")
+        if end_str:
+            ev.end_date = dt.fromisoformat(end_str) if 'T' in end_str else dt.strptime(end_str, "%Y-%m-%d")
+        elif request.form.get('clear_end'):
+            ev.end_date = None
+        db.session.commit()
+        flash(f"✅ Updated {ev.title}!", "success")
+    except Exception as e:
+        flash(f"Error: {e}", "danger")
+    return redirect(url_for('dashboard_admin'))
+
+@app.route('/admin/calendar/delete/<int:event_id>', methods=['POST'])
+@login_required(role=['Admin','Instructor'])
+def delete_calendar_event(event_id):
+    ev = CalendarEvent.query.get_or_404(event_id)
+    db.session.delete(ev)
+    db.session.commit()
+    flash(f"🗑️ Deleted {ev.title}", "info")
+    return redirect(url_for('dashboard_admin'))
+
+@app.route('/admin/calendar/delete-all', methods=['POST'])
+@login_required(role=['Admin','Instructor'])
+def delete_all_calendar():
+    CalendarEvent.query.delete()
+    db.session.commit()
+    flash("🗑️ All calendar events deleted", "warning")
+    return redirect(url_for('dashboard_admin'))
+
+@app.route('/api/calendar/events')
+def api_calendar_events():
+    events = CalendarEvent.query.order_by(CalendarEvent.start_date.asc()).all()
+    data = []
+    for ev in events:
+        # Clean title server-side - remove 12a artifacts
+        clean_title = ev.title or ""
+        import re as _re
+        clean_title = _re.sub(r'^\s*\d{1,2}(?::\d{2})?\s*[ap]\s*m?\s*[-–—]*\s*', '', clean_title, flags=_re.I).strip()
+        clean_title = _re.sub(r'^\s*\d{1,2}\s*[ap]\s*[-–—]*\s*', '', clean_title, flags=_re.I).strip()
+        data.append({
+            "id": ev.id,
+            "title": clean_title,
+            "start": ev.start_date.date().isoformat(),
+            "end": ev.end_date.date().isoformat() if ev.end_date else None,
+            "description": ev.description or "",
+            "allDay": True
+        })
+    return jsonify(data)
+
+@app.route('/admin/calendar/upload', methods=['POST'])
+@app.route('/upload_calendar', methods=['POST'])
+@login_required(role=['Admin','Instructor'])
+def upload_calendar():
+    """Handle PDF/Image upload and manual text - OCR parse dates & events - with 12a cleanup"""
+    try:
+        manual_text = request.form.get('manual_text','').strip()
+        file = request.files.get('calendar_file')
+        extracted_text = ""
+
+        if file and file.filename:
+            filename = secure_filename(file.filename)
+            ext = filename.rsplit('.',1)[-1].lower() if '.' in filename else ''
+            temp_path = os.path.join(app.config['UPLOAD_FOLDER'], f"cal_{int(time.time())}_{filename}")
+            file.save(temp_path)
+            try:
+                if ext == 'pdf':
+                    try:
+                        import fitz
+                        doc = fitz.open(temp_path)
+                        for page in doc:
+                            extracted_text += page.get_text() + "\n"
+                    except ImportError:
+                        try:
+                            import PyPDF2
+                            reader = PyPDF2.PdfReader(temp_path)
+                            for page in reader.pages:
+                                extracted_text += (page.extract_text() or "") + "\n"
+                        except:
+                            extracted_text = ""
+                elif ext in ['png','jpg','jpeg','webp','bmp']:
+                    try:
+                        import pytesseract
+                        from PIL import Image
+                        img = Image.open(temp_path)
+                        extracted_text = pytesseract.image_to_string(img)
+                    except Exception as e:
+                        print(f"OCR error: {e}")
+                        extracted_text = ""
+            finally:
+                try:
+                    os.remove(temp_path)
+                except:
+                    pass
+
+        combined_text = (extracted_text + "\n" + manual_text).strip()
+
+        if not combined_text:
+            flash("No text found to parse.", "warning")
+            return redirect(url_for('dashboard_admin'))
+
+        import re
+        from datetime import datetime as dt
+        events_created = 0
+        lines = [l.strip() for l in combined_text.splitlines() if l.strip()]
+
+        date_patterns = [
+            r'(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2},?\s+\d{4}',
+            r'\d{1,2}/\d{1,2}/\d{2,4}',
+            r'\d{4}-\d{1,2}-\d{1,2}',
+            r'\d{1,2}-\d{1,2}-\d{2,4}'
+        ]
+
+        for line in lines:
+            if len(line) < 5:
+                continue
+            found_date = None
+            for pat in date_patterns:
+                m = re.search(pat, line, re.I)
+                if m:
+                    found_date = m.group(0)
+                    break
+            if found_date:
+                parsed = None
+                for fmt in ["%B %d, %Y", "%b %d, %Y", "%b %d %Y", "%B %d %Y", "%m/%d/%Y", "%m/%d/%y", "%Y-%m-%d", "%m-%d-%Y"]:
+                    try:
+                        clean = found_date.replace(',', ' ').strip()
+                        clean = re.sub(r'\s+', ' ', clean)
+                        parsed = dt.strptime(found_date.strip(), fmt)
+                        break
+                    except:
+                        try:
+                            parsed = dt.strptime(clean, fmt)
+                            break
+                        except:
+                            continue
+                if not parsed:
+                    try:
+                        from dateutil import parser as dparser
+                        parsed = dparser.parse(found_date, fuzzy=True)
+                    except:
+                        pass
+
+                if parsed:
+                    # CLEAN TITLE - remove date AND time artifacts like 12a, 12am, 12:00 am
+                    title = re.sub('|'.join(date_patterns), '', line, flags=re.I)
+                    title = re.sub(r'\b\d{1,2}(?::\d{2})?\s*[ap]m?\b', '', title, flags=re.I)  # 12a, 12am, 12:00am
+                    title = re.sub(r'\b\d{1,2}\s*[ap]\b', '', title, flags=re.I)  # 12a
+                    title = title.strip(' -:–—').strip()
+                    if not title:
+                        title = line[:80]
+                    title = title[:190]
+                    ev = CalendarEvent(title=title, start_date=parsed, description=line[:500])
+                    db.session.add(ev)
+                    events_created += 1
+
+        if events_created == 0 and manual_text:
+            clean_manual = re.sub(r'^\s*\d{1,2}(?::\d{2})?\s*[ap]\s*m?\s*[-–—]*\s*', '', manual_text, flags=re.I).strip()
+            ev = CalendarEvent(title=clean_manual[:190] or "Calendar Event", start_date=datetime.utcnow(), description=manual_text[:500])
+            db.session.add(ev)
+            events_created = 1
+
+        db.session.commit()
+
+        if events_created > 0:
+            flash(f"✅ Added {events_created} event(s)!", "success")
+        else:
+            flash("⚠️ No dates detected. Use format like 'Midterm Exam - Oct 15, 2024'", "warning")
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        flash(f"❌ Upload failed: {str(e)}", "danger")
+
+    return redirect(url_for('dashboard_admin'))
+
 
 @app.route('/edit-subject/<int:subject_id>', methods=['GET', 'POST'])
 @login_required(role=['Admin', 'Instructor'])
@@ -2085,10 +2656,11 @@ def admin_start_exam(exam_id):
 @login_required(role=['Instructor', 'Admin'])
 def end_exam(exam_id):
     exam = Exam.query.get_or_404(exam_id)
-    exam.is_active = False
-
-    # FORCE SUBMIT all taking - as you requested
+    
     try:
+        exam.is_active = False  # move inside try
+
+        # FORCE SUBMIT all taking
         active_attempts = ExamAttempt.query.filter_by(exam_id=exam.id, is_submitted=False).all()
         for attempt in active_attempts:
             try:
@@ -2096,32 +2668,58 @@ def end_exam(exam_id):
                 score = 0
                 for ans in answers:
                     q = Question.query.get(ans.question_id)
-                    if q and ans.selected_answer:
-                        if q.question_type == 'identification':
-                            if ans.selected_answer.strip().lower() == (q.correct_answer or '').strip().lower():
-                                score += q.points or 1
-                        else:
-                            if ans.selected_answer.strip().upper() == (q.correct_answer or '').strip().upper():
-                                score += q.points or 1
+                    if not q or not ans.selected_answer:
+                        continue
+                    correct = (q.correct_answer or '').strip()
+                    selected = ans.selected_answer.strip()
+                    if not correct or not selected:
+                        continue
+                    
+                    if q.question_type == 'identification':
+                        is_correct = selected.lower() == correct.lower()
+                    else:
+                        is_correct = selected.upper() == correct.upper()
+                    
+                    if is_correct:
+                        score += q.points or 1
+                        
                 attempt.score = score
                 attempt.is_submitted = True
                 attempt.submitted_at = datetime.utcnow()
+                
                 acc = ExamAccess.query.filter_by(exam_id=exam.id, student_id=attempt.student_id).first()
                 if acc:
-                    acc.status = "submitted"
+                    acc.status = "completed"  # use completed, not submitted, to match your summary
+                    acc.submitted_at = datetime.utcnow()
             except Exception as e:
-                print(f"Force submit error: {e}")
-        db.session.commit()
-    except Exception as e:
-        print(f"End exam error: {e}")
+                print(f"Force submit error for attempt {attempt.id}: {e}")
+                continue  # don't break whole exam for one bad attempt
 
-    for access in ExamAccess.query.filter_by(exam_id=exam.id).all():
-        if str(access.student_id) in sse_events:
-            sse_events[access.student_id].append({"event": "exam_ended", "data": {"exam_id": exam.id}})
-    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-        return jsonify({"success": True, "exam_id": exam.id, "title": exam.title})
-    flash("Exam ended successfully!", "warning")
-    return redirect(url_for('view_exams'))
+        db.session.commit()
+
+        # notify AFTER commit success
+        for access in ExamAccess.query.filter_by(exam_id=exam.id).all():
+            if str(access.student_id) in sse_events:
+                sse_events[access.student_id].append(
+                    {"event": "exam_ended", "data": {"exam_id": exam.id}}
+                )
+
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return jsonify({"success": True, "exam_id": exam.id, "title": exam.title})
+        
+        flash(f'Exam "{exam.title}" ended successfully!', "success")
+        return redirect(url_for('view_exams'))
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"End exam error: {e}")
+        import traceback; traceback.print_exc()
+        
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return jsonify({"success": False, "message": str(e)}), 500
+            
+        flash(f"Failed to end exam: {e}", "danger")
+        return redirect(url_for('view_exams'))
 
 @app.route('/archive-exam/<int:exam_id>', methods=['POST'])
 @login_required(role=['Instructor', 'Admin'])
@@ -3995,6 +4593,95 @@ def approve_request(access_id):
     return redirect(url_for("view_exams"))
 
 # ==================================
+# Reject / Cancel Request - Admin cancels pending request (NOT retake)
+# ==================================
+@app.route('/reject-request/<int:access_id>', methods=['GET', 'POST'])
+@login_required(role=['Admin', 'Instructor'])
+def reject_request(access_id):
+    access = ExamAccess.query.get_or_404(access_id)
+    access.status = "rejected"
+    access.is_reset = False
+    access.reset_at = None
+    db.session.commit()
+
+    sse_events["admin"].append({
+        "event": "live_update",
+        "data": {
+            "access_id": access.id,
+            "status": "rejected",
+            "exam_id": access.exam_id,
+            "student_id": access.student_id
+        }
+    })
+
+    sse_events[str(access.student_id)].append({
+        "event": "rejected",
+        "data": {
+            "exam_id": access.exam_id,
+            "status": "rejected"
+        }
+    })
+
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return jsonify({
+            "success": True,
+            "student_id": access.student_id,
+            "exam_id": access.exam_id,
+            "status": "rejected",
+            "message": "Request cancelled."
+        })
+
+    return redirect(url_for("view_exams"))
+
+@app.route('/cancel-request-admin', methods=['POST'])
+@login_required(role=['Admin', 'Instructor'])
+def cancel_request_admin():
+    data = request.get_json(silent=True) or {}
+    exam_id = data.get("exam_id")
+    student_id = data.get("student_id")
+    if not exam_id or not student_id:
+        return jsonify({"success": False, "message": "Missing data"}), 400
+
+    access = ExamAccess.query.filter_by(exam_id=exam_id, student_id=student_id).first()
+    if not access:
+        return jsonify({"success": False, "message": "Access not found"}), 404
+
+    if access.status == "pending":
+        db.session.delete(access)
+        db.session.commit()
+        new_status = "not_requested"
+    else:
+        access.status = "rejected"
+        access.is_reset = False
+        access.reset_at = None
+        db.session.commit()
+        new_status = "rejected"
+
+    sse_events["admin"].append({
+        "event": "live_update",
+        "data": {
+            "access_id": access.id if access else 0,
+            "status": new_status,
+            "exam_id": int(exam_id),
+            "student_id": student_id
+        }
+    })
+
+    sse_events[str(student_id)].append({
+        "event": new_status,
+        "data": {
+            "exam_id": int(exam_id),
+            "status": new_status
+        }
+    })
+
+    return jsonify({
+        "success": True,
+        "status": new_status,
+        "message": "Request cancelled successfully."
+    })
+
+# ==================================
 # Admin Deletes Exam
 # ==================================
 @app.route('/delete-exam/<int:exam_id>', methods=['POST'])
@@ -5767,7 +6454,7 @@ def upload_students():
                             'final_l_quiz3': row.get('final_l_quiz3'),
                             'final_l_quiz4': row.get('final_l_quiz4'),
 
-				# PIT
+                                # PIT
                             'midterm_pit1': row.get('midterm_pit1'),
                             'midterm_pit2': row.get('midterm_pit2'),
                             'midterm_pit3': row.get('midterm_pit3'),
@@ -5777,7 +6464,7 @@ def upload_students():
                             'final_pit3': row.get('final_pit3'),
                             'final_pit4': row.get('final_pit4'),
 
-				# PIT
+                                # PIT
                             'midterm_report1': row.get('midterm_report1'),
                             'final_report1': row.get('final_report1'),
 

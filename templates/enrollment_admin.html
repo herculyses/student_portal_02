@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}Manage Enrollments - Admin{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+body { background:#fdfbff !important; font-family:'Nunito', sans-serif !important; }
+.card { border-radius:22px !important; border:1px solid #f2eefb !important; box-shadow:0 6px 28px rgba(120,100,180,0.07) !important; }
+.friendly-btn { display:inline-flex; align-items:center; gap:6px; padding:8px 16px; border-radius:50px; font-weight:700; font-size:0.82rem; border:1.5px solid transparent; transition:all .32s cubic-bezier(.34,1.56,.64,1); text-decoration:none; cursor:pointer; }
+.friendly-btn:hover { transform:translateY(-2px); box-shadow:0 8px 22px rgba(0,0,0,.10); }
+.friendly-btn.primary { background:#eef2ff; color:#5a6cf3; border-color:#d9e0ff; } .friendly-btn.primary:hover{ background:#5a6cf3; color:#fff; }
+.friendly-btn.success { background:#e8f6eb; color:#3daa5e; border-color:#cde9d3; } .friendly-btn.success:hover{ background:#3daa5e; color:#fff; }
+.friendly-btn.danger { background:#fff0f2; color:#ff6b7b; border-color:#ffdade; } .friendly-btn.danger:hover{ background:#ff6b7b; color:#fff; }
+.friendly-btn.enroll { background: linear-gradient(135deg, #5a6cf3 0%, #7a5af0 100%); color:#fff; border:none; box-shadow:0 6px 18px rgba(90,108,243,0.25); }
+.friendly-btn.enroll:hover{ transform:translateY(-3px); color:#fff; }
+.summary-card { border-radius:20px !important; border:none !important; padding:4px; }
+.summary-card .card-body { border-radius:16px; padding:18px 12px; text-align:center; }
+.summary-num { font-family:'Quicksand'; font-size:1.8rem; font-weight:700 !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+    <h2 style="font-weight:800; color:#2e334d;"><i class="bi bi-person-lines-fill me-2" style="color:#5a6cf3;"></i>Enrollment Management</h2>
+    <div class="d-flex gap-2">
+      <a href="{{ url_for('enrollment') }}" class="friendly-btn primary"><i class="bi bi-plus-circle"></i> New Enrollment</a>
+      <a href="{{ url_for('dashboard_admin') }}" class="friendly-btn secondary"><i class="bi bi-arrow-left"></i> Admin Panel</a>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3"><div class="card summary-card requested"><div class="card-body" style="background:#eef2ff;"><div class="summary-num" style="color:#4a5de8;">{{ enrollments|length }}</div><div style="font-size:0.75rem; font-weight:700; color:#7a85d0;"><i class="bi bi-people"></i> TOTAL REQUESTS</div></div></div></div>
+    <div class="col-6 col-md-3"><div class="card summary-card approved"><div class="card-body" style="background:#e6f4ee;"><div class="summary-num" style="color:#2e9d6b;">{{ enrollments|selectattr('status','equalto','approved')|list|length }}</div><div style="font-size:0.75rem; font-weight:700; color:#5abf8e;"><i class="bi bi-check-circle"></i> APPROVED</div></div></div></div>
+    <div class="col-6 col-md-3"><div class="card summary-card pending"><div class="card-body" style="background:#fff7e0;"><div class="summary-num" style="color:#b78a1f;">{{ enrollments|selectattr('status','equalto','pending')|list|length }}</div><div style="font-size:0.75rem; font-weight:700; color:#c9a43a;"><i class="bi bi-hourglass-split"></i> PENDING</div></div></div></div>
+    <div class="col-6 col-md-3"><div class="card summary-card rejected"><div class="card-body" style="background:#ffe8e8;"><div class="summary-num" style="color:#e5485a;">{{ enrollments|selectattr('status','equalto','rejected')|list|length }}</div><div style="font-size:0.75rem; font-weight:700; color:#e87a86;"><i class="bi bi-x-circle"></i> REJECTED</div></div></div></div>
+  </div>
+
+  <form id="batchForm" method="POST" action="{{ url_for('batch_approve_enrollments') }}">
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <div class="d-flex align-items-center gap-2">
+        <input type="checkbox" id="selectAll" class="form-check-input" style="width:20px; height:20px; border-radius:8px;">
+        <span style="font-weight:800;"><i class="bi bi-table me-1"></i> Enrollment Requests</span>
+        <span class="badge" style="background:#eef2ff; color:#5a6cf3; border-radius:50px;" id="selectedCount">0 selected</span>
+      </div>
+      <div class="d-flex gap-2 align-items-center">
+        <input type="text" id="searchEnroll" class="form-control" placeholder="Search ID, name..." style="max-width:200px; border-radius:50px;">
+        <button type="submit" name="action" value="approve" class="friendly-btn enroll" id="batchApproveBtn" disabled><i class="bi bi-check2-all"></i> Batch Approve (<span id="batchCount">0</span>)</button>
+        <button type="submit" name="action" value="reject" class="friendly-btn danger" id="batchRejectBtn" disabled><i class="bi bi-x-circle"></i> Reject</button>
+      </div>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0" id="enrollTable">
+        <thead style="background:#3b82f6; color:#fff;"><tr style="font-size:0.78rem; text-transform:uppercase; letter-spacing:0.04em;"><th><i class="bi bi-check-square"></i></th><th>ID Number ⭐</th><th>Name</th><th>Course</th><th>Year/Section</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+        <tbody>
+          {% for e in enrollments %}
+          <tr>
+            <td><input type="checkbox" name="ids" value="{{ e.id }}" class="form-check-input row-check" style="width:18px; height:18px; border-radius:6px;"></td>
+            <td><span class="badge" style="background:#eef2ff; color:#5a6cf3; font-weight:800; border-radius:50px; padding:6px 12px;"><i class="bi bi-upc-scan me-1"></i>{{ e.student_id }}</span></td>
+            <td style="font-weight:700;">{{ e.name }}</td>
+            <td>{{ e.course or '—' }}</td>
+            <td><small>{{ e.year or '' }} {{ e.section or '' }}</small></td>
+            <td>
+              {% if e.status == 'pending' %}<span class="badge" style="background:#fff7e0; color:#b78a1f; border-radius:50px;">Pending</span>
+              {% elif e.status == 'approved' %}<span class="badge" style="background:#e8f6eb; color:#2e9d6b; border-radius:50px;">Approved</span>
+              {% else %}<span class="badge" style="background:#ffe8e8; color:#e5485a; border-radius:50px;">Rejected</span>{% endif %}
+            </td>
+            <td><small>{{ e.created_at.strftime('%b %d, %Y') if e.created_at else '' }}</small></td>
+            <td>
+              <div class="d-flex gap-1">
+                <form method="POST" action="{{ url_for('approve_enrollment', id=e.id) }}"><button class="friendly-btn success" style="padding:5px 12px; font-size:0.75rem;"><i class="bi bi-check-lg"></i></button></form>
+                <form method="POST" action="{{ url_for('reject_enrollment', id=e.id) }}"><button class="friendly-btn danger" style="padding:5px 12px; font-size:0.75rem;"><i class="bi bi-x-lg"></i></button></form>
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="8" class="text-center py-4 text-muted">No enrollment requests yet</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  </form>
+</div>
+<script>
+const selectAll = document.getElementById('selectAll');
+const rowChecks = document.querySelectorAll('.row-check');
+const batchApproveBtn = document.getElementById('batchApproveBtn');
+const batchRejectBtn = document.getElementById('batchRejectBtn');
+const selectedCount = document.getElementById('selectedCount');
+const batchCount = document.getElementById('batchCount');
+
+function updateBatch(){
+  const checked = document.querySelectorAll('.row-check:checked');
+  const n = checked.length;
+  batchCount.textContent = n;
+  selectedCount.textContent = n + ' selected';
+  batchApproveBtn.disabled = n===0;
+  batchRejectBtn.disabled = n===0;
+  if(n>0){ batchApproveBtn.style.opacity='1'; } else { batchApproveBtn.style.opacity='0.5'; }
+}
+selectAll?.addEventListener('change', ()=>{
+  rowChecks.forEach(c=>c.checked=selectAll.checked);
+  updateBatch();
+});
+rowChecks.forEach(c=>c.addEventListener('change', updateBatch));
+document.getElementById('searchEnroll')?.addEventListener('keyup', function(){ let f=this.value.toLowerCase(); document.querySelectorAll('#enrollTable tbody tr').forEach(r=>{ r.style.display=r.textContent.toLowerCase().includes(f)?'':'none'; }); });
+document.getElementById('batchForm')?.addEventListener('submit', (e)=>{
+  const checked = document.querySelectorAll('.row-check:checked');
+  if(checked.length===0){ e.preventDefault(); alert('Select at least one!'); return; }
+  if(!confirm(`Are you sure to ${e.submitter.value} ${checked.length} enrollment(s)?`)){ e.preventDefault(); }
+});
+</script>
+{% endblock %}

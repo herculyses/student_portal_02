@@ -1,816 +1,258 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Admin Dashboard - Student Grade Portal</title>
-
-<link rel="icon" type="image/png"
-      href="{{ url_for('static', filename='favicon.png') }}">
-
-<!-- Bootstrap CSS -->
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Panel - Student Grade Portal</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-
-<!-- Bootstrap Icons -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
-
-<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-
-<script>
-if (localStorage.getItem("darkMode") === "true") {
-    document.documentElement.classList.add("dark-mode");
-}
-</script>
-
-<!-- DARK MODE (CLEANED) -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Quicksand:wght@600;700&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css" rel="stylesheet">
 <style>
-.dark-mode {
-  background-color: #121212 !important;
-  color: #e0e0e0 !important;
-}
+body { background:#fdfbff !important; font-family:'Nunito', sans-serif !important; }
+h4,h5 { font-weight:800; color:#2e334d; font-family:'Quicksand' !important; }
+.card { border-radius:22px !important; border:1px solid #f2eefb !important; box-shadow:0 6px 28px rgba(120,100,180,0.07) !important; }
+.friendly-btn { display:inline-flex; align-items:center; gap:8px; padding:10px 18px; border-radius:50px; font-weight:700; font-size:0.84rem; border:1.5px solid transparent; transition:all .32s cubic-bezier(.34,1.56,.64,1); text-decoration:none; cursor:pointer; background:#fff !important; }
+.friendly-btn:hover { transform:translateY(-2px); box-shadow:0 8px 22px rgba(0,0,0,.12); }
+.friendly-btn:active { animation: breathPress 0.45s ease; transform:scale(0.96); }
+@keyframes breathPress { 0%{transform:scale(1);} 30%{transform:scale(0.92);} 60%{transform:scale(1.05);} 100%{transform:scale(0.98);} }
+.friendly-btn i { display:inline-block; transition:transform 0.55s cubic-bezier(.34,1.56,.64,1); font-size:1.05rem; }
+.friendly-btn[data-flip="pop"]:hover i { transform:translateY(-3px) scale(1.3); }
+.friendly-btn.primary { background:#ffffff !important; color:#5a6cf3 !important; border-color:#d9e0ff !important; } .friendly-btn.primary:hover { background:#5a6cf3 !important; color:#ffffff !important; }
+.friendly-btn.success { background:#ffffff !important; color:#3daa5e !important; border-color:#cde9d3 !important; } .friendly-btn.success:hover { background:#3daa5e !important; color:#ffffff !important; }
+.friendly-btn.warning { background:#ffffff !important; color:#b78a1f !important; border-color:#ffefb0 !important; } .friendly-btn.warning:hover { background:#b78a1f !important; color:#ffffff !important; }
+.friendly-btn.danger { background:#fff !important; color:#e05252 !important; border-color:#ffd0d0 !important; } .friendly-btn.danger:hover { background:#e05252 !important; color:#fff !important; }
+.friendly-btn.info { background:#ffffff !important; color:#4fb8e0 !important; border-color:#cdefff !important; } .friendly-btn.info:hover { background:#4fb8e0 !important; color:#ffffff !important; }
+.friendly-btn.purple { background:#ffffff !important; color:#7a5af0 !important; border-color:#e2d8ff !important; } .friendly-btn.purple:hover { background:#7a5af0 !important; color:#ffffff !important; }
+.friendly-btn.dark { background:#ffffff !important; color:#2e334d !important; border-color:#ececf2 !important; } .friendly-btn.dark:hover { background:#2e334d !important; color:#ffffff !important; }
+.friendly-btn.enroll { background: linear-gradient(135deg, #5a6cf3 0%, #7a5af0 100%) !important; color:#fff !important; border:none !important; } 
+.sidebar { width:285px; position:fixed; height:100vh; background: linear-gradient(180deg, #5a6cf3 0%, #7a5af0 100%) !important; overflow-y:auto; }
+.main-content { margin-left:285px; padding:20px; }
+#calendar { background:#fff; border-radius:22px; padding:12px; }
+.fc-event { cursor:pointer; border-radius:8px !important; padding:2px 6px !important; }
+.dark-mode { background:#121212 !important; color:#e0e0e0 !important; }
+.dark-mode .card { background:#1e1e1e !important; color:#fff !important; }
+/* Unique hover effects - each different */
+.friendly-btn[data-flip="pop"]:hover i{ transform:translateY(-4px) scale(1.35); }
+.friendly-btn[data-flip="spin"]:hover i{ transform:rotate(360deg) scale(1.25); }
+.friendly-btn[data-flip="y"]:hover i{ transform:rotateY(360deg) scale(1.2); }
+.friendly-btn[data-flip="x"]:hover i{ transform:rotateX(360deg) scale(1.2); }
+.friendly-btn[data-flip="bounce"]:hover i{ animation:softBounce 0.65s cubic-bezier(.34,1.56,.64,1); }
+.friendly-btn[data-flip="wobble"]:hover i{ animation:softWobble 0.7s ease; }
+.friendly-btn[data-flip="send"]:hover i{ transform:translate(7px,-7px) scale(1.3) rotate(12deg); }
+.friendly-btn[data-flip="heart"]:hover i{ animation:heartBeat 0.6s ease infinite alternate; }
+.friendly-btn[data-flip="swing"]:hover i{ animation:swing 0.6s ease; }
+.friendly-btn[data-flip="float"]:hover i{ animation:floaty 0.8s ease-in-out infinite alternate; }
+.friendly-btn[data-flip="shake"]:hover i{ animation:shake 0.5s ease; }
+.friendly-btn[data-flip="back"]:hover i{ transform:translateX(-5px) scale(1.2); }
+.friendly-btn[data-flip="eye"]:hover i{ transform:scale(1.4); animation:blink 0.5s ease; }
+.friendly-btn[data-flip="pencil"]:hover i{ transform:rotate(-18deg) translateY(-3px) scale(1.3); }
+.friendly-btn[data-flip="trash"]:hover i{ animation:trashShake 0.55s ease; }
 
-.dark-mode .card {
-  background-color: #1e1e1e !important;
-  color: #e0e0e0 !important;
-}
-
-.dark-mode table {
-  color: #e0e0e0 !important;
-}
-
-.dark-mode .table-light {
-  background-color: #2a2a2a !important;
-  color: #e0e0e0 !important;
-}
-
-/* ================= SIDEBARS BASE ================= */
-.sidebar,
-.right-sidebar {
-  width: 260px;
-  min-height: 100vh;
-  position: fixed;
-  top: 0;
-  z-index: 1000;
-  overflow-x: hidden;
-  overflow-y: auto;
-  transition: width 0.3s ease;
-}
-
-/* ================= LEFT SIDEBAR ================= */
-.sidebar {
-  left: 0;
-  background-color: #0d6efd;
-  display: flex;
-  flex-direction: column;
-}
-
-/* LEFT COLLAPSE */
-.sidebar.collapsed {
-  width: 70px;
-}
-
-/* Hide text when collapsed */
-.sidebar.collapsed .hide-on-collapse {
-  display: none !important;
-}
-
-/* Center icons when collapsed */
-.sidebar.collapsed a.btn {
-  justify-content: center;
-  padding-left: 0 !important;
-  padding-right: 0 !important;
-}
-
-/* Button layout */
-.sidebar a.btn {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  white-space: nowrap;
-}
-
-/* Hide heavy UI blocks when collapsed */
-.sidebar.collapsed .card {
-  display: none;
-}
-
-/* ================= RIGHT SIDEBAR ================= */
-.right-sidebar {
-  right: 0;
-  background-color: #212529;
-  display: flex;
-  flex-direction: column;
-}
-
-/* RIGHT COLLAPSE (RAIL MODE) */
-.right-sidebar.collapsed {
-  width: 70px;
-}
-
-/* Hide all text when collapsed */
-.right-sidebar.collapsed .hide-on-collapse {
-  display: none !important;
-}
-
-/* Center everything in collapsed mode */
-.right-sidebar.collapsed .btn {
-  justify-content: center;
-}
-
-/* OPTIONAL: hide cards entirely when collapsed */
-.right-sidebar.collapsed .card {
-  display: none;
-}
-
-/* ================= MAIN CONTENT ================= */
-.main-content {
-  margin-left: 260px;
-  margin-right: 260px;
-  padding: 10px;
-  transition: margin 0.3s ease;
-}
-
-/* LEFT collapsed */
-.main-content.left-collapsed {
-  margin-left: 70px;
-}
-
-/* RIGHT collapsed */
-.main-content.right-collapsed {
-  margin-right: 70px;
-}
-
-/* ================= HEADER ================= */
-.sidebar-header,
-.right-sidebar .d-flex {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-/* ================= UI HELPERS ================= */
-.exam-status {
-  font-size: 13px;
-}
-
-.timer-box {
-  font-size: 18px;
-  font-weight: bold;
-}
-
-/* ================= MOBILE ================= */
-@media (max-width: 991px) {
-  .sidebar,
-  .right-sidebar {
-    position: relative;
-    width: 100%;
-    min-height: auto;
-  }
-
-  .main-content {
-    margin-left: 0;
-    margin-right: 0;
-  }
-}
-.icon-flip{display:inline-block;transition:transform 0.5s cubic-bezier(0.175,0.885,0.32,1.275);} .btn:hover .icon-flip, .icon-flip:hover{transform:scale(1.2) rotateY(180deg);}
+@keyframes softBounce{ 0%{transform:translateY(0)} 40%{transform:translateY(-7px) scale(1.3)} 100%{transform:translateY(0) scale(1.15)} }
+@keyframes softWobble{ 0%{transform:rotate(0)} 20%{transform:rotate(14deg) scale(1.2)} 40%{transform:rotate(-12deg)} 70%{transform:rotate(8deg)} 100%{transform:rotate(0) scale(1.1)} }
+@keyframes heartBeat{ 0%{transform:scale(1)} 100%{transform:scale(1.35)} }
+@keyframes swing{ 0%{transform:rotate(0)} 25%{transform:rotate(18deg) scale(1.2)} 50%{transform:rotate(-14deg)} 100%{transform:rotate(0)} }
+@keyframes floaty{ 0%{transform:translateY(0)} 100%{transform:translateY(-6px) scale(1.15)} }
+@keyframes shake{ 0%,100%{transform:translateX(0)} 20%{transform:translateX(-4px) rotate(-6deg)} 40%{transform:translateX(4px) rotate(6deg)} 60%{transform:translateX(-3px)} 80%{transform:translateX(3px)} }
+@keyframes trashShake{ 0%{transform:rotate(0) scale(1)} 20%{transform:rotate(-18deg) scale(1.2)} 40%{transform:rotate(18deg)} 60%{transform:rotate(-10deg) scale(1.25)} 100%{transform:rotate(0)} }
+@keyframes blink{ 0%{transform:scaleY(1)} 50%{transform:scaleY(0.1) scale(1.4)} 100%{transform:scaleY(1) scale(1.4)} }
 </style>
-
 </head>
-
-<body class="bg-light">
-
+<body>
 <div class="d-flex">
+<div class="text-white p-3 sidebar">
+  <h5 class="text-center mb-4 text-white"><i class="bi bi-shield-lock me-2"></i>Admin Panel</h5>
+  <div style="background:rgba(255,255,255,0.14); border-radius:16px; padding:12px; margin-bottom:16px; border:1px solid rgba(255,255,255,0.18);">
+    <small style="font-weight:800; letter-spacing:0.06em; opacity:0.9;"><i class="bi bi-stars me-1"></i>ENROLLMENT SYSTEM</small>
+    <a href="{{ url_for('enrollment_admin') }}" class="friendly-btn enroll w-100 mt-2" data-flip="pop"><i class="bi bi-person-lines-fill"></i> Enrollment Requests</a>
+    <a href="{{ url_for('enrollment') }}" class="btn w-100 mt-2" style="background:rgba(255,255,255,0.18); color:#fff; border-radius:50px; font-weight:700; border:1px solid rgba(255,255,255,0.25);"><i class="bi bi-plus-circle me-1"></i> New Enrollment</a>
+  </div>
+  <a href="{{ url_for('view_students') }}" class="friendly-btn primary w-100 mb-2" data-flip="pop"><i class="bi bi-people" ></i> Students</a>
+  <a href="{{ url_for('view_subjects') }}" class="friendly-btn purple w-100 mb-2" data-flip="pop"><i class="bi bi-journal"></i> Subjects</a>
+  <a href="{{ url_for('view_exams') }}" class="friendly-btn info w-100 mb-2" data-flip="pop"><i class="bi bi-file-earmark-text"></i> View Exams</a>
+  <a href="{{ url_for('upload_students') }}" class="friendly-btn warning w-100 mb-2" data-flip="pop"><i class="bi bi-upload"></i> Upload CSV</a>
+  <a href="{{ url_for('download_csv') }}" class="friendly-btn success w-100 mb-2" data-flip="pop"><i class="bi bi-download"></i> Download CSV</a>
+  <a href="{{ url_for('export_page') }}" class="friendly-btn primary w-100 mb-2" data-flip="pop"><i class="bi bi-funnel"></i> Export Data</a>
+  <a href="{{ url_for('view_logs') }}" class="friendly-btn dark w-100 mb-2" data-flip="pop"><i class="bi bi-journal-text"></i> Logs</a>
+  <button onclick="toggleDarkMode()" class="friendly-btn dark w-100 mb-3" data-flip="pop"><i class="bi bi-moon-stars"></i> Dark Mode</button>
+  <hr style="border-color:rgba(255,255,255,0.2);">
+  <a href="{{ url_for('register') }}" class="friendly-btn w-100 mb-2" style="background:rgba(255,255,255,0.15) !important; color:#fff !important; border:1px solid rgba(255,255,255,0.25);" data-flip="pop"><i class="bi bi-person-plus"></i> Register User</a>
+  <a href="{{ url_for('logout') }}" class="btn btn-danger w-100" data-flip="pop" style="border-radius:50px; font-weight:700;"><i class="bi bi-box-arrow-right"></i> Logout</a>
+</div>
 
-<!-- ================= SIDEBAR ================= -->
-<div id="leftSidebar" class="bg-primary text-white p-3 sidebar collapsed">
-
-  <!-- HEADER -->
-  <div class="sidebar-header mb-3">
-    <h5 class="mb-0 hide-on-collapse">Admin Panel</h5>
-
-    <button class="btn btn-light btn-sm" onclick="toggleLeftSidebar()">
-      <i class="bi bi-layout-sidebar-inset-reverse icon-flip"></i>
-    </button>
+<div class="flex-grow-1 main-content">
+<div class="container mt-2">
+  {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}{% for cat,msg in messages %}<div class="alert alert-{{cat}}" style="border-radius:14px;">{{msg}}</div>{% endfor %}{% endif %}{% endwith %}
+  <div class="card p-4 mb-4" style="background: linear-gradient(135deg, #eef2ff 0%, #f3efff 100%) !important;">
+    <h4><i class="bi bi-speedometer2 me-2" style="color:#5a6cf3;"></i>Welcome Admin!</h4>
+    <p class="mb-0 text-muted">Manage enrollments, students, subjects & exams</p>
+  </div>
+  <div class="row g-3 mb-4">
+    <div class="col-md-4"><div class="card p-3 text-center"><div style="font-size:2rem; color:#5a6cf3;">{{ students|length if students else 0 }}</div><small style="font-weight:700;">STUDENTS</small></div></div>
+    <div class="col-md-4"><div class="card p-3 text-center"><div style="font-size:2rem; color:#7a5af0;">{{ subjects|length if subjects else 0 }}</div><small style="font-weight:700;">SUBJECTS</small></div></div>
+    <div class="col-md-4"><div class="card p-3 text-center"><div style="font-size:2rem; color:#3daa5e;">{{ exams|length if exams else 0 }}</div><small style="font-weight:700;">EXAMS</small></div></div>
   </div>
 
-  <!-- EXISTING FEATURES (UNCHANGED) -->
-  <a href="{{ url_for('create_user') }}" class="btn btn-light w-100 mb-2">
-    <i class="bi bi-person-plus icon-flip"></i> <span class="hide-on-collapse">Create User</span>
-  </a>
+  <!-- CALENDAR SECTION - FIXED WITH CRUD -->
+  <div class="card p-3 mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+      <h5 class="mb-0"><i class="bi bi-calendar-event me-2" style="color:#5a6cf3;"></i>Academic Calendar <span class="badge ms-2" style="background:#eef2ff; color:#5a6cf3; border-radius:50px;">{{ calendar_events|length if calendar_events else 0 }} events</span></h5>
+      <div class="d-flex gap-2">
+        <button class="friendly-btn success" data-bs-toggle="modal" data-bs-target="#addEventModal"><i class="bi bi-plus-circle"></i> Add Event</button>
+        <button class="friendly-btn primary" data-flip="send" data-bs-toggle="modal" data-bs-target="#updateCalendarModal"><i class="bi bi-cloud-upload"></i> Upload PDF</button>
+        <button class="friendly-btn danger" data-flip="shake" data-bs-toggle="modal" data-bs-target="#deleteAllModal"><i class="bi bi-trash"></i> Clear</button>
+      </div>
+    </div>
+    <div id="calendar"></div>
 
-  <a href="{{ url_for('view_students') }}" class="btn btn-light w-100 mb-2">
-    <i class="bi bi-people icon-flip"></i> <span class="hide-on-collapse">View Students</span>
-  </a>
-
-  <a href="{{ url_for('view_instructors') }}" class="btn btn-light w-100 mb-2">
-    <i class="bi bi-person-badge icon-flip"></i> <span class="hide-on-collapse">View Instructors</span>
-  </a>
-
-  <a href="{{ url_for('view_logs') }}" class="btn btn-light w-100 mb-2">
-    <i class="bi bi-journal-text icon-flip"></i> <span class="hide-on-collapse">Logs</span>
-  </a>
-
-  <!-- CHANGE PASSWORD (RESTORED) -->
-  <a href="{{ url_for('change_password') }}" class="btn btn-warning w-100 mb-3">
-    <i class="bi bi-key icon-flip"></i> <span class="hide-on-collapse">Change Password</span>
-  </a>
-
-  <!-- ================= REAL-TIME EXAM STATUS ================= -->
-  <div class="card bg-dark text-white p-2 mb-2 exam-status">
-    <h6 class="text-center"><span class="hide-on-collapse">Exam Status</span></h6>
-    <span class="hide-on-collapse">
-    <div id="examStatus"></span>Loading...
+    <!-- Event List with Edit/Delete - NEW -->
+    <div class="mt-4">
+      <h6 class="fw-bold"><i class="bi bi-list-ul me-1"></i> Upcoming Events (Manage)</h6>
+      <div class="table-responsive" style="max-height:380px; overflow:auto;">
+        <table class="table table-hover align-middle">
+          <thead style="position:sticky; top:0; background:#fff;"><tr><th>Title</th><th>Date</th><th style="width:200px;">Actions</th></tr></thead>
+          <tbody>
+          {% for ev in calendar_events %}
+            <tr>
+              <td><span style="font-weight:700;">{{ ev.title }}</span><br><small class="text-muted">{{ ev.description[:80] if ev.description else '' }}</small></td>
+              <td>{{ ev.start_date.strftime('%b %d, %Y') if ev.start_date else '' }}{% if ev.end_date %} - {{ ev.end_date.strftime('%b %d') }}{% endif %}</td>
+              <td>
+                <div class="d-flex gap-1">
+                  <button class="friendly-btn primary btn-sm py-1 px-2" onclick="openEditModal({{ ev.id }}, '{{ ev.title|replace("'", "\\'") }}', '{{ ev.start_date.isoformat() if ev.start_date else '' }}', '{{ ev.end_date.isoformat() if ev.end_date else '' }}', `{{ ev.description|replace('`','')|replace("'", "\\'") }}`)"><i class="bi bi-pencil"></i> Edit</button>
+                  <form method="POST" action="{{ url_for('delete_calendar_event', event_id=ev.id) }}" onsubmit="return confirm('Delete {{ ev.title }}?')">
+                    <button type="submit" class="friendly-btn danger btn-sm py-1 px-2"><i class="bi bi-trash"></i> Del</button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+          {% else %}
+            <tr><td colspan="3" class="text-center text-muted py-3">No events yet. Upload PDF or Add manually.</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
-
-  <!-- ================= EXAM TIMER ================= -->
-  <div class="card bg-secondary text-white p-2 timer-box text-center">
-    <div><span class="hide-on-collapse">Exam Timer</span></div>
-    <span class="hide-on-collapse">
-    <div id="examTimer">
-    </span>
-    <span class="hide-on-collapse">00:00:00</span>
-    </div>
-  </div>
-
+</div>
+</div>
 </div>
 
-<!-- ================= MAIN CONTENT ================= -->
-<div class="main-content flex-grow-1 left-collapsed right-collapsed">
-
-<div class="container mt-4">
-
-<!-- ================= TOP BAR ================= -->
-<div class="d-flex justify-content-between align-items-center mb-3">
-
-  <h4 class="mb-0">Admin Dashboard</h4>
-
-  <div class="d-flex gap-2">
-
-    <!-- DARK MODE (optional shortcut) -->
-    <button onclick="toggleDarkMode()" class="btn btn-dark btn-sm">
-      🌙 Dark Mode
-    </button>
-
-    <!-- LOGOUT BUTTON -->
-    <a href="{{ url_for('logout') }}" class="btn btn-danger btn-sm">
-      <i class="bi bi-box-arrow-right icon-flip"></i> Logout
-    </a>
-
-  </div>
-
-</div>
-
-<!-- FLASH -->
-{% with messages = get_flashed_messages(with_categories=true) %}
-{% if messages %}
-{% for category, message in messages %}
-<div class="alert alert-{{ category }} flash">{{ message }}</div>
-{% endfor %}
-{% endif %}
-{% endwith %}
-
-<!-- ================= STUDENTS ================= -->
-<div class="card shadow-sm p-3 mb-4">
-
-<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-
-<!-- TITLE + TOGGLE + SUMMARY -->
-<div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
-
-  <h4 class="card-title mb-0">Students List</h4>
-
-  <div class="d-flex align-items-center gap-2 flex-wrap">
-
-    <!-- SUMMARY -->
-    <div id="studentsSummary"
-         class="alert alert-info py-1 px-2 mb-0 d-flex align-items-center gap-2">
-      👥 <strong>{{ students|length }}</strong> Students
-    </div>
-
-    <!-- TOGGLE -->
-    <button class="btn btn-outline-secondary btn-sm"
-            type="button"
-            data-bs-toggle="collapse"
-            data-bs-target="#studentsCollapse"
-            aria-expanded="true"
-            aria-controls="studentsCollapse">
-      <i class="bi bi-chevron-up icon-flip"></i>
-      Toggle
-    </button>
-
-  </div>
-</div>
-
-  <!-- SEARCH + BUTTONS GROUP -->
-  <div class="d-flex flex-wrap align-items-center gap-2">
-
-    <!-- SEARCH -->
-    <input type="text"
-           id="studentSearch"
-           class="form-control form-control-sm"
-           placeholder="Search Students"
-           style="width:200px;">
-
-    <!-- BUTTONS (NOW NEXT TO SEARCH) -->
-    <a href="{{ url_for('upload_students') }}" class="btn btn-success btn-sm">
-      <i class="bi bi-upload icon-flip"></i> Upload CSV
-    </a>
-
-    <a href="{{ url_for('add_student') }}" class="btn btn-primary btn-sm">
-      <i class="bi bi-person-add icon-flip"></i> Add Student
-    </a>
-
-    <a href="{{ url_for('download_csv') }}" class="btn btn-info btn-sm text-white">
-      <i class="bi bi-download icon-flip"></i> Download CSV
-    </a>
-
-    <a href="{{ url_for('export_page') }}" class="btn btn-outline-primary btn-sm">
-      <i class="bi bi-funnel icon-flip"></i> Export Data
-    </a>
-
-  </div>
-
-</div>
-
-<div class="collapse" id="studentsCollapse">
-  <div class="table-responsive">
-    <table id="studentsTable" class="table table-bordered table-hover align-middle">
-
-<thead class="table-light text-center">
-<tr>
-  <th onclick="sortTable(0,'student_id')">Student ID <i id="arrow-student_id" class="bi bi-arrow-down-up"></i></th>
-  <th onclick="sortTable(1,'name')">Name <i id="arrow-name" class="bi bi-arrow-down-up"></i></th>
-  <th onclick="sortTable(2,'subject')">Subject <i id="arrow-subject" class="bi bi-arrow-down-up"></i></th>
-  <th onclick="sortTable(3,'midterm_grade')">Midterm <i id="arrow-midterm_grade" class="bi bi-arrow-down-up"></i></th>
-  <th>Remarks</th>
-  <th onclick="sortTable(5,'final_grade')">Finals <i id="arrow-final_grade" class="bi bi-arrow-down-up"></i></th>
-  <th>Remarks</th>
-  <th>Actions</th>
-</tr>
-</thead>
-
-<tbody>
-{% for s in students %}
-<tr>
-  <td>{{ s.student_id }}</td>
-  <td>{{ s.name }}</td>
-  <td>{{ s.subject }}</td>
-  <td>{{ s.midterm_grade }}</td>
-  <td>{{ s.midterm_remarks }}</td>
-  <td>{{ s.final_grade }}</td>
-  <td>{{ s.final_remarks }}</td>
-
-  <td class="text-center">
-    <a href="{{ url_for('edit_student', student_id=s.student_id, subject=s.subject) }}"
-       class="btn btn-warning btn-sm"><i class="bi bi-pencil icon-flip"></i></a>
-
-    <a href="{{ url_for('dashboard_student', student_id=s.student_id) }}"
-       class="btn btn-primary btn-sm"><i class="bi bi-eye icon-flip"></i></a>
-
-    <form method="POST"
-          action="{{ url_for('delete_student', student_id=s.student_id, subject=s.subject) }}"
-          style="display:inline;">
-      <button class="btn btn-danger btn-sm"
-              onclick="return confirm('Delete student?')">
-        <i class="bi bi-trash icon-flip"></i>
-      </button>
-    </form>
-  </td>
-
-</tr>
-{% endfor %}
-</tbody>
-
-    </table>
-  </div>
-</div>
-
-<!-- ================= INSTRUCTORS ================= -->
-<div class="card shadow-sm p-3 mb-4">
-
-  <div class="d-flex justify-content-between align-items-center mb-2">
-
-    <h4 class="mb-0">Instructors List</h4>
-
-    <button class="btn btn-outline-secondary btn-sm"
-            type="button"
-            data-bs-toggle="collapse"
-            data-bs-target="#instructorsCollapse">
-      <i class="bi bi-chevron-down icon-flip"></i>
-      Toggle
-    </button>
-
-  </div>
-
-  <div class="collapse" id="instructorsCollapse">
-
-    <table class="table table-bordered">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Username</th>
-          <th>Role</th>
-        </tr>
-      </thead>
-
-      <tbody>
-      {% for i in instructors %}
-        <tr>
-          <td>{{ i.id }}</td>
-          <td>{{ i.username }}</td>
-          <td>{{ i.role }}</td>
-        </tr>
-      {% endfor %}
-      </tbody>
-
-    </table>
-
-  </div>
-</div>
-
-<!-- ================= LOGS (RESTORED) ================= -->
-<div class="card shadow-sm p-3 mb-5">
-
-  <div class="d-flex justify-content-between align-items-center mb-2">
-
-    <h4 class="card-title mb-0">Activity Logs</h4>
-
-    <button class="btn btn-outline-secondary btn-sm"
-            type="button"
-            data-bs-toggle="collapse"
-            data-bs-target="#logsCollapse">
-      <i class="bi bi-chevron-down icon-flip"></i>
-      Toggle
-    </button>
-
-  </div>
-
-  <div class="collapse" id="logsCollapse">
-
-    <div class="table-responsive">
-      <table class="table table-bordered table-hover align-middle">
-        <thead class="table-light text-center">
-          <tr>
-            <th>ID</th>
-            <th>User</th>
-            <th>Action</th>
-            <th>Timestamp</th>
-          </tr>
-        </thead>
-
-        <tbody>
-        {% for log in logs %}
-          <tr>
-            <td>{{ log.id }}</td>
-            <td>{{ log.user }}</td>
-            <td>{{ log.action }}</td>
-            <td>{{ log.timestamp }}</td>
-          </tr>
-        {% else %}
-          <tr>
-            <td colspan="4" class="text-center">No logs found.</td>
-          </tr>
-        {% endfor %}
-        </tbody>
-      </table>
-    </div>
-
-  </div>
-</div>
-
-<!-- ================= RIGHT SIDEBAR ================= -->
-<div id="rightSidebar" class="right-sidebar bg-dark text-white p-3 collapsed">
-
-    <!-- HEADER -->
-    <div class="d-flex justify-content-between align-items-center mb-3">
-
-        <h5 class="mb-0 hide-on-collapse">
-            Course Management
-        </h5>
-
-        <!-- COLLAPSE BUTTON -->
-        <button class="btn btn-outline-light btn-sm"
-                onclick="toggleRightSidebar()">
-
-            <i class="bi bi-layout-sidebar-inset icon-flip"></i>
-
-        </button>
-
-    </div>
-
-    <!-- ================= SUBJECTS ================= -->
-
-    <div class="card bg-secondary text-white border-0 mb-3">
-
-        <div class="card-body">
-
-            <h6 class="mb-3">
-                <i class="bi bi-book icon-flip"></i>
-                <span class="hide-on-collapse">Subjects</span>
-            </h6>
-
-            <!-- VIEW SUBJECTS -->
-            <a href="{{ url_for('view_subjects') }}"
-               class="btn btn-info w-100 mb-2">
-
-                <i class="bi bi-eye icon-flip"></i>
-                <span class="hide-on-collapse">View Subjects</span>
-
-            </a>
-
+<!-- ADD EVENT MODAL - NEW -->
+<div class="modal fade" id="addEventModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content" style="border-radius:22px;">
+      <form method="POST" action="{{ url_for('add_calendar_event') }}">
+        <div class="modal-header" style="background: linear-gradient(135deg, #3daa5e 0%, #5a6cf3 100%); color:#fff; border-radius:22px 22px 0 0;">
+          <h5 class="modal-title"><i class="bi bi-plus-circle"></i> Add New Event</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
         </div>
-
-    </div>
-
-    <!-- ================= EXAMS ================= -->
-
-    <div class="card bg-secondary text-white border-0">
-
-        <div class="card-body">
-
-            <h6 class="mb-3">
-                <i class="bi bi-file-earmark-text icon-flip"></i>
-                <span class="hide-on-collapse">Exams</span>
-            </h6>
-
-            <!-- VIEW EXAMS -->
-            <a href="{{ url_for('view_exams') }}"
-               class="btn btn-info w-100 mb-3"
-               title="View Exams">
-
-               <i class="bi bi-eye icon-flip"></i>
-               <span class="hide-on-collapse">View Exams</span>
-
-            </a>
-
-            <!-- FINISHED EXAMS -->
-            <a href="{{ url_for('finished_exams') }}"
-               class="btn btn-info w-100 mb-3"
-               title="Finished Exams">
-
-               <i class="bi bi-check2-square icon-flip"></i>
-               <span class="hide-on-collapse">Finished Exams</span>
-            </a>
-
-            <!-- SECURITY LOGS -->
-            <a href="{{ url_for('security_logs') }}"
-               class="btn btn-danger w-100 mb-3"
-               title="Security Logs">
-                <i class="bi bi-shield-exclamation icon-flip"></i>
-                <span class="hide-on-collapse">Live Security Logs</span>
-            </a>
-
+        <div class="modal-body">
+          <div class="mb-3"><label class="form-label fw-bold">Title *</label><input type="text" name="title" class="form-control" required placeholder="e.g. Midterm Exam - BSIT 3A" style="border-radius:12px;"></div>
+          <div class="row"><div class="col-6 mb-3"><label class="form-label fw-bold">Start Date *</label><input type="date" name="start_date" class="form-control" required style="border-radius:12px;"></div><div class="col-6 mb-3"><label class="form-label fw-bold">End Date (optional)</label><input type="date" name="end_date" class="form-control" style="border-radius:12px;"></div></div>
+          <div class="mb-3"><label class="form-label fw-bold">Description</label><textarea name="description" class="form-control" rows="3" placeholder="Details..." style="border-radius:12px;"></textarea></div>
         </div>
-
+        <div class="modal-footer"><button type="submit" class="friendly-btn success"><i class="bi bi-check-circle"></i> Add Event</button></div>
+      </form>
     </div>
-
+  </div>
 </div>
 
-<!-- =========================================== -->
-<!-- ================= SCRIPTS ================= -->
-<!-- =========================================== -->
+<!-- EDIT EVENT MODAL - NEW -->
+<div class="modal fade" id="editEventModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content" style="border-radius:22px;">
+      <form method="POST" id="editEventForm">
+        <div class="modal-header" style="background: linear-gradient(135deg, #5a6cf3 0%, #7a5af0 100%); color:#fff; border-radius:22px 22px 0 0;">
+          <h5 class="modal-title"><i class="bi bi-pencil-square"></i> Edit Event</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3"><label class="form-label fw-bold">Title</label><input type="text" name="title" id="edit_title" class="form-control" required style="border-radius:12px;"></div>
+          <div class="row"><div class="col-6 mb-3"><label class="form-label fw-bold">Start Date</label><input type="date" name="start_date" id="edit_start" class="form-control" required style="border-radius:12px;"></div><div class="col-6 mb-3"><label class="form-label fw-bold">End Date</label><input type="date" name="end_date" id="edit_end" class="form-control" style="border-radius:12px;"></div></div>
+          <div class="mb-3"><label class="form-label fw-bold">Description</label><textarea name="description" id="edit_desc" class="form-control" rows="3" style="border-radius:12px;"></textarea></div>
+        </div>
+        <div class="modal-footer d-flex justify-content-between">
+          <button type="button" class="friendly-btn dark" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="friendly-btn primary"><i class="bi bi-save"></i> Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE ALL MODAL -->
+<div class="modal fade" id="deleteAllModal" tabindex="-1">
+  <div class="modal-dialog modal-sm"><div class="modal-content" style="border-radius:22px;"><div class="modal-body text-center p-4"><i class="bi bi-exclamation-triangle" style="font-size:2.5rem; color:#e05252;"></i><h6 class="mt-2 fw-bold">Clear all calendar events?</h6><p class="small text-muted">This will delete AY 2026-2027 events. You can re-import from SQL.</p>
+  <form method="POST" action="{{ url_for('delete_all_calendar') }}"><button type="submit" class="friendly-btn danger w-100"><i class="bi bi-trash"></i> Yes, Delete All</button></form></div></div></div>
+</div>
+
+<!-- UPDATE CALENDAR MODAL (OLD) -->
+<div class="modal fade" id="updateCalendarModal" tabindex="-1">
+  <div class="modal-dialog"><div class="modal-content" style="border-radius:22px;">
+      <form method="POST" action="{{ url_for('upload_calendar') }}" enctype="multipart/form-data">
+        <div class="modal-header" style="background: linear-gradient(135deg, #5a6cf3 0%, #7a5af0 100%); color:#fff; border-radius:22px 22px 0 0;">
+          <h5 class="modal-title"><i class="bi bi-calendar-plus"></i> Update Calendar from File</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert" style="background:#eef2ff; border-radius:14px; color:#5a6cf3; font-weight:600; font-size:0.85rem;"><i class="bi bi-info-circle me-1"></i> Supports PDF, PNG, JPG, JPEG. System will read dates & events automatically.</div>
+          <div class="mb-3"><label class="form-label fw-bold">Choose PDF or Image File</label><input type="file" name="calendar_file" class="form-control" accept=".pdf,.png,.jpg,.jpeg,.webp" required style="border-radius:12px;"></div>
+          <div class="mb-3"><label class="form-label">Or paste schedule text manually</label><textarea name="manual_text" class="form-control" rows="4" placeholder="e.g. Midterm Exam - Oct 15, 2024 9AM..."></textarea></div>
+        </div>
+        <div class="modal-footer"><button type="submit" class="friendly-btn enroll"><i class="bi bi-magic"></i> Parse & Update Calendar</button></div>
+      </form>
+    </div></div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
 <script>
+function toggleDarkMode(){ document.body.classList.toggle('dark-mode'); localStorage.setItem('darkMode', document.body.classList.contains('dark-mode')); }
+window.onload = function(){ if(localStorage.getItem('darkMode')==='true'){ document.body.classList.add('dark-mode'); } };
 
-/* DARK MODE */
-function toggleDarkMode(){
-  document.body.classList.toggle("dark-mode");
-  localStorage.setItem("darkMode", document.body.classList.contains("dark-mode"));
+function openEditModal(id, title, start, end, desc){
+  const form = document.getElementById('editEventForm');
+  form.action = `/admin/calendar/edit/${id}`;
+  document.getElementById('edit_title').value = title;
+  // start is ISO, cut to YYYY-MM-DD for date input
+  document.getElementById('edit_start').value = start ? start.substring(0,10) : '';
+  document.getElementById('edit_end').value = end ? end.substring(0,10) : '';
+  document.getElementById('edit_desc').value = desc;
+  new bootstrap.Modal(document.getElementById('editEventModal')).show();
 }
 
-window.onload = function(){
-  if(localStorage.getItem("darkMode")==="true"){
-    document.body.classList.add("dark-mode");
-  }
-};
-
-/* SEARCH */
-document.getElementById("studentSearch").addEventListener("keyup", function(){
-  let filter = this.value.toLowerCase();
-  document.querySelectorAll("#studentsTable tbody tr").forEach(row=>{
-    row.style.display = row.textContent.toLowerCase().includes(filter) ? "" : "none";
+document.addEventListener('DOMContentLoaded', function() {
+  var calendarEl = document.getElementById('calendar');
+  var rawEvents = {{ calendar_events_json|safe if calendar_events_json else '[]' }};
+  // IMPORTANT: include id for edit/delete via click
+  var cleanedEvents = rawEvents.map(function(ev){
+    var t = ev.title || '';
+    t = t.replace(/^\s*\d{1,2}(?::\d{2})?\s*[ap]\s*m?\s*[-–—]*\s*/i, '').trim();
+    t = t.replace(/^\s*\d{1,2}\s*[ap]\s*[-–—]*\s*/i, '').trim();
+    ev.title = t || ev.title;
+    ev.allDay = true;
+    return ev;
   });
-});
-
-/* SORT (UNCHANGED) */
-const sortDirections = {};
-function sortTable(colIndex, key){
-  const table = document.getElementById("studentsTable");
-  const rows = Array.from(table.tBodies[0].rows);
-
-  let dir = sortDirections[key]==="asc"?"desc":"asc";
-  sortDirections[key]=dir;
-
-  rows.sort((a,b)=>{
-    let x=a.cells[colIndex].innerText.trim();
-    let y=b.cells[colIndex].innerText.trim();
-    let xn=parseFloat(x), yn=parseFloat(y);
-
-    if(!isNaN(xn)&&!isNaN(yn)){x=xn;y=yn;}
-    else{x=x.toLowerCase();y=y.toLowerCase();}
-
-    return dir==="asc"?(x>y?1:x<y?-1:0):(x<y?1:x>y?-1:0);
-  });
-
-  rows.forEach(r=>table.tBodies[0].appendChild(r));
-}
-
-/* ================= REAL-TIME EXAM STATUS ================= */
-function updateExamStatus(){
-  fetch("/exam-status") // backend endpoint needed
-    .then(res=>res.json())
-    .then(data=>{
-      document.getElementById("examStatus").innerHTML =
-        `Active Exams: ${data.active}<br>Ongoing: ${data.ongoing}`;
-    })
-    .catch(()=> {
-      document.getElementById("examStatus").innerText = "Unavailable";
-    });
-}
-
-setInterval(updateExamStatus, 3000);
-updateExamStatus();
-
-/* ================= EXAM TIMER ================= */
-let examSeconds = 3600; // 1 hour demo
-
-function updateTimer(){
-  let h = Math.floor(examSeconds/3600);
-  let m = Math.floor((examSeconds%3600)/60);
-  let s = examSeconds%60;
-
-  document.getElementById("examTimer").innerText =
-    `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
-
-  if(examSeconds>0) examSeconds--;
-}
-
-setInterval(updateTimer,1000);
-
-</script>
-
-<script>
-
-    // AUTO OPEN CREATE EXAM MODAL
-    const params = new URLSearchParams(window.location.search);
-
-    if(params.get("open_exam") === "1"){
-
-        const examModal =
-            new bootstrap.Modal(
-                document.getElementById('createExamModal')
-            );
-
-        examModal.show();
-    }
-
-</script>
-
-
-<script>
-
-/* ================= FLASH AUTO REMOVE ================= */
-window.addEventListener("DOMContentLoaded", () => {
-
-    document.querySelectorAll(".flash").forEach(flash => {
-
-        setTimeout(() => {
-
-            flash.style.transition = "opacity 0.5s ease";
-
-            flash.style.opacity = "0";
-
-            setTimeout(() => {
-                flash.remove();
-            }, 500);
-
-        }, 3000);
-
-    });
-
-});
-
-</script>
-
-<script>
-
-/* ================= RIGHT SIDEBAR TOGGLE ================= */
-
-function toggleRightSidebar(){
-
-    const sidebar = document.getElementById("rightSidebar");
-    const content = document.querySelector(".main-content");
-
-    sidebar.classList.toggle("collapsed");
-
-    if(sidebar.classList.contains("collapsed")){
-        content.classList.add("right-collapsed");
-    } else {
-        content.classList.remove("right-collapsed");
-    }
-}
-
-function toggleLeftSidebar(){
-
-    const sidebar = document.getElementById("leftSidebar");
-    const content = document.querySelector(".main-content");
-
-    sidebar.classList.toggle("collapsed");
-
-    if(sidebar.classList.contains("collapsed")){
-        content.classList.add("left-collapsed");
-    } else {
-        content.classList.remove("left-collapsed");
-    }
-}
-
-</script>
-
-<script>
-document.addEventListener("DOMContentLoaded", function () {
-  const btn = document.querySelector('[data-bs-target="#studentsCollapse"]');
-  const icon = btn.querySelector("i");
-
-  const collapseEl = document.getElementById("studentsCollapse");
-
-  collapseEl.addEventListener("shown.bs.collapse", function () {
-    icon.classList.remove("bi-chevron-down");
-    icon.classList.add("bi-chevron-up");
-  });
-
-  collapseEl.addEventListener("hidden.bs.collapse", function () {
-    icon.classList.remove("bi-chevron-up");
-    icon.classList.add("bi-chevron-down");
-  });
-});
-</script>
-
-<!-- ================================== -->
-<!-- ========= summary script ========= -->
-<!-- ================================== -->
-<script>
-document.addEventListener("DOMContentLoaded", function () {
-
-  function setupCollapse(collapseId) {
-
-    const collapseEl = document.getElementById(collapseId);
-    if (!collapseEl) return;
-
-    const btn = document.querySelector(`[data-bs-target="#${collapseId}"]`);
-    if (!btn) return;
-
-    const icon = btn.querySelector("i");
-
-    // sync initial state
-    if (!collapseEl.classList.contains("show") && icon) {
-      icon.classList.remove("bi-chevron-up");
-      icon.classList.add("bi-chevron-down");
-    }
-
-    collapseEl.addEventListener("shown.bs.collapse", () => {
-      if (icon) {
-        icon.classList.remove("bi-chevron-down");
-        icon.classList.add("bi-chevron-up");
+  var calendar = new FullCalendar.Calendar(calendarEl, {
+    initialView: 'dayGridMonth',
+    headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,listWeek' },
+    events: cleanedEvents,
+    eventColor: '#5a6cf3',
+    height: 550,
+    displayEventTime: false,
+    dayMaxEvents: true,
+    eventClick: function(info){
+      // Click on calendar opens edit modal if id exists
+      if(info.event.id){
+        // find original data
+        openEditModal(info.event.id, info.event.title, info.event.startStr, info.event.endStr || '', info.event.extendedProps.description || '');
+      } else {
+        // fallback: try to open edit with title
+        alert(info.event.title + "\n" + (info.event.extendedProps.description || ''));
       }
-    });
-
-    collapseEl.addEventListener("hidden.bs.collapse", () => {
-      if (icon) {
-        icon.classList.remove("bi-chevron-up");
-        icon.classList.add("bi-chevron-down");
-      }
-    });
-
-  }
-
-  // APPLY TO ALL SECTIONS
-  setupCollapse("studentsCollapse");
-  setupCollapse("instructorsCollapse");
-  setupCollapse("logsCollapse");
-
+    }
+  });
+  calendar.render();
 });
 </script>
-
-<!-- ================================== -->
-<!-- ====== mobile auto-collapse ====== -->
-<!-- ================================== -->
-<script>
-function handleResponsiveCollapse() {
-  const el = document.getElementById("studentsCollapse");
-  if (!el) return;
-
-  const bs = bootstrap.Collapse.getOrCreateInstance(el);
-
-  if (window.innerWidth < 768) {
-    bs.hide();
-  } else {
-    bs.show();
-  }
-}
-</script>
-
 </body>
 </html>

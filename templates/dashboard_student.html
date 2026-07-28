@@ -1,955 +1,401 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Student Dashboard</title>
-
-<link rel="icon" type="image/png"
-      href="{{ url_for('static', filename='favicon.png') }}">
-
+{% extends "base.html" %}
+{% block title %}Student Dashboard{% endblock %}
+{% block content %}
+<link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-
 <link rel="stylesheet" href="{{ url_for('static', filename='css/student.css') }}">
-
 <script>
 if (localStorage.getItem("darkMode") === "true") {
     document.documentElement.classList.add("dark-mode");
 }
 </script>
-
 <style>
+/* DARK MODE */
+.dark-mode { background-color: #121212 !important; color: #e0e0e0 !important; }
+.dark-mode body { background-color: #121212 !important; color: #e0e0e0 !important; }
+.dark-mode .card { background-color: #1e1e1e !important; color: #e0e0e0 !important; }
+.dark-mode table { color: #e0e0e0 !important; }
+.dark-mode .table { color: #e0e0e0 !important; }
+.dark-mode .table-striped>tbody>tr:nth-of-type(odd)>* { color: #e0e0e0 !important; }
+.dark-mode .table-dark { background-color: #2a2a2a !important; }
+.dark-mode .list-group-item { background-color: #1e1e1e !important; color: #e0e0e0 !important; border-color: #333 !important; }
+.dark-mode .text-muted { color: #bdbdbd !important; }
+.dark-mode .sidebar { background-color: #1a1a1a !important; }
 
-/* ================= DARK MODE ================= */
-.dark-mode {
-  background-color: #121212 !important;
-  color: #e0e0e0 !important;
-}
-
-.dark-mode body {
-  background-color: #121212 !important;
-  color: #e0e0e0 !important;
-}
-
-.dark-mode .card {
-  background-color: #1e1e1e !important;
-  color: #e0e0e0 !important;
-}
-
-.dark-mode table {
-  color: #e0e0e0 !important;
-}
-
-.dark-mode .table {
-  color: #e0e0e0 !important;
-}
-
-.dark-mode .table-striped>tbody>tr:nth-of-type(odd)>* {
-  color: #e0e0e0 !important;
-}
-
-.dark-mode .table-dark {
-  background-color: #2a2a2a !important;
-}
-
-.dark-mode .list-group-item {
-  background-color: #1e1e1e !important;
-  color: #e0e0e0 !important;
-  border-color: #333 !important;
-}
-
-.dark-mode .text-muted {
-  color: #bdbdbd !important;
-}
-
-/* ================= SIDEBAR ================= */
+/* SIDEBAR - DESKTOP */
 .sidebar {
   width: 250px;
   position: fixed;
+  left:0; top:0;
   height: 100vh;
   overflow-y: auto;
-  transition: width .25s ease;
+  transition: transform .38s cubic-bezier(.34,1.56,.64,1), width .25s ease, box-shadow .3s ease;
+  z-index: 1045;
+  background: linear-gradient(180deg, #4a5de8 0%, #6b7eff 100%) !important;
+  border-radius:0 20px 20px 0;
 }
+.sidebar:hover{ box-shadow: 0 10px 40px rgba(90,108,243,0.25); }
+.main-content { margin-left: 250px; transition: margin-left .25s ease; min-height:100vh; }
+.sidebar.collapsed { width: 70px; }
+.main-content.collapsed { margin-left: 70px; }
 
-.dark-mode .sidebar {
-  background-color: #1a1a1a !important;
+/* BACKDROP */
+#sidebarBackdrop{
+  position: fixed; inset:0;
+  background: rgba(15,23,42,0.42);
+  backdrop-filter: blur(4px);
+  z-index:1044;
+  opacity:0; visibility:hidden;
+  transition: all .32s ease;
 }
+#sidebarBackdrop.show{ opacity:1; visibility:visible; }
 
-/* ================= CONTENT ================= */
-.main-content {
-  margin-left: 250px;
-  transition: margin-left .25s ease;
-}
-.sidebar.collapsed {
-    width: 70px;
-}
-
-.main-content.collapsed {
-    margin-left: 70px;
-}
-
-/* ================= EXAM CARDS ================= */
-.exam-card {
-  transition: 0.2s ease;
-}
-
-.exam-card:hover {
-  transform: translateY(-2px);
-}
-
-/* ================= EXAM DESCRIPTION ================= */
-
-.exam-description-box{
-    background: #f8f9fa;
-    color: #212529;
-    min-height: 100px;
-    white-space: pre-wrap;
-}
-
-.dark-mode .exam-description-box{
-    background: #2b2b2b;
-    color: #e0e0e0;
-    border-color: #444 !important;
-}
-
-.exam-update {
-    animation: fadePulse 0.6s ease;
-}
-
-.waiting-transition {
-    animation: waitingFade 0.4s ease;
-}
-
-@keyframes waitingFade {
-
-    from {
-        opacity: 0;
-        transform: translateY(6px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-
-}
-
-@keyframes fadePulse {
-    0% {
-        opacity: 0.3;
-        transform: scale(0.98);
-    }
-    50% {
-        opacity: 1;
-        transform: scale(1.02);
-    }
-    100% {
-        opacity: 1;
-        transform: scale(1);
-    }
-}
-
-.approved-highlight {
-    animation: approvedGlow 5s ease;
-}
-
-@keyframes approvedGlow {
-
-    0% {
-        box-shadow: 0 0 0 rgba(13,110,253,0);
-        transform: scale(1);
-    }
-
-    15% {
-        box-shadow: 0 0 30px rgba(13,110,253,.75);
-        transform: scale(1.02);
-    }
-
-    50% {
-        box-shadow: 0 0 26px rgba(13,110,253,.70);
-        transform: scale(1.02);
-    }
-
-    85% {
-        box-shadow: 0 0 18px rgba(13,110,253,.45);
-    }
-
-    100% {
-        box-shadow: 0 0 0 rgba(13,110,253,0);
-        transform: scale(1);
-    }
-
-}
-
-/* ================= MOBILE SIDEBAR ================= */
-
+/* MOBILE FIX */
 @media (max-width: 991.98px) {
-
-    .sidebar{
-        position: relative;
-        width: 100%;
-        height: auto;
-        margin-bottom: 1rem;
-    }
-
-    .main-content{
-        margin-left: 0;
-    }
-
+  .sidebar{
+    width: 290px !important;
+    transform: translateX(-105%);
+    margin:0 !important;
+    box-shadow: 12px 0 50px rgba(0,0,0,0.25) !important;
+    display:block !important;
+  }
+  .sidebar.show, .sidebar.collapse.show, .sidebar.collapsing{
+    transform: translateX(0) !important;
+  }
+  .sidebar.collapse:not(.show){ display:block !important; transform:translateX(-105%); }
+  body{ padding-top: 0 !important; }
+  .main-content{ margin-left:0 !important; width:100% !important; padding-top:12px; }
 }
 
-/* ================= MOBILE SIDEBAR ANIMATION ================= */
+/* ANIMATIONS */
+#studentSidebar{ transition: transform .38s cubic-bezier(.34,1.56,.64,1), opacity .32s ease; }
+@keyframes sidebarDrop{ from{opacity:0; transform:translateY(-12px);} to{opacity:1; transform:translateY(0);} }
 
-#studentSidebar{
-    transition: all .35s ease;
-}
+/* ICON FLIP & BREATHING - from base */
+.icon-flip{display:inline-block;transition:transform 0.5s cubic-bezier(0.175,0.885,0.32,1.275);} 
+.btn:hover .icon-flip, .icon-flip:hover{transform:scale(1.2) rotateY(180deg);}
 
-#studentSidebar.collapsing{
-
-    opacity: 0;
-
-    transform: translateY(-12px);
-
-}
-
-#studentSidebar.collapse.show{
-
-    opacity: 1;
-
-    transform: translateY(0);
-
-    animation: sidebarDrop .35s ease;
-
-}
-
-@keyframes sidebarDrop{
-
-    from{
-
-        opacity:0;
-
-        transform:translateY(-12px);
-
-    }
-
-    to{
-
-        opacity:1;
-
-        transform:translateY(0);
-
-    }
-
-}
-.icon-flip{display:inline-block;transition:transform 0.5s cubic-bezier(0.175,0.885,0.32,1.275);} .btn:hover .icon-flip, .icon-flip:hover{transform:scale(1.2) rotateY(180deg);}
-
-/* === SOFT FRIENDLY THEME - SAME AS VIEW_EXAMS === */
+/* SOFT FRIENDLY THEME */
 :root { --soft-bg:#fdfbff; }
 body, .main-content, h1,h2,h3,h4,h5, small,p,span,a,button,td,th,div, label, li { font-family: 'Nunito', system-ui, sans-serif !important; -webkit-font-smoothing: antialiased; }
 h5, h4 { font-weight:800; color:#2e334d; }
-
-.friendly-btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:9px 18px; border-radius:50px; font-weight:700; font-size:.84rem; letter-spacing:.02em; border:1.5px solid transparent; cursor:pointer; transition: all .32s cubic-bezier(.34,1.56,.64,1); box-shadow:0 3px 12px rgba(0,0,0,.04); text-decoration:none; }
-.friendly-btn:hover{transform:translateY(-2px); box-shadow:0 8px 22px rgba(0,0,0,.10);} .friendly-btn:active{transform:scale(.96);}
-.friendly-btn i{display:inline-block; transition:transform .55s cubic-bezier(.34,1.56,.64,1);}
-.friendly-btn[data-flip="pop"]:hover i{transform:translateY(-2px) scale(1.25);} .friendly-btn[data-flip="spin"]:hover i{transform:rotate(360deg) scale(1.2);} .friendly-btn[data-flip="spin-ccw"]:hover i{transform:rotate(-360deg) scale(1.2);} .friendly-btn[data-flip="y"]:hover i{transform:rotateY(360deg);} .friendly-btn[data-flip="x"]:hover i{transform:rotateX(360deg);} .friendly-btn[data-flip="bounce"]:hover i{animation:softBounce .6s cubic-bezier(.34,1.56,.64,1);} .friendly-btn[data-flip="wobble"]:hover i{animation:softWobble .65s ease;}
-@keyframes softBounce{0%{transform:translateY(0)}40%{transform:translateY(-5px) scale(1.2)}100%{transform:translateY(0) scale(1.1)}} @keyframes softWobble{0%{transform:rotate(0)}25%{transform:rotate(10deg) scale(1.15)}50%{transform:rotate(-8deg)}100%{transform:rotate(0)}}
-
+.friendly-btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:9px 18px; border-radius:50px; font-weight:700; font-size:.84rem; letter-spacing:.02em; border:1.5px solid transparent; cursor:pointer; transition: all .32s cubic-bezier(.34,1.56,.64,1); box-shadow:0 3px 12px rgba(0,0,0,.04); text-decoration:none; position:relative; overflow:hidden; }
+.friendly-btn:hover{transform:translateY(-2px); box-shadow:0 8px 22px rgba(0,0,0,.10);} 
+.friendly-btn:active{ animation: breathPress 0.52s ease; transform:scale(0.96); }
+@keyframes breathPress{ 0%{transform:scale(1);} 25%{transform:scale(0.90);} 55%{transform:scale(1.06);} 80%{transform:scale(0.98);} 100%{transform:scale(1);} }
+.friendly-btn i{display:inline-block; transition:transform .55s cubic-bezier(.34,1.56,.64,1); will-change:transform;}
+.friendly-btn[data-flip="pop"]:hover i{transform:translateY(-2px) scale(1.25);} .friendly-btn[data-flip="spin"]:hover i{transform:rotate(360deg) scale(1.2);} .friendly-btn[data-flip="spin-ccw"]:hover i{transform:rotate(-360deg) scale(1.2);} .friendly-btn[data-flip="y"]:hover i{transform:rotateY(360deg);} .friendly-btn[data-flip="x"]:hover i{transform:rotateX(360deg);} .friendly-btn[data-flip="bounce"]:hover i{animation:softBounce .6s cubic-bezier(.34,1.56,.64,1);} .friendly-btn[data-flip="wobble"]:hover i{animation:softWobble .65s ease;} .friendly-btn[data-flip="pencil"]:hover i{transform:rotate(-18deg) translateY(-3px) scale(1.3);} .friendly-btn[data-flip="bloom"]:hover i{animation:bloom .6s cubic-bezier(.34,1.56,.64,1);} .friendly-btn[data-flip="back"]:hover i{transform:translateX(-5px) scale(1.2);} .friendly-btn[data-flip="moon"]:hover i{transform:rotate(20deg) scale(1.25);}
+@keyframes softBounce{0%{transform:translateY(0)}40%{transform:translateY(-5px) scale(1.2)}100%{transform:translateY(0) scale(1.1)}} @keyframes softWobble{0%{transform:rotate(0)}25%{transform:rotate(10deg) scale(1.15)}50%{transform:rotate(-8deg)}100%{transform:rotate(0)}} @keyframes bloom{0%{transform:scale(0.3) rotate(-20deg); opacity:.6}50%{transform:scale(1.4) rotate(10deg)}100%{transform:scale(1.25)}}
 .friendly-btn.primary{background:#eef2ff;color:#5a6cf3;border-color:#d9e0ff;} .friendly-btn.primary:hover{background:#5a6cf3;color:#fff;}
 .friendly-btn.success{background:#e8f6eb;color:#3daa5e;border-color:#cde9d3;} .friendly-btn.success:hover{background:#3daa5e;color:#fff;}
 .friendly-btn.danger{background:#fff0f2;color:#ff6b7b;border-color:#ffdade;} .friendly-btn.danger:hover{background:#ff6b7b;color:#fff;}
 .friendly-btn.warning{background:#fff7e0;color:#d69e2e;border-color:#ffefb0;} .friendly-btn.warning:hover{background:#d69e2e;color:#fff;}
 .friendly-btn.secondary{background:#f5f5f9;color:#8b90a3;border-color:#ececf2;} .friendly-btn.secondary:hover{background:#8b90a3;color:#fff;}
 .friendly-btn.info{background:#eaf7ff;color:#4fb8e0;border-color:#cdefff;} .friendly-btn.info:hover{background:#4fb8e0;color:#fff;}
-.friendly-btn.outline-primary{background:#f8f9ff;color:#5a6cf3;border-color:#d9e0ff;} .friendly-btn.outline-primary:hover{background:#5a6cf3;color:#fff;}
-
-.card{border-radius:20px !important; border:1px solid #f2eefb !important; box-shadow:0 6px 28px rgba(120,100,180,0.07) !important;}
+.friendly-btn.indigo{background:#eef2ff;color:#6366f1;border-color:#e0e7ff;} .friendly-btn.indigo:hover{background:#6366f1;color:#fff;}
+.card{border-radius:20px !important; border:1px solid #f2eefb !important; box-shadow:0 6px 28px rgba(120,100,180,0.07) !important; transition: all .35s ease;}
+.card:hover{ transform:translateY(-1px); box-shadow:0 12px 32px rgba(120,100,180,0.10) !important; }
 .exam-card{border-radius:20px !important; transition: transform .25s ease, box-shadow .25s ease;}
 .exam-card:hover{transform:translateY(-3px); box-shadow:0 12px 30px rgba(0,0,0,0.08) !important;}
 .badge-soft{border-radius:50px; padding:6px 14px; font-weight:700; font-size:.75rem; border:1px solid transparent;}
-.badge-soft.success{background:#e8f6eb; color:#3daa5e; border-color:#cde9d3;}
-.badge-soft.warning{background:#fff7e0; color:#b78a1f; border-color:#ffefb0;}
-.badge-soft.danger{background:#fff0f2; color:#ff6b7b; border-color:#ffdade;}
-.badge-soft.secondary{background:#f5f5f9; color:#8b90a3; border-color:#ececf2;}
-.badge-soft.info{background:#eaf7ff; color:#4fb8e0; border-color:#cdefff;}
-.badge-soft.primary{background:#eef2ff; color:#5a6cf3; border-color:#d9e0ff;}
-
-.icon-flip{display:inline-block; transition:transform 0.55s cubic-bezier(0.175,0.885,0.32,1.275);}
-.friendly-btn:hover .icon-flip{transform:rotateY(180deg) scale(1.15);}
-
 .sidebar{background: linear-gradient(180deg, #4a5de8 0%, #6b7eff 100%) !important; border-radius:0 20px 20px 0;}
 .main-content{background:#fdfbff;}
 .table thead th{background:#2563eb !important; color:#fff !important; font-weight:800; font-size:.78rem; text-transform:uppercase; letter-spacing:.05em; border:none !important;}
+/* Burger hover breathing */
+#sidebarToggle:hover{ transform:translateY(-2px) scale(1.03); }
+#sidebarToggle:active{ animation: breathPress .5s ease; }
+.exam-description-box{background:#f8f9fa;color:#212529;min-height:100px;white-space:pre-wrap;}
+.dark-mode .exam-description-box{background:#2b2b2b;color:#e0e0e0;border-color:#444 !important;}
 </style>
-
-
 </head>
 <body class="bg-light">
+<div id="sidebarBackdrop" onclick="closeMobileSidebar()"></div>
 <div class="d-flex">
 
-<!-- ================= MAIN CONTENT ================= -->
-<div class="d-lg-none p-3 bg-primary text-white sticky-top shadow-sm">
-
-    <button
-        id="sidebarToggle"
-        class="friendly-btn secondary btn-sm me-2" data-flip="x"
-        type="button"
-        data-bs-toggle="collapse"
-        data-bs-target="#studentSidebar"
-        aria-expanded="false">
-
-        <i id="sidebarIcon" class="bi bi-list"></i>
-
+<!-- MOBILE TOP BAR -->
+<div class="d-lg-none p-2 px-3 bg-white border-bottom sticky-top shadow-sm d-flex align-items-center justify-content-between" style="position:sticky; top:0; z-index:1030; border-radius:0 0 18px 18px;">
+  <div class="d-flex align-items-center">
+    <button id="sidebarToggle" class="friendly-btn primary btn-sm me-2" data-flip="pop" type="button" aria-expanded="false">
+      <i id="sidebarIcon" class="bi bi-list" style="font-size:1.25rem;"></i>
     </button>
-
-    <span class="fw-bold">
-        <i class="bi bi-mortarboard-fill"></i> Student Dashboard 
-    </span>
-
+    <span class="fw-bold" style="color:#2e334d; font-family:'Quicksand',sans-serif;"><i class="bi bi-mortarboard-fill me-1" style="color:#5a6cf3;"></i> Student</span>
+  </div>
+  <span class="badge-soft primary d-lg-none" style="font-size:.7rem;">{{ student.student_id if student else '' }}</span>
 </div>
 
-<!-- ================= SIDEBAR ================= -->
-<div id="studentSidebar"
-     class="collapse d-lg-block bg-primary text-white p-3 sidebar">
+<!-- SIDEBAR -->
+<div id="studentSidebar" class="bg-primary text-white p-3 sidebar">
+  <!-- MOBILE HEADER WITH CLOSE -->
+  <div class="d-flex justify-content-between align-items-center mb-3 d-lg-none">
+    <h6 class="mb-0 fw-bold d-flex align-items-center gap-2"><i class="bi bi-mortarboard-fill"></i> Menu</h6>
+    <button onclick="closeMobileSidebar()" class="friendly-btn secondary btn-sm" data-flip="x" style="background:#fff; color:#4a5de8; padding:6px 12px;">
+      <i class="bi bi-x-lg"></i>
+    </button>
+  </div>
 
   <h5 class="text-center mb-4 d-none d-lg-block">
       <i class="bi bi-mortarboard-fill"></i> Student Dashboard
   </h5>
 
   {% if session.get('role') == 'Admin' %}
-  <a href="{{ url_for('dashboard_admin') }}" class="friendly-btn secondary w-100 mb-2" style="background:#fff; color:#4a5de8;" data-flip="x">
+  <a href="{{ url_for('dashboard_admin') }}" class="friendly-btn secondary w-100 mb-2" style="background:#fff; color:#4a5de8;" data-flip="back">
     <i class="bi bi-arrow-left icon-flip"></i> Admin
   </a>
   {% elif session.get('role') == 'Instructor' %}
-  <a href="{{ url_for('dashboard_instructor') }}" class="friendly-btn secondary w-100 mb-2" style="background:#fff; color:#4a5de8;" data-flip="x">
+  <a href="{{ url_for('dashboard_instructor') }}" class="friendly-btn secondary w-100 mb-2" style="background:#fff; color:#4a5de8;" data-flip="back">
     <i class="bi bi-arrow-left icon-flip"></i> Instructor
   </a>
   {% endif %}
 
-  <!-- EXAMS BUTTON -->
-  <a href="#exam-section" class="btn btn-warning w-100 mb-2">
-    <i class="bi bi-pencil-square icon-flip"></i>
-    Exams
+  <a href="#exam-section" class="friendly-btn warning w-100 mb-2" data-flip="pencil">
+    <i class="bi bi-pencil-square"></i> Exams
   </a>
-
-  <a href="{{ url_for('change_password') }}" class="friendly-btn secondary w-100 mb-2" style="background:#fff; color:#4a5de8;" data-flip="x">
-    <i class="bi bi-lock-fill icon-flip"></i>
-    Change Password
+  <a href="{{ url_for('change_password') }}" class="friendly-btn secondary w-100 mb-2" style="background:#fff; color:#4a5de8;" data-flip="bloom">
+    <i class="bi bi-lock-fill"></i> Change Password
   </a>
-
-  <button onclick="toggleDarkMode()" class="btn btn-dark w-100 mb-3">
-    🌙 Lana Mode
+  <button onclick="toggleDarkMode()" class="friendly-btn indigo w-100 mb-3" data-flip="spin">
+    <i class="bi bi-moon-stars-fill"></i> Dark Mode
   </button>
-
-  <hr>
-
-  <a href="{{ url_for('logout') }}" class="btn btn-danger w-100">
-    <i class="bi bi-box-arrow-right icon-flip"></i>
-    Logout
+  <hr style="border-color:rgba(255,255,255,0.2)">
+  <a href="{{ url_for('logout') }}" class="friendly-btn danger w-100" data-flip="back">
+    <i class="bi bi-box-arrow-right"></i> Logout
   </a>
-
-</div>
-
-<!-- ================= HEADER ================= -->
-<div class="container mt-4">
-<div class="mb-4">
-
-  <h2 class="mb-1" id="greetingTitle">
-    👋 Welcome, {{ student_name or "Student" }}
-  </h2>
-
-    <p class="text-muted">
-      Student ID: {{ student.student_id if student else '' }}
-    </p>
-
-</div>
-
-<!-- ================= GRADES ================= -->
-{% if grades %}
-
-<div class="card shadow-sm p-3">
-
-  <h4 class="mb-3">
-    <i class="bi bi-bar-chart-fill icon-flip"></i>
-    Your Grades
-  </h4>
-
-  <div class="table-responsive">
-
-    <table class="table table-bordered table-striped align-middle">
-
-      <thead class="table-dark text-center">
-        <tr>
-          <th>Subject</th>
-          <th>Midterm Grade</th>
-          <th>Midterm Remarks</th>
-          <th>Final Grade</th>
-          <th>Final Remarks</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-
-      <tbody>
-
-        {% for g in grades %}
-
-        <tr>
-
-          <td>{{ g.subject }}</td>
-
-          <td>{{ g.midterm_grade or '-' }}</td>
-
-          <td>{{ g.midterm_remarks or '-' }}</td>
-
-          <td>{{ g.final_grade or '-' }}</td>
-
-          <td>{{ g.final_remarks or '-' }}</td>
-
-          <td class="text-center">
-
-            <a href="{{ url_for('subject_performance',
-              student_id=g.student_id,
-              subject=g.subject | urlencode) }}"
-              class="btn btn-primary btn-sm">
-
-              <i class="bi bi-eye-fill icon-flip"></i>
-              View
-
-            </a>
-
-          </td>
-
-        </tr>
-
-        {% endfor %}
-
-      </tbody>
-
-    </table>
-
+  <div class="d-lg-none mt-3">
+    <button onclick="closeMobileSidebar()" class="friendly-btn secondary w-100" style="background:rgba(255,255,255,0.15); color:#fff; border-color:rgba(255,255,255,0.2);" data-flip="back">
+      <i class="bi bi-chevron-left"></i> Back to Dashboard
+    </button>
   </div>
-
 </div>
 
+<!-- MAIN CONTENT WRAPPER -->
+<div class="main-content w-100" id="mainContent">
+<div class="container-fluid mt-4" style="margin-top:0px !important;">
+<div class="d-lg-block d-none" style="height:10px"></div>
+
+<div class="mb-4">
+  <h2 class="mb-1" id="greetingTitle">👋 Welcome, {{ student_name or "Student" }}</h2>
+  <p class="text-muted">Student ID: {{ student.student_id if student else '' }}</p>
+</div>
+
+<!-- MY SUBJECTS -->
+<div class="card shadow-sm p-3 mb-4" style="border-radius:22px; border:1px solid #f2eefb;">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <h5 class="mb-0"><i class="bi bi-journal-bookmark me-2" style="color:#5a6cf3;"></i>My Subjects - {{ current_semester }} Semester {{ current_school_year }}</h5>
+    <div class="d-flex gap-2">
+      <a href="?semester=1st&student_id={{ student.student_id if student else '' }}" class="btn btn-sm {% if current_semester=='1st' %}btn-primary{% else %}btn-outline-primary{% endif %}" style="border-radius:50px;">1st Sem</a>
+      <a href="?semester=2nd&student_id={{ student.student_id if student else '' }}" class="btn btn-sm {% if current_semester=='2nd' %}btn-primary{% else %}btn-outline-primary{% endif %}" style="border-radius:50px;">2nd Sem</a>
+      <a href="?semester=Summer&student_id={{ student.student_id if student else '' }}" class="btn btn-sm {% if current_semester=='Summer' %}btn-primary{% else %}btn-outline-primary{% endif %}" style="border-radius:50px;">Summer</a>
+    </div>
+  </div>
+  <hr>
+  {% if enrolled_subjects %}
+  <div class="row g-2">
+    {% for subj in enrolled_subjects %}
+    <div class="col-md-4">
+      <div class="card p-2" style="background:#f3efff; border-radius:14px; border:none;">
+        <div class="d-flex align-items-center gap-2">
+          <div style="width:40px; height:40px; background:#fff; border-radius:10px; display:flex; align-items:center; justify-content:center; color:#7a5af0; font-weight:800;">{{ subj.code[:2] }}</div>
+          <div>
+            <div style="font-weight:800; font-size:0.85rem;">{{ subj.code }}</div>
+            <small style="font-size:0.75rem; color:#5a5f7a;">{{ subj.name }}</small>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="alert alert-info mb-0" style="border-radius:14px;">No subjects assigned for {{ current_semester }} semester yet. Contact admin to assign subjects via View Subjects → Add Student.</div>
+  {% endif %}
+</div>
+
+<!-- GRADES -->
+{% if grades %}
+<div class="card shadow-sm p-3">
+  <h4 class="mb-3"><i class="bi bi-bar-chart-fill icon-flip"></i> Your Grades</h4>
+  <div class="table-responsive">
+    <table class="table table-bordered table-striped align-middle">
+      <thead class="table-dark text-center"><tr><th>Subject</th><th>Midterm Grade</th><th>Midterm Remarks</th><th>Final Grade</th><th>Final Remarks</th><th>Action</th></tr></thead>
+      <tbody>
+        {% for g in grades %}
+        <tr><td>{{ g.subject }}</td><td>{{ g.midterm_grade or '-' }}</td><td>{{ g.midterm_remarks or '-' }}</td><td>{{ g.final_grade or '-' }}</td><td>{{ g.final_remarks or '-' }}</td>
+          <td class="text-center"><a href="{{ url_for('subject_performance', student_id=g.student_id, subject=g.subject | urlencode) }}" class="btn btn-primary btn-sm"><i class="bi bi-eye-fill icon-flip"></i> View</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
 {% else %}
-
-<p class="text-center text-muted">
-  No records found.
-</p>
-
+<p class="text-center text-muted">No records found.</p>
 {% endif %}
 
-<!-- ================= FLASH ================= -->
+<!-- FLASH -->
 {% with messages = get_flashed_messages(with_categories=true) %}
 {% if messages %}
 {% for category, message in messages %}
-<div class="alert alert-{{ category }} flash">
-  {{ message }}
-</div>
+<div class="alert alert-{{ category }} flash mt-3">{{ message }}</div>
 {% endfor %}
 {% endif %}
 {% endwith %}
 
-<!-- ================= EXAMS ================= -->
+<!-- EXAMS -->
 <div class="card shadow-sm p-3 mt-4" id="exam-section">
-
-  <h4 class="mb-3">
-    <i class="bi bi-pencil-square icon-flip"></i>
-    Available Exams
-  </h4>
-
+  <h4 class="mb-3"><i class="bi bi-pencil-square icon-flip"></i> Available Exams</h4>
 {% if allowed_exams %}
-
 <div class="list-group">
-
 {% for exam in allowed_exams %}
-
-<div id="req-{{ exam.id }}"
-     class="list-group-item exam-card d-flex justify-content-between align-items-center">
-
-    <div>
-        <h6 class="mb-1">{{ exam.title }}</h6>
-
-        <small class="text-muted">
-            Subject:
-            {{ exam.subject.subject_code if exam.subject else "N/A" }}
-        </small>
-    </div>
-
+<div id="req-{{ exam.id }}" class="list-group-item exam-card d-flex justify-content-between align-items-center">
+    <div><h6 class="mb-1">{{ exam.title }}</h6><small class="text-muted">Subject: {{ exam.subject.subject_code if exam.subject else "N/A" }}</small></div>
     <div id="exam-status-{{ exam.id }}" class="mb-2">
-
-        {% if exam.status == "approved" %}
-
-            <span class="badge bg-success">
-                🟢 Ready
-            </span>
-
-        {% elif exam.status == "pending" %}
-
-            <span class="badge bg-warning text-dark">
-                🟡 Pending Approval
-            </span>
-
-        {% else %}
-
-            <span class="badge bg-secondary">
-                ⚪ Not Requested
-            </span>
-
-        {% endif %}
-
+        {% if exam.status == "approved" %}<span class="badge bg-success">🟢 Ready</span>
+        {% elif exam.status == "pending" %}<span class="badge bg-warning text-dark">🟡 Pending Approval</span>
+        {% else %}<span class="badge bg-secondary">⚪ Not Requested</span>{% endif %}
     </div>
     <div id="exam-action-{{ exam.id }}">
-
         {% if exam.status == "approved" %}
-
-            <button
-                type="button"
-                class="friendly-btn success" data-flip="y"
-
-                data-bs-toggle="modal"
-                data-bs-target="#examInfoModal"
-
-                data-title="{{ exam.title }}"
-                data-subject="{{ exam.subject.subject_code if exam.subject else 'N/A' }}"
-                data-description="{{ exam.description }}"
-                data-duration="{{ exam.duration }}"
-                data-question-count="{{ exam.question_count }}"
-                data-exam-type="{{ exam.exam_type }}"
-                data-term="{{ exam.term }}"
-                data-start-url="{{ url_for('start_exam', exam_id=exam.id) }}"
-
-                onclick="showExamInfo(this)">
-
-                Start Examination
-
-            </button>
-
-        {% elif exam.status == "pending" %}
-
-            <button class="btn btn-warning" disabled>
-                Pending Approval
-            </button>
-
-        {% else %}
-
-            <button 
-                id="request-btn-{{ exam.id }}"
-                class="friendly-btn primary" data-flip="spin"
-
-                data-bs-toggle="modal"
-                data-bs-target="#requestExamModal"
-
-                onclick="setExamId({{ exam.id }})">
-
-                Request Exam
-            </button>
-
-        {% endif %}
-
+            <button type="button" class="friendly-btn success" data-flip="y" data-bs-toggle="modal" data-bs-target="#examInfoModal" data-title="{{ exam.title }}" data-subject="{{ exam.subject.subject_code if exam.subject else 'N/A' }}" data-description="{{ exam.description }}" data-duration="{{ exam.duration }}" data-question-count="{{ exam.question_count }}" data-exam-type="{{ exam.exam_type }}" data-term="{{ exam.term }}" data-start-url="{{ url_for('start_exam', exam_id=exam.id) }}" onclick="showExamInfo(this)">Start Examination</button>
+        {% elif exam.status == "pending" %}<button class="btn btn-warning" disabled>Pending Approval</button>
+        {% else %}<button id="request-btn-{{ exam.id }}" class="friendly-btn primary" data-flip="spin" data-bs-toggle="modal" data-bs-target="#requestExamModal" onclick="setExamId({{ exam.id }})">Request Exam</button>{% endif %}
     </div>
-
 </div>
-
 {% endfor %}
-
+</div>
+{% else %}<p>No exams available.</p>{% endif %}
 </div>
 
-{% else %}
-
-<p>No exams available.</p>
-
-{% endif %}
-
-</div>
-
-<!--/** ================= REQUEST EXAM MODAL ================= **/-->
+<!-- REQUEST EXAM MODAL -->
 <div class="modal fade" id="requestExamModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-
-      <form
-          id="requestExamForm"
-          method="POST"
-          action="{{ url_for('request_exam') }}">
-
-        <div class="modal-header">
-          <h5 class="modal-title">Request Exam Access</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-
+  <div class="modal-dialog"><div class="modal-content">
+      <form id="requestExamForm" method="POST" action="{{ url_for('request_exam') }}">
+        <div class="modal-header"><h5 class="modal-title">Request Exam Access</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
         <div class="modal-body">
-
           <input type="hidden" name="exam_id" id="modal_exam_id">
-
-          <div class="mb-3">
-            <label class="form-label">Enter Access Code</label>
-            <input type="text"
-                   class="form-control"
-                   name="access_code"
-                   placeholder="Enter code given by instructor/admin"
-                   required>
-          </div>
-
-          <small class="text-muted">
-            Only approved codes will grant exam access.
-          </small>
-
+          <div class="mb-3"><label class="form-label">Enter Access Code</label><input type="text" class="form-control" name="access_code" placeholder="Enter code given by instructor/admin" required></div>
+          <small class="text-muted">Only approved codes will grant exam access.</small>
         </div>
-
-        <div class="modal-footer">
-          <button type="submit" class="friendly-btn success" data-flip="y">
-            Submit Request
-          </button>
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-            Cancel
-          </button>
-        </div>
-
+        <div class="modal-footer"><button type="submit" class="friendly-btn success" data-flip="y">Submit Request</button><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button></div>
       </form>
-
-    </div>
-  </div>
+  </div></div>
 </div>
 
-<!-- ================= EXAM RESULTS ================= -->
-
+<!-- EXAM RESULTS -->
 <div class="card shadow-sm p-3 mt-4">
-
-    <h4 class="mb-3">
-        <i class="bi bi-clipboard-data icon-flip"></i>
-        Examination Results
-    </h4>
-
+    <h4 class="mb-3"><i class="bi bi-clipboard-data icon-flip"></i> Examination Results</h4>
     {% if exam_results %}
-
     <div class="table-responsive">
-
         <table class="table table-bordered table-striped align-middle">
-
-            <thead class="table-dark text-center">
-
-                <tr>
-
-                    <th>Exam</th>
-                    <th>Subject</th>
-                    <th>Score</th>
-                    <th>Result</th>
-                    <th>Submitted</th>
-
-                </tr>
-
-            </thead>
-
+            <thead class="table-dark text-center"><tr><th>Exam</th><th>Subject</th><th>Score</th><th>Result</th><th>Submitted</th></tr></thead>
             <tbody>
-
             {% for exam in exam_results %}
-
-                <tr>
-
-                    <td>
-
-                        <strong>{{ exam.title }}</strong>
-
-                    </td>
-
-                    <td>
-
-                        {{ exam.subject.subject_code }}
-
-                    </td>
-
+                <tr><td><strong>{{ exam.title }}</strong></td><td>{{ exam.subject.subject_code }}</td>
                     <td class="text-center">
-
-                        {% if exam.percentage >= 85 %}
-
-                            <span class="fw-bold text-success">
-
-                                {{ exam.score }} / {{ exam.total_points }}
-
-                                ({{ exam.percentage }}%)
-
-                            </span>
-
-                        {% elif exam.percentage >= 70 %}
-
-                            <span class="fw-bold text-warning">
-
-                                {{ exam.score }} / {{ exam.total_points }}
-
-                                ({{ exam.percentage }}%)
-
-                            </span>
-
-                        {% else %}
-
-                            <span class="fw-bold text-danger">
-
-                                {{ exam.score }} / {{ exam.total_points }}
-
-                                ({{ exam.percentage }}%)
-
-                            </span>
-
-                        {% endif %}
-
+                        {% if exam.percentage >= 85 %}<span class="fw-bold text-success">{{ exam.score }} / {{ exam.total_points }} ({{ exam.percentage }}%)</span>
+                        {% elif exam.percentage >= 70 %}<span class="fw-bold text-warning">{{ exam.score }} / {{ exam.total_points }} ({{ exam.percentage }}%)</span>
+                        {% else %}<span class="fw-bold text-danger">{{ exam.score }} / {{ exam.total_points }} ({{ exam.percentage }}%)</span>{% endif %}
                     </td>
-
                     <td class="text-center">
-
-                        {% if exam.result == "Excellent" %}
-
-                            <span class="badge bg-success">
-
-                                🏆 Excellent
-
-                            </span>
-
-                        {% elif exam.result == "Passed" %}
-
-                            <span class="badge bg-warning text-dark">
-
-                                ✅ Passed
-
-                            </span>
-
-                        {% else %}
-
-                            <span class="badge bg-danger">
-
-                                ❌ Failed
-
-                            </span>
-
-                        {% endif %}
-
+                        {% if exam.result == "Excellent" %}<span class="badge bg-success">🏆 Excellent</span>
+                        {% elif exam.result == "Passed" %}<span class="badge bg-warning text-dark">✅ Passed</span>
+                        {% else %}<span class="badge bg-danger">❌ Failed</span>{% endif %}
                     </td>
-
-                    <td class="text-center">
-
-                        {{ exam.submitted_at.strftime("%b %d, %Y") }}
-
-                        <br>
-
-                        <small class="text-muted">
-
-                            {{ exam.submitted_at.strftime("%I:%M %p") }}
-
-                        </small>
-
-                    </td>
-
+                    <td class="text-center">{{ exam.submitted_at.strftime("%b %d, %Y") }}<br><small class="text-muted">{{ exam.submitted_at.strftime("%I:%M %p") }}</small></td>
                 </tr>
-
             {% endfor %}
-
             </tbody>
-
         </table>
-
     </div>
-
-    {% else %}
-
-    <div class="alert alert-info mb-0">
-
-        You have not completed any examinations yet.
-
-    </div>
-
-    {% endif %}
-
+    {% else %}<div class="alert alert-info mb-0">You have not completed any examinations yet.</div>{% endif %}
 </div>
 
-
-<!-- ==========================================
-     EXAM INFORMATION MODAL
-========================================== -->
-<div class="modal fade"
-     id="examInfoModal"
-     tabindex="-1"
-     aria-hidden="true">
-
-    <div class="modal-dialog modal-lg">
-
-        <div class="modal-content">
-
-            <div class="modal-header">
-
-                <h5 class="modal-title">
-                    <i class="bi bi-file-earmark-text"></i> Examination Information
-                </h5>
-
-                <button type="button"
-                        class="btn-close"
-                        data-bs-dismiss="modal">
-                </button>
-
-            </div>
-
+<!-- EXAM INFORMATION MODAL -->
+<div class="modal fade" id="examInfoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg"><div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title"><i class="bi bi-file-earmark-text"></i> Examination Information</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
             <div class="modal-body">
-
-                <h4 id="modalExamTitle"></h4>
-
-                <hr>
-
-                <table class="table table-bordered align-middle" id="examInfoTable">
-
-                    <tbody>
-
-                        <tr>
-                            <th width="35%">Subject</th>
-                            <td id="modalSubject"></td>
-                        </tr>
-
-                        <tr>
-                            <th>Exam Type</th>
-                            <td id="modalExamType"></td>
-                        </tr>
-
-                        <tr>
-                            <th>Term</th>
-                            <td id="modalTerm"></td>
-                        </tr>
-
-                        <tr>
-                            <th>Duration</th>
-                            <td id="modalDuration"></td>
-                        </tr>
-
-                        <tr>
-                            <th>Questions</th>
-                            <td id="modalQuestions">
-                                Loading...
-                            </td>
-                        </tr>
-
-                    </tbody>
-
-                </table>
-
-                <div class="mb-3">
-
-                    <strong>Description</strong>
-
-                    <div class="exam-description-box border rounded p-3 mt-2"
-                         id="modalDescription">
-                    </div>
-
-                </div>
-
-                <hr>
-
-                <h5 class="mt-4">
-                    <i class="bi bi-exclamation-triangle"></i> Examination Rules
-                </h5>
-
-                <ul class="list-group">
-
-                    <li class="list-group-item">
-                        Timer starts immediately after clicking
-                        <strong>Start Examination</strong>.
-                    </li>
-
-                    <li class="list-group-item">
-                        Fullscreen mode is required.
-                    </li>
-
-                    <li class="list-group-item">
-                        Tab switching is monitored.
-                    </li>
-
-                    <li class="list-group-item">
-                        Print Screen activity is monitored.
-                    </li>
-
-                    <li class="list-group-item">
-                        Multiple security violations may automatically submit your examination.
-                    </li>
-
-                </ul>
-
-            <div class="form-check mt-4">
-
-                <input
-                    class="form-check-input"
-                    type="checkbox"
-                    id="examAcknowledgement">
-
-                <label
-                    class="form-check-label"
-                    for="examAcknowledgement">
-
-                    I have read and understood the examination instructions.
-                    I understand that the timer begins immediately after
-                    clicking <strong>Start Examination</strong>.
-
-                </label>
-
-            </div>
-            <div class="modal-footer">
-
-                <button class="friendly-btn secondary" data-flip="x" data-bs-dismiss="modal">
-
-                    Cancel
-
-                </button>
-
-                <a id="startExamButton"
-                   href="#"
-                   class="friendly-btn success disabled" data-flip="y"
-                   aria-disabled="true">
-
-                    Start Examination
-
-                </a>
-
-            </div>
-
+                <h4 id="modalExamTitle"></h4><hr>
+                <table class="table table-bordered align-middle" id="examInfoTable"><tbody>
+                        <tr><th width="35%">Subject</th><td id="modalSubject"></td></tr>
+                        <tr><th>Exam Type</th><td id="modalExamType"></td></tr>
+                        <tr><th>Term</th><td id="modalTerm"></td></tr>
+                        <tr><th>Duration</th><td id="modalDuration"></td></tr>
+                        <tr><th>Questions</th><td id="modalQuestions">Loading...</td></tr>
+                    </tbody></table>
+                <div class="mb-3"><strong>Description</strong><div class="exam-description-box border rounded p-3 mt-2" id="modalDescription"></div></div><hr>
+                <h5 class="mt-4"><i class="bi bi-exclamation-triangle"></i> Examination Rules</h5>
+                <ul class="list-group"><li class="list-group-item">Timer starts immediately after clicking <strong>Start Examination</strong>.</li><li class="list-group-item">Fullscreen mode is required.</li><li class="list-group-item">Tab switching is monitored.</li><li class="list-group-item">Print Screen activity is monitored.</li><li class="list-group-item">Multiple security violations may automatically submit your examination.</li></ul>
+            <div class="form-check mt-4"><input class="form-check-input" type="checkbox" id="examAcknowledgement"><label class="form-check-label" for="examAcknowledgement">I have read and understood the examination instructions. I understand that the timer begins immediately after clicking <strong>Start Examination</strong>.</label></div>
+            <div class="modal-footer"><button class="friendly-btn secondary" data-flip="x" data-bs-dismiss="modal">Cancel</button><a id="startExamButton" href="#" class="friendly-btn success disabled" data-flip="y" aria-disabled="true">Start Examination</a></div>
         </div>
-
-    </div>
-
+    </div></div>
 </div>
 
-</div>
-
-<!-- ================= TOAST ================= -->
-
+<!-- TOAST -->
 <div class="toast-container position-fixed bottom-0 end-0 p-3">
-
-    <div id="liveToast"
-         class="toast align-items-center text-bg-success border-0"
-         role="alert">
-
-        <div class="d-flex">
-
-            <div class="toast-body" id="toastMessage">
-                Success
-            </div>
-
-            <button
-                type="button"
-                class="btn-close btn-close-white me-2 m-auto"
-                data-bs-dismiss="toast">
-            </button>
-
-        </div>
-
+    <div id="liveToast" class="toast align-items-center text-bg-success border-0" role="alert">
+        <div class="d-flex"><div class="toast-body" id="toastMessage">Success</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div>
     </div>
-
 </div>
 
-<!-- ================= START SCRIPTS ================= -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</div>
+</div>
+</div>
+</div>
 <script>
 window.studentName = "{{ student_name or 'Student' }}";
 window.studentId = "{{ student.student_id if student else '' }}";
 </script>
-<script>window.studentId = "{{ student.student_id if student else '' }}";</script>
-<script src="{{ url_for('static', filename='js/student-dashboard.js') }}"></script>
-<!-- ================= END SCRIPTS ================= -->
+{% endblock %}
 
-</body>
-</html>
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// MOBILE SIDEBAR LOGIC - FIXED
+(function(){
+  const sidebar = document.getElementById("studentSidebar");
+  const backdrop = document.getElementById("sidebarBackdrop");
+  const icon = document.getElementById("sidebarIcon");
+  const toggleBtn = document.getElementById("sidebarToggle");
+  if(!sidebar) return;
+  const isMobile = () => window.innerWidth < 992;
+
+  window.closeMobileSidebar = function(){
+    sidebar.classList.remove("show");
+    backdrop.classList.remove("show");
+    document.body.style.overflow = "";
+    if(icon){ icon.classList.remove("bi-x-lg"); icon.classList.add("bi-list"); }
+    toggleBtn?.setAttribute("aria-expanded","false");
+  };
+  window.openMobileSidebar = function(){
+    sidebar.classList.add("show");
+    backdrop.classList.add("show");
+    document.body.style.overflow = "hidden";
+    if(icon){ icon.classList.remove("bi-list"); icon.classList.add("bi-x-lg"); }
+    toggleBtn?.setAttribute("aria-expanded","true");
+  };
+
+  toggleBtn?.addEventListener("click", (e)=>{
+    e.preventDefault();
+    if(!isMobile()) return;
+    if(sidebar.classList.contains("show")) closeMobileSidebar(); else openMobileSidebar();
+  });
+
+  // Close on link click (mobile)
+  sidebar.querySelectorAll("a").forEach(a=> a.addEventListener("click", ()=>{ if(isMobile()) closeMobileSidebar(); }));
+  // Close on resize to desktop
+  window.addEventListener("resize", ()=>{ if(!isMobile()) closeMobileSidebar(); });
+  // Swipe left to close
+  let startX=0;
+  sidebar.addEventListener("touchstart", e=> startX=e.touches[0].clientX, {passive:true});
+  sidebar.addEventListener("touchend", e=>{ if(e.changedTouches[0].clientX - startX < -60) closeMobileSidebar(); }, {passive:true});
+})();
+
+function toggleDarkMode(){
+  document.body.classList.toggle("dark-mode");
+  document.documentElement.classList.toggle("dark-mode");
+  localStorage.setItem("darkMode", document.body.classList.contains("dark-mode") || document.documentElement.classList.contains("dark-mode"));
+}
+</script>
+<script src="{{ url_for('static', filename='js/student-dashboard.js') }}"></script>
+{% endblock %}

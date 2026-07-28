@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}Register - Student Grade Portal{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+body, .container, h1,h2,h3,h4,h5, small,p,span,a,button,td,th,div,label { font-family: 'Nunito', system-ui, sans-serif !important; }
+body { background: #fdfbff !important; }
+.card { border-radius: 22px !important; border: 1px solid #f2eefb !important; box-shadow: 0 6px 28px rgba(120,100,180,0.07) !important; }
+.card-header { border-radius: 22px 22px 0 0 !important; background: #faf8ff !important; border-bottom: 1px solid #f0eafb !important; }
+.friendly-btn { display:inline-flex; align-items:center; justify-content:center; gap:7px; padding:11px 22px; border-radius:50px; font-weight:700; font-size:0.88rem; border:1.5px solid transparent; cursor:pointer; transition:all 0.32s cubic-bezier(0.34,1.56,0.64,1); box-shadow:0 3px 12px rgba(0,0,0,0.04); text-decoration:none; }
+.friendly-btn:hover { transform:translateY(-2px); box-shadow:0 8px 22px rgba(0,0,0,0.10); }
+.friendly-btn i { transition:transform 0.55s cubic-bezier(0.34,1.56,0.64,1); display:inline-block; }
+.friendly-btn:hover i { transform:scale(1.2) rotateY(10deg); }
+.friendly-btn.primary { background:#eef2ff; color:#5a6cf3; border-color:#d9e0ff; } .friendly-btn.primary:hover { background:#5a6cf3; color:#fff; }
+.friendly-btn.success { background:#e8f6eb; color:#3daa5e; border-color:#cde9d3; } .friendly-btn.success:hover { background:#3daa5e; color:#fff; }
+.friendly-btn.secondary { background:#f5f5f9; color:#8b90a3; border-color:#ececf2; } .friendly-btn.secondary:hover { background:#8b90a3; color:#fff; }
+.form-control, .form-select { border-radius:14px !important; border:1.5px solid #ece9f6 !important; padding:12px 16px !important; font-weight:500; }
+.form-control:focus { border-color:#a9b3ff !important; box-shadow:0 0 0 4px rgba(90,108,243,0.1) !important; }
+.id-priority-card { border-radius:20px !important; border:2px solid #d9e0ff !important; background: linear-gradient(135deg, #eef2ff 0%, #f3efff 100%) !important; box-shadow:0 8px 30px rgba(90,108,243,0.12) !important; }
+.id-badge { background:#5a6cf3; color:#fff; font-weight:800; font-size:0.65rem; letter-spacing:0.08em; padding:4px 10px; border-radius:50px; text-transform:uppercase; }
+.label-soft { font-weight:700; font-size:0.85rem; color:#5a5f7a; }
+.id-input-group { position:relative; }
+.id-input-group i.bi { position:absolute; left:14px; top:50%; transform:translateY(-50%); color:#5a6cf3; font-size:1.1rem; }
+.id-input-group input { padding-left:42px !important; font-weight:700 !important; font-size:1.05rem !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container d-flex justify-content-center align-items-center" style="min-height:100vh; padding: 30px 12px;">
+  <div class="card shadow-lg" style="width:100%; max-width:520px; overflow:hidden;">
+    <div style="background: linear-gradient(135deg, #5a6cf3 0%, #7a5af0 100%); padding:26px 28px; color:#fff;">
+      <h3 class="mb-1" style="font-weight:800; font-family:'Quicksand' !important; color:#fff;"><i class="bi bi-person-badge me-2"></i>Create Account</h3>
+      <p class="mb-0" style="opacity:0.85; font-weight:500;">ID number is required • Your primary identity</p>
+    </div>
+    
+    <div class="card-body p-4">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category }}" style="border-radius:14px; font-weight:600;">{{ message }}</div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <form method="POST" novalidate>
+        {{ form.hidden_tag() if form else '' }}
+
+        <!-- ID PRIORITY -->
+        <div class="id-priority-card p-3 mb-4">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <label class="label-soft mb-0" style="color:#5a6cf3;"><i class="bi bi-upc-scan me-1"></i> ID NUMBER <span class="text-danger">*</span></label>
+            <span class="id-badge"><i class="bi bi-star-fill me-1"></i>Priority</span>
+          </div>
+          <div class="id-input-group mb-2">
+            <i class="bi bi-person-vcard"></i>
+            <input type="text" name="student_id" id="student_id" class="form-control" placeholder="Enter your Student ID" required autofocus>
+          </div>
+          <small id="idMsg" style="font-weight:700; color:#8b90a3;"><i class="bi bi-info-circle me-1"></i> This must match your enrollment ID. No ID, no account.</small>
+        </div>
+
+        <div class="mb-3">
+          <label class="label-soft">Full Name</label>
+          <input type="text" name="name" class="form-control" placeholder="Juan Dela Cruz" required>
+        </div>
+
+        <div class="mb-3">
+          <label class="label-soft">Username</label>
+          <input type="text" name="username" id="username" class="form-control" placeholder="Will auto-fill from ID" required>
+        </div>
+
+        <div class="row g-3 mb-3">
+          <div class="col-6">
+            <label class="label-soft">Password</label>
+            <input type="password" name="password" class="form-control" placeholder="••••••••" required minlength="6">
+          </div>
+          <div class="col-6">
+            <label class="label-soft">Confirm</label>
+            <input type="password" name="confirm_password" class="form-control" placeholder="••••••••" required>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="label-soft">Role</label>
+          <select name="role" class="form-select">
+            <option value="Student" selected>Student</option>
+          </select>
+          <small class="text-muted" style="font-size:0.75rem;">Only students can self-register. Instructor/Admin via admin panel.</small>
+        </div>
+
+        <div class="d-grid gap-2 mt-4">
+          <button type="submit" class="friendly-btn success" style="width:100%; padding:13px;"><i class="bi bi-check2-circle"></i> Register Now</button>
+          <a href="{{ url_for('login') }}" class="friendly-btn secondary" style="width:100%;"><i class="bi bi-box-arrow-in-left"></i> Already have account? Login</a>
+        </div>
+
+        <p class="text-center mt-3 mb-0" style="font-size:0.78rem; color:#9aa0b6; font-weight:600;">By registering you agree to link your ID to exam & grade records</p>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+const idInput=document.getElementById('student_id');
+const userInput=document.getElementById('username');
+const msg=document.getElementById('idMsg');
+idInput?.addEventListener('input', async()=>{
+  const v=idInput.value.trim();
+  if(userInput) userInput.value=v;
+  if(!v){ msg.innerHTML='<i class="bi bi-info-circle me-1"></i>This must match your enrollment ID.'; msg.style.color='#8b90a3'; idInput.classList.remove('is-valid','is-invalid'); return; }
+  try{
+    const r=await fetch(`/api/check-id?id=${encodeURIComponent(v)}`);
+    const d=await r.json();
+    if(d.exists && !d.has_user){ msg.innerHTML='<i class="bi bi-check-circle me-1"></i>Found in enrollment! You can register.'; msg.style.color='#2e9d6b'; idInput.classList.add('is-valid'); idInput.classList.remove('is-invalid'); }
+    else if(d.exists && d.has_user){ msg.innerHTML='<i class="bi bi-x-circle me-1"></i>ID already has an account.'; msg.style.color='#e5485a'; idInput.classList.add('is-invalid'); }
+    else { msg.innerHTML='<i class="bi bi-exclamation-triangle me-1"></i>ID not found in enrollment. Enroll first.'; msg.style.color='#b78a1f'; idInput.classList.add('is-invalid'); }
+  }catch{}
+});
+</script>
+{% endblock %}
