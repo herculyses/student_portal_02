@@ -1,9 +1,6 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Edit Student</title>
+{% extends "base.html" %}
+{% block title %}Edit Student{% endblock %}
+{% block content %}
 
 <link rel="icon" type="image/png"
       href="{{ url_for('static', filename='favicon.png') }}">
@@ -50,154 +47,6 @@
           {{ form.subject.label(class="form-label") }}
           {{ form.subject(class="form-control", placeholder="Enter Subject") }}
         </div>
-      </div>
-
-      <!-- Quizzes -->
-      <h5>Midterm Quizzes</h5>
-      <div class="row">
-        <div class="col-md-3">{{ form.midterm_quiz1.label }} {{ form.midterm_quiz1(class="form-control") }}</div>
-        <div class="col-md-3">{{ form.midterm_quiz2.label }} {{ form.midterm_quiz2(class="form-control") }}</div>
-        <div class="col-md-3">{{ form.midterm_quiz3.label }} {{ form.midterm_quiz3(class="form-control") }}</div>
-        <div class="col-md-3">{{ form.midterm_quiz4.label }} {{ form.midterm_quiz4(class="form-control") }}</div>
-      </div>
-
-      <h5>Midterm Exercise Quizzes</h5>
-      <div class="row">
-        <div class="col-md-3">{{ form.midterm_e_quiz1.label }} {{ form.midterm_e_quiz1(class="form-control") }}</div>
-        <div class="col-md-3">{{ form.midterm_e_quiz2.label }} {{ form.midterm_e_quiz2(class="form-control") }}</div>
-        <div class="col-md-3">{{ form.midterm_e_quiz3.label }} {{ form.midterm_e_quiz3(class="form-control") }}</div>
-        <div class="col-md-3">{{ form.midterm_e_quiz4.label }} {{ form.midterm_e_quiz4(class="form-control") }}</div>
-      </div>
-
-      <h5>Midterm Laboratory Quizzes</h5>
-      <div class="row">
-        <div class="col-md-3">{{ form.midterm_l_quiz1.label }} {{ form.midterm_l_quiz1(class="form-control") }}</div>
-        <div class="col-md-3">{{ form.midterm_l_quiz2.label }} {{ form.midterm_l_quiz2(class="form-control") }}</div>
-        <div class="col-md-3">{{ form.midterm_l_quiz3.label }} {{ form.midterm_l_quiz3(class="form-control") }}</div>
-        <div class="col-md-3">{{ form.midterm_l_quiz4.label }} {{ form.midterm_l_quiz4(class="form-control") }}</div>
-      </div>
-
-      <h5 class="mt-3">Final Quizzes</h5>
-      <div class="row">
-        <div class="col-md-3">{{ form.final_quiz1.label }} {{ form.final_quiz1(class="form-control") }}</div>
-        <div class="col-md-3">{{ form.final_quiz2.label }} {{ form.final_quiz2(class="form-control") }}</div>
-        <div class="col-md-3">{{ form.final_quiz3.label }} {{ form.final_quiz3(class="form-control") }}</div>
-        <div class="col-md-3">{{ form.final_quiz4.label }} {{ form.final_quiz4(class="form-control") }}</div>
-      </div>
-
-      <h5 class="mt-3">Final Exercise Quizzes</h5>
-      <div class="row">
-        <div class="col-md-3">{{ form.final_e_quiz1.label }} {{ form.final_e_quiz1(class="form-control") }}</div>
-        <div class="col-md-3">{{ form.final_e_quiz2.label }} {{ form.final_e_quiz2(class="form-control") }}</div>
-        <div class="col-md-3">{{ form.final_e_quiz3.label }} {{ form.final_e_quiz3(class="form-control") }}</div>
-        <div class="col-md-3">{{ form.final_e_quiz4.label }} {{ form.final_e_quiz4(class="form-control") }}</div>
-      </div>
-
-      <h5 class="mt-3">Final Laboratory Quizzes</h5>
-      <div class="row">
-        <div class="col-md-3">{{ form.final_l_quiz1.label }} {{ form.final_l_quiz1(class="form-control") }}</div>
-        <div class="col-md-3">{{ form.final_l_quiz2.label }} {{ form.final_l_quiz2(class="form-control") }}</div>
-        <div class="col-md-3">{{ form.final_l_quiz3.label }} {{ form.final_l_quiz3(class="form-control") }}</div>
-        <div class="col-md-3">{{ form.final_l_quiz4.label }} {{ form.final_l_quiz4(class="form-control") }}</div>
-      </div>
-
-      <!-- PIT -->
-      <h5>Midterm PIT</h5>
-      <div class="row">
-        <div class="col-md-3">{{ form.midterm_pit1.label }} {{ form.midterm_pit1(class="form-control") }}</div>
-        <div class="col-md-3">{{ form.midterm_pit2.label }} {{ form.midterm_pit2(class="form-control") }}</div>
-        <div class="col-md-3">{{ form.midterm_pit3.label }} {{ form.midterm_pit3(class="form-control") }}</div>
-        <div class="col-md-3">{{ form.midterm_pit4.label }} {{ form.midterm_pit4(class="form-control") }}</div>
-      </div>
-
-      <h5 class="mt-3">Final PIT</h5>
-      <div class="row">
-        <div class="col-md-3">{{ form.final_pit1.label }} {{ form.final_pit1(class="form-control") }}</div>
-        <div class="col-md-3">{{ form.final_pit2.label }} {{ form.final_pit2(class="form-control") }}</div>
-        <div class="col-md-3">{{ form.final_pit3.label }} {{ form.final_pit3(class="form-control") }}</div>
-        <div class="col-md-3">{{ form.final_pit4.label }} {{ form.final_pit4(class="form-control") }}</div>
-      </div>
-
-      <!-- Exercises -->
-      <h5>Midterm Exercise</h5>
-      <div class="row">
-        <div class="col-md-3">{{ form.midterm_exercise1.label }} {{ form.midterm_exercise1(class="form-control") }}</div>
-        <div class="col-md-3">{{ form.midterm_exercise2.label }} {{ form.midterm_exercise2(class="form-control") }}</div>
-        <div class="col-md-3">{{ form.midterm_exercise3.label }} {{ form.midterm_exercise3(class="form-control") }}</div>
-        <div class="col-md-3">{{ form.midterm_exercise4.label }} {{ form.midterm_exercise4(class="form-control") }}</div>
-      </div>
-
-      <h5 class="mt-3">Final Exercise</h5>
-      <div class="row">
-        <div class="col-md-3">{{ form.final_exercise1.label }} {{ form.final_exercise1(class="form-control") }}</div>
-        <div class="col-md-3">{{ form.final_exercise2.label }} {{ form.final_exercise2(class="form-control") }}</div>
-        <div class="col-md-3">{{ form.final_exercise3.label }} {{ form.final_exercise3(class="form-control") }}</div>
-        <div class="col-md-3">{{ form.final_exercise4.label }} {{ form.final_exercise4(class="form-control") }}</div>
-      </div>
-
-      <!-- Laboratories -->
-      <h5>Midterm Laboratory</h5>
-      <div class="row">
-        <div class="col-md-3">{{ form.midterm_laboratory1.label }} {{ form.midterm_laboratory1(class="form-control") }}</div>
-        <div class="col-md-3">{{ form.midterm_laboratory2.label }} {{ form.midterm_laboratory2(class="form-control") }}</div>
-        <div class="col-md-3">{{ form.midterm_laboratory3.label }} {{ form.midterm_laboratory3(class="form-control") }}</div>
-        <div class="col-md-3">{{ form.midterm_laboratory4.label }} {{ form.midterm_laboratory4(class="form-control") }}</div>
-      </div>
-
-      <h5 class="mt-3">Final Laboratory</h5>
-      <div class="row">
-        <div class="col-md-3">{{ form.final_laboratory1.label }} {{ form.final_laboratory1(class="form-control") }}</div>
-        <div class="col-md-3">{{ form.final_laboratory2.label }} {{ form.final_laboratory2(class="form-control") }}</div>
-        <div class="col-md-3">{{ form.final_laboratory3.label }} {{ form.final_laboratory3(class="form-control") }}</div>
-        <div class="col-md-3">{{ form.final_laboratory4.label }} {{ form.final_laboratory4(class="form-control") }}</div>
-      </div>
-
-
-
-
-      <!-- Exams -->
-      <h5 class="text-secondary mt-3">Exams</h5>
-      <div class="row">
-        <div class="col-md-6 mb-3">
-          {{ form.midterm_exam.label(class="form-label") }}
-          {{ form.midterm_exam(class="form-control", placeholder="Enter Midterm Exam Score") }}
-        </div>
-        <div class="col-md-6 mb-3">
-          {{ form.final_exam.label(class="form-label") }}
-          {{ form.final_exam(class="form-control", placeholder="Enter Final Exam Score") }}
-        </div>
-        <div class="col-md-6 mb-3">
-          {{ form.midterm_laboratory_exam.label(class="form-label") }}
-          {{ form.midterm_laboratory_exam(class="form-control", placeholder="Enter Midterm Laboratory Exam Score") }}
-        </div>
-        <div class="col-md-6 mb-3">
-          {{ form.final_laboratory_exam.label(class="form-label") }}
-          {{ form.final_laboratory_exam(class="form-control", placeholder="Enter Final Laboratory Exam Score") }}
-        </div>
-      </div>
-
-      <!-- Grades -->
-      <h5 class="text-secondary mt-3">Grades</h5>
-      <div class="row">
-        <div class="col-md-6 mb-3">
-          {{ form.midterm_grade.label(class="form-label") }}
-          {{ form.midterm_grade(class="form-control", placeholder="Enter Midterm Grade") }}
-        </div>
-        <div class="col-md-6 mb-3">
-          {{ form.final_grade.label(class="form-label") }}
-          {{ form.final_grade(class="form-control", placeholder="Enter Final Grade") }}
-        </div>
-      </div>
-
-      <!-- Remarks -->
-      <h5 class="text-secondary mt-3">Remarks</h5>
-      <div class="col-md-6 mb-3">
-        {{ form.midterm_remarks.label(class="form-label") }}
-        {{ form.midterm_remarks(class="form-control", placeholder="Enter Midterm Remarks") }}
-      </div>
-      <div class="col-md-6 mb-3">
-        {{ form.final_remarks.label(class="form-label") }}
-        {{ form.final_remarks(class="form-control", placeholder="Enter Final Remarks") }}
       </div>
 
       <button type="submit" class="btn btn-primary w-100">Save Changes</button>
@@ -247,10 +96,8 @@ document.addEventListener("DOMContentLoaded", function() {
       flash.style.opacity = "0";
       flash.style.transform = "translateY(-10px)";
       setTimeout(() => flash.remove(), 500);
-    }, 3000);
+    }, 5000);
   });
 });
 </script>
-
-</body>
-</html>
+{% endblock %}
