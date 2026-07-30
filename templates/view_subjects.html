@@ -174,7 +174,7 @@ function setDeleteSubject(id, code) {
 // All students data for JS searching - ID priority
 const ALL_STUDENTS = [
   {% for s in all_students %}
-  { id: "{{ s.student_id }}", name: "{{ s.name|e }}", display: "{{ s.student_id }} - {{ s.name|e }}" },
+  { id: "{{ s.student_id }}", name: "{{ s.display_name|e }}", display: "{{ s.student_id }} - {{ s.display_name|e }}" },
   {% endfor %}
 ];
 

@@ -10,20 +10,13 @@ body { background: #fdfbff !important; }
 h2 { font-weight: 800; color: #2e334d; letter-spacing: -0.02em; font-family: 'Quicksand', sans-serif !important; }
 .card { border-radius: 22px !important; border: 1px solid #f2eefb !important; box-shadow: 0 6px 28px rgba(120,100,180,0.07) !important; }
 .card-header { border-radius: 22px 22px 0 0 !important; background: #faf8ff !important; border-bottom: 1px solid #f0eafb !important; }
-
-/* friendly-btn from view_exams */
 .friendly-btn { display:inline-flex; align-items:center; justify-content:center; gap:7px; padding:11px 22px; border-radius:50px; font-weight:700; font-size:0.88rem; letter-spacing:0.02em; border:1.5px solid transparent; text-decoration:none; cursor:pointer; transition:all 0.32s cubic-bezier(0.34,1.56,0.64,1); box-shadow:0 3px 12px rgba(0,0,0,0.04); }
 .friendly-btn:hover { transform:translateY(-2px); box-shadow:0 8px 22px rgba(0,0,0,0.10); }
 .friendly-btn:active { transform:scale(0.96); }
-.friendly-btn i { font-size:1.1rem; display:inline-block; transition:transform 0.55s cubic-bezier(0.34,1.56,0.64,1); }
-.friendly-btn[data-flip="pop"]:hover i { transform:translateY(-2px) scale(1.25); }
 .friendly-btn.primary { background:#eef2ff; color:#5a6cf3; border-color:#d9e0ff; } .friendly-btn.primary:hover { background:#5a6cf3; color:#fff; }
 .friendly-btn.success { background:#e8f6eb; color:#3daa5e; border-color:#cde9d3; } .friendly-btn.success:hover { background:#3daa5e; color:#fff; }
 .friendly-btn.secondary { background:#f5f5f9; color:#8b90a3; border-color:#ececf2; } .friendly-btn.secondary:hover { background:#8b90a3; color:#fff; }
-
-/* ID priority */
 .id-priority-card { border-radius:20px !important; border:2px solid #d9e0ff !important; background: linear-gradient(135deg, #eef2ff 0%, #f3efff 100%) !important; box-shadow:0 8px 30px rgba(90,108,243,0.12) !important; position:relative; overflow:hidden; }
-.id-priority-card::before { content:''; position:absolute; top:-20px; right:-20px; width:80px; height:80px; background:rgba(90,108,243,0.08); border-radius:50%; }
 .id-badge { background:#5a6cf3; color:#fff; font-weight:800; font-size:0.65rem; letter-spacing:0.08em; padding:4px 10px; border-radius:50px; text-transform:uppercase; }
 .form-control, .form-select { border-radius:14px !important; border:1.5px solid #ece9f6 !important; padding:12px 16px !important; font-weight:500; transition:all 0.3s ease; }
 .form-control:focus, .form-select:focus { border-color:#a9b3ff !important; box-shadow:0 0 0 4px rgba(90,108,243,0.1) !important; }
@@ -31,29 +24,33 @@ h2 { font-weight: 800; color: #2e334d; letter-spacing: -0.02em; font-family: 'Qu
 .form-control.is-invalid { border-color:#ff6b7b !important; background:#fff0f2 !important; }
 .label-soft { font-weight:700; font-size:0.85rem; color:#5a5f7a; letter-spacing:0.02em; margin-bottom:6px; }
 .summary-chip { display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border-radius:50px; font-weight:700; font-size:0.75rem; }
-.chip-blue { background:#eef2ff; color:#5a6cf3; }
-.chip-green { background:#e8f6eb; color:#3daa5e; }
-.chip-purple { background:#f3efff; color:#7a5af0; }
-.chip-yellow { background:#fff7e0; color:#b78a1f; }
+.chip-blue { background:#eef2ff; color:#5a6cf3; } .chip-green { background:#e8f6eb; color:#3daa5e; } .chip-purple { background:#f3efff; color:#7a5af0; } .chip-yellow { background:#fff7e0; color:#b78a1f; }
 .enroll-hero { background: linear-gradient(135deg, #5a6cf3 0%, #7a5af0 100%); border-radius:22px; color:#fff; padding:24px 28px; }
 .id-input-group { position:relative; }
 .id-input-group i.bi { position:absolute; left:14px; top:50%; transform:translateY(-50%); color:#5a6cf3; font-size:1.1rem; z-index:2; }
 .id-input-group input { padding-left:42px !important; font-weight:700 !important; letter-spacing:0.04em; font-size:1.05rem !important; }
 .soft-divider { height:1px; background:linear-gradient(90deg, transparent, #ece9f6, transparent); margin:18px 0; }
+.subject-picker { border:2px dashed #d9e0ff; border-radius:18px; background:#fcfbff; padding:14px; min-height:120px; }
+.chip-subject { display:inline-flex; align-items:center; gap:8px; background:#eef2ff; color:#4a5de8; border:1px solid #d9e0ff; border-radius:50px; padding:7px 14px; font-weight:700; font-size:0.84rem; margin:4px; animation:pop .3s cubic-bezier(.34,1.56,.64,1); }
+.chip-subject .x { cursor:pointer; background:#fff; width:20px; height:20px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; }
+.chip-subject.enrolled { background:#fff7e0; color:#b78a1f; border-color:#ffe8a8; opacity:.9; }
+.chip-subject.pending { background:#ffe8e8; color:#e5485a; border-color:#ffcfd3; }
+.dropdown-search { max-height:220px; overflow:auto; border-radius:14px; border:1px solid #ece9f6; box-shadow:0 12px 32px rgba(0,0,0,.12); }
+.dropdown-search .item { padding:10px 14px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; font-weight:600; }
+.dropdown-search .item:hover { background:#eef2ff; }
+.dropdown-search .item.disabled { opacity:.4; pointer-events:none; }
+@keyframes pop { 0% { transform:scale(.8); } 100% { transform:scale(1); } }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container py-4" style="max-width: 860px;">
-  
+<div class="container py-4" style="max-width: 900px;">
   <div class="enroll-hero mb-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
     <div>
       <h2 class="mb-1 text-white" style="font-weight:800;"><i class="bi bi-mortarboard-fill me-2"></i>Student Enrollment</h2>
-      <p class="mb-0 text-white-50" style="font-weight:500;">Secure enrollment with ID verification • Smooth & gentle</p>
+      <p class="mb-0 text-white-50" style="font-weight:500;">Re-enroll • Multi-subject • Smart search</p>
     </div>
-    <div>
-      <span class="summary-chip" style="background:rgba(255,255,255,0.18); color:#fff;"><i class="bi bi-shield-check"></i> ID Priority</span>
-    </div>
+    <div><span class="summary-chip" style="background:rgba(255,255,255,0.18); color:#fff;"><i class="bi bi-shield-check"></i> ID Priority</span></div>
   </div>
 
   {% with messages = get_flashed_messages(with_categories=true) %}
@@ -69,13 +66,12 @@ h2 { font-weight: 800; color: #2e334d; letter-spacing: -0.02em; font-family: 'Qu
       <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center py-3">
           <span style="font-weight:800; color:#2e334d;"><i class="bi bi-person-plus me-2" style="color:#5a6cf3;"></i>Enrollment Form</span>
-          <span class="summary-chip chip-blue"><i class="bi bi-stars"></i> Step 1 of 1</span>
+          <span class="summary-chip chip-blue"><i class="bi bi-stars"></i> Multi-Subject</span>
         </div>
         <div class="card-body p-4">
           <form method="POST" id="enrollForm" novalidate>
             {{ form.hidden_tag() if form else '' }}
 
-            <!-- PRIORITY ID -->
             <div class="id-priority-card p-4 mb-4">
               <div class="d-flex justify-content-between align-items-center mb-2">
                 <label class="label-soft mb-0" style="color:#5a6cf3;"><i class="bi bi-person-badge me-1"></i> ID NUMBER <span class="text-danger">*</span></label>
@@ -83,65 +79,88 @@ h2 { font-weight: 800; color: #2e334d; letter-spacing: -0.02em; font-family: 'Qu
               </div>
               <div class="id-input-group mb-2">
                 <i class="bi bi-upc-scan"></i>
-                <input type="text" name="student_id" id="student_id" class="form-control" placeholder="e.g. 2023-0001 or 20230001" required autocomplete="off" maxlength="20">
+                <input type="text" name="student_id" id="student_id" class="form-control" placeholder="e.g. 2024400138" required autocomplete="off" maxlength="20">
               </div>
               <div class="d-flex gap-2 flex-wrap align-items-center">
                 <small id="idStatus" class="fw-bold" style="color:#8b90a3;"><i class="bi bi-info-circle me-1"></i>Enter your official school ID number first</small>
-                <span class="summary-chip chip-yellow" id="idHint"><i class="bi bi-lightning"></i> Auto-checking...</span>
+                <span id="idHint" class="summary-chip" style="display:none;"></span>
+              </div>
+              <div id="welcomeBox" class="alert mt-3" style="display:none; background:#e8f6eb; border:1px solid #cde9d3; border-radius:14px;">
+                <strong><i class="bi bi-emoji-smile me-1"></i> Welcome back, <span id="welcomeName"></span>!</strong>
+                <div class="mt-2 small">Already enrolled in: <span id="alreadyEnrolledList" class="fw-bold"></span></div>
+                <small class="text-muted">You can add more subjects below. Duplicate subjects are blocked automatically.</small>
               </div>
             </div>
 
             <div class="row g-3">
-              <div class="col-12">
-                <label class="label-soft">Full Name <span class="text-danger">*</span></label>
-                <input type="text" name="name" class="form-control" placeholder="Juan Dela Cruz" required>
+              <div class="col-md-4">
+                <label class="label-soft">Surname *</label>
+                <input type="text" name="last_name" id="last_name" class="form-control" placeholder="Dela Cruz" required>
               </div>
-              <div class="col-md-6">
+              <div class="col-md-4">
+                <label class="label-soft">First Name *</label>
+                <input type="text" name="first_name" id="first_name" class="form-control" placeholder="Juan" required>
+              </div>
+              <div class="col-md-4">
+                <label class="label-soft">Middle Name (optional)</label>
+                <input type="text" name="middle_name" id="middle_name" class="form-control" placeholder="Santos">
+              </div>
+              <div class="col-12">
+                <div class="alert py-2" style="background:#f8f7ff; border-radius:12px;"><small><i class="bi bi-eye me-1"></i> Preview: <strong id="namePreview">SURNAME, First name Mi.</strong></small></div>
+              </div>
+            </div>
+
+            <!-- SUBJECT SMART SEARCH -->
+            <div class="mt-4">
+              <label class="label-soft"><i class="bi bi-journal-bookmark me-1"></i> Subjects to Enroll * <span class="text-muted fw-normal">(type code or subject name to smart-search)</span></label>
+              <div class="subject-picker" id="subjectPicker">
+                <div class="d-flex gap-2">
+                  <div class="flex-grow-1 position-relative">
+                    <input type="text" id="subjectSearch" class="form-control" placeholder="Type e.g. CS101, MATH, BSGE..." autocomplete="off">
+                    <div id="subjectDropdown" class="dropdown-search bg-white position-absolute w-100 mt-2" style="display:none; z-index:10;"></div>
+                  </div>
+                  <button type="button" id="clearSubjects" class="friendly-btn secondary" style="padding:8px 14px;">Clear</button>
+                </div>
+                <div id="selectedSubjects" class="mt-3 d-flex flex-wrap"></div>
+                <small class="text-muted mt-2 d-block"><i class="bi bi-lightbulb me-1"></i> Select multiple, click X to unselect. Already enrolled subjects are disabled.</small>
+              </div>
+              <div id="subjectsInputs"></div>
+            </div>
+
+            <div class="row g-3 mt-3">
+              <div class="col-md-5">
                 <label class="label-soft">Course / Program</label>
-                <select name="course" class="form-select">
+                <select name="course" id="course" class="form-select">
                   <option value="">Select Course</option>
                   <option>BSGE</option><option>BSCE</option><option>BSEcE</option><option>BSA</option><option>BSEE</option><option>BSME</option><option>BSCpE</option><option>Other</option>
                 </select>
               </div>
               <div class="col-md-3">
                 <label class="label-soft">Year</label>
-                <select name="year" class="form-select">
+                <select name="year" id="year" class="form-select">
                   <option value="">Year</option><option>1st</option><option>2nd</option><option>3rd</option><option>4th</option>
                 </select>
               </div>
-              <div class="col-md-3">
+              <div class="col-md-4">
                 <label class="label-soft">Section</label>
-                <input type="text" name="section" class="form-control" placeholder="CS-1A">
+                <input type="text" name="section" id="section" class="form-control" placeholder="CS-1A">
               </div>
               <div class="col-md-6">
                 <label class="label-soft">Email</label>
-                <input type="email" name="email" class="form-control" placeholder="student@school.edu">
+                <input type="email" name="email" id="email" class="form-control" placeholder="student@school.edu">
               </div>
               <div class="col-md-6">
                 <label class="label-soft">Contact</label>
-                <input type="text" name="contact" class="form-control" placeholder="09XX-XXX-XXXX">
+                <input type="text" name="contact" id="contact" class="form-control" placeholder="09XX-XXX-XXXX">
               </div>
             </div>
 
-            <div class="soft-divider"></div>
-
-            <h6 style="font-weight:800; color:#2e334d;" class="mb-3"><i class="bi bi-lock me-2" style="color:#7a5af0;"></i>Account Credentials</h6>
-            <div class="row g-3">
-              <div class="col-md-6">
-                <label class="label-soft">Username <span class="text-danger">*</span></label>
-                <input type="text" name="username" class="form-control" placeholder="Auto-filled from ID" id="usernameField" required>
-              </div>
-              <div class="col-md-6">
-                <label class="label-soft">Password <span class="text-danger">*</span></label>
-                <input type="password" name="password" class="form-control" placeholder="At least 6 characters" required minlength="6">
-              </div>
-            </div>
+            <input type="hidden" name="username" id="usernameField" value="">
 
             <div class="d-flex gap-2 mt-4 flex-wrap">
               <button type="submit" class="friendly-btn success" data-flip="pop"><i class="bi bi-check2-circle"></i> Submit Enrollment</button>
               <a href="{{ url_for('login') }}" class="friendly-btn secondary" data-flip="x"><i class="bi bi-arrow-left"></i> Back to Login</a>
             </div>
-
           </form>
         </div>
       </div>
@@ -151,11 +170,11 @@ h2 { font-weight: 800; color: #2e334d; letter-spacing: -0.02em; font-family: 'Qu
       <div class="card mb-3" style="background:linear-gradient(135deg, #f3efff 0%, #eef2ff 100%) !important;">
         <div class="card-body">
           <h6 style="font-weight:800;"><i class="bi bi-info-circle me-1" style="color:#7a5af0;"></i> Why ID first?</h6>
-          <p class="small mb-2" style="color:#5a5f7a;">Your ID number is your primary key to prevent duplicate records and to link your grades, exams, and attendance automatically.</p>
+          <p class="small mb-2" style="color:#5a5f7a;">Your ID is primary key. If you already exist, we allow re-enrollment with new subjects. No duplicate subject allowed.</p>
           <div class="d-flex flex-column gap-2 mt-3">
-            <span class="summary-chip chip-green"><i class="bi bi-check-circle"></i> No duplicate enrollment</span>
-            <span class="summary-chip chip-purple"><i class="bi bi-link-45deg"></i> Auto-link to subjects</span>
-            <span class="summary-chip chip-blue"><i class="bi bi-shield-lock"></i> Secure verification</span>
+            <span class="summary-chip chip-green"><i class="bi bi-check-circle"></i> No duplicate subject</span>
+            <span class="summary-chip chip-purple"><i class="bi bi-link-45deg"></i> Auto-update name</span>
+            <span class="summary-chip chip-blue"><i class="bi bi-shield-lock"></i> Smart-search</span>
           </div>
         </div>
       </div>
@@ -163,7 +182,7 @@ h2 { font-weight: 800; color: #2e334d; letter-spacing: -0.02em; font-family: 'Qu
         <div class="card-body text-center">
           <div style="width:56px; height:56px; background:#eef2ff; border-radius:16px; display:inline-flex; align-items:center; justify-content:center; margin-bottom:12px;"><i class="bi bi-person-check" style="font-size:1.8rem; color:#5a6cf3;"></i></div>
           <h6 style="font-weight:800;">Already enrolled?</h6>
-          <p class="small text-muted mb-3">Go to registration to create your login account using your ID.</p>
+          <p class="small text-muted mb-3">If you already have an account, you can log in and still add subjects here.</p>
           <a href="{{ url_for('register') }}" class="friendly-btn primary w-100" data-flip="pop"><i class="bi bi-box-arrow-in-right"></i> Register Account</a>
         </div>
       </div>
@@ -176,22 +195,170 @@ const idInput = document.getElementById('student_id');
 const usernameField = document.getElementById('usernameField');
 const idStatus = document.getElementById('idStatus');
 const idHint = document.getElementById('idHint');
-
+const welcomeBox = document.getElementById('welcomeBox');
+const welcomeName = document.getElementById('welcomeName');
+const alreadyEnrolledList = document.getElementById('alreadyEnrolledList');
+const lastNameInput = document.getElementById('last_name');
+const firstNameInput = document.getElementById('first_name');
+const middleNameInput = document.getElementById('middle_name');
 let timeout = null;
+let enrolledCodes = []; // already enrolled
+let pendingCodes = [];
+let selectedCodes = new Map(); // code -> name
+
+function updatePreview(){
+  const last = lastNameInput?.value || 'SURNAME';
+  const first = firstNameInput?.value || 'First name';
+  const middle = middleNameInput?.value || '';
+  let mi = middle ? middle.trim()[0].toUpperCase()+'.' : '';
+  document.getElementById('namePreview').textContent = `${last.toUpperCase()}, ${first} ${mi}`.trim();
+}
+document.querySelectorAll('#last_name,#first_name,#middle_name').forEach(el=>el.addEventListener('input', updatePreview));
+
+function renderSelected(){
+  const container = document.getElementById('selectedSubjects');
+  const inputsDiv = document.getElementById('subjectsInputs');
+  container.innerHTML=''; inputsDiv.innerHTML='';
+  if(selectedCodes.size===0){
+    container.innerHTML='<small class="text-muted">No subjects selected yet. Search above.</small>';
+    return;
+  }
+  for(let [code,name] of selectedCodes){
+    const chip = document.createElement('div');
+    chip.className='chip-subject';
+    chip.innerHTML=`<span>${code} - ${name}</span><span class="x"><i class="bi bi-x"></i></span>`;
+    chip.querySelector('.x').onclick=()=>{ selectedCodes.delete(code); renderSelected(); };
+    container.appendChild(chip);
+    const inp = document.createElement('input');
+    inp.type='hidden'; inp.name='subjects[]'; inp.value=code;
+    inputsDiv.appendChild(inp);
+  }
+  // also show enrolled disabled chips
+  enrolledCodes.forEach(code=>{
+    if(!selectedCodes.has(code)){
+      const chip=document.createElement('div');
+      chip.className='chip-subject enrolled';
+      chip.innerHTML=`<span>${code} (already enrolled)</span><i class="bi bi-check-circle-fill"></i>`;
+      container.appendChild(chip);
+    }
+  });
+  pendingCodes.forEach(code=>{
+    if(!enrolledCodes.includes(code) && !selectedCodes.has(code)){
+      const chip=document.createElement('div');
+      chip.className='chip-subject pending';
+      chip.innerHTML=`<span>${code} (pending)</span><i class="bi bi-hourglass-split"></i>`;
+      container.appendChild(chip);
+    }
+  });
+}
+
+async function fetchSubjects(q){
+  try{
+    const res = await fetch(`/api/subjects/search?q=${encodeURIComponent(q)}`);
+    const data = await res.json();
+    const dd = document.getElementById('subjectDropdown');
+    dd.innerHTML='';
+    if(data.length===0){ dd.innerHTML='<div class="item text-muted">No subjects found</div>'; }
+    data.forEach(s=>{
+      const isEnrolled = enrolledCodes.includes(s.code.toUpperCase()) || pendingCodes.includes(s.code.toUpperCase());
+      const isSelected = selectedCodes.has(s.code.toUpperCase());
+      const div=document.createElement('div');
+      div.className='item'+(isEnrolled||isSelected?' disabled':'');
+      div.innerHTML=`<span><strong>${s.code}</strong> - ${s.name}</span><small>${isEnrolled?'<span class="badge bg-warning text-dark">Enrolled</span>': isSelected?'<span class="badge bg-success">Selected</span>': '<i class="bi bi-plus-circle"></i>'}</small>`;
+      if(!isEnrolled && !isSelected){
+        div.onclick=()=>{
+          selectedCodes.set(s.code.toUpperCase(), s.name);
+          renderSelected();
+          document.getElementById('subjectSearch').value='';
+          dd.style.display='none';
+        };
+      }
+      dd.appendChild(div);
+    });
+    dd.style.display='block';
+  }catch(e){ console.error(e); }
+}
+
 idInput?.addEventListener('input', () => {
   clearTimeout(timeout);
   const val = idInput.value.trim();
   if(usernameField && val) usernameField.value = val;
-  if(!val){ idInput.classList.remove('is-valid','is-invalid'); idStatus.innerHTML='<i class="bi bi-info-circle me-1"></i>Enter your official school ID number first'; idStatus.style.color='#8b90a3'; return; }
+  if(!val){
+    idInput.classList.remove('is-valid','is-invalid');
+    idStatus.innerHTML='<i class="bi bi-info-circle me-1"></i>Enter your official school ID number first';
+    idStatus.style.color='#8b90a3';
+    idHint.style.display='none';
+    welcomeBox.style.display='none';
+    enrolledCodes=[]; pendingCodes=[]; renderSelected();
+    return;
+  }
   idHint.style.display='inline-flex';
+  idHint.textContent='Checking...';
   timeout = setTimeout(async () => {
     try{
-      const res = await fetch(`/api/check-id?id=${encodeURIComponent(val)}`);
-      const data = await res.json();
-      if(data.exists){ idInput.classList.add('is-invalid'); idInput.classList.remove('is-valid'); idStatus.innerHTML=`<i class="bi bi-x-circle me-1"></i>${data.message}`; idStatus.style.color='#e5485a'; idHint.innerHTML='<i class="bi bi-x"></i> Already exists'; idHint.className='summary-chip'; idHint.style.background='#ffe8e8'; idHint.style.color='#e5485a'; }
-      else { idInput.classList.add('is-valid'); idInput.classList.remove('is-invalid'); idStatus.innerHTML='<i class="bi bi-check-circle me-1"></i> ID is available!'; idStatus.style.color='#2e9d6b'; idHint.innerHTML='<i class="bi bi-check"></i> Available'; idHint.className='summary-chip chip-green'; idHint.style.background=''; idHint.style.color=''; }
-    }catch(e){ idHint.style.display='none'; }
+      // check subjects info
+      const res2 = await fetch(`/api/check-id-subjects?id=${encodeURIComponent(val)}`);
+      const d2 = await res2.json();
+      if(d2.found){
+        idInput.classList.remove('is-invalid'); idInput.classList.add('is-valid');
+        idStatus.innerHTML=`<i class="bi bi-check-circle me-1"></i>Found! Welcome back. You can add more subjects.`;
+        idStatus.style.color='#2e9d6b';
+        idHint.innerHTML='<i class="bi bi-check"></i> Re-enroll allowed';
+        idHint.className='summary-chip chip-green';
+        // prefill
+        if(d2.last_name) lastNameInput.value=d2.last_name;
+        if(d2.first_name) firstNameInput.value=d2.first_name;
+        if(d2.middle_name) middleNameInput.value=d2.middle_name;
+        if(d2.course) document.getElementById('course').value=d2.course;
+        if(d2.year) document.getElementById('year').value=d2.year;
+        if(d2.section) document.getElementById('section').value=d2.section;
+        if(d2.email) document.getElementById('email').value=d2.email;
+        if(d2.contact) document.getElementById('contact').value=d2.contact;
+        updatePreview();
+        enrolledCodes = (d2.enrolled_codes||[]).map(c=>c.toUpperCase());
+        pendingCodes = (d2.pending_codes||[]).map(c=>c.toUpperCase());
+        welcomeBox.style.display='block';
+        welcomeName.textContent = d2.first_name ? `${d2.first_name} ${d2.last_name}` : val;
+        alreadyEnrolledList.textContent = enrolledCodes.length? enrolledCodes.join(', ') : 'None yet';
+        if(pendingCodes.length) alreadyEnrolledList.textContent += ` | Pending: ${pendingCodes.join(', ')}`;
+        renderSelected();
+      } else {
+        idInput.classList.remove('is-invalid'); idInput.classList.add('is-valid');
+        idStatus.innerHTML='<i class="bi bi-check-circle me-1"></i> ID is available! New student';
+        idStatus.style.color='#2e9d6b';
+        idHint.innerHTML='<i class="bi bi-check"></i> Available';
+        idHint.className='summary-chip chip-green';
+        welcomeBox.style.display='none';
+        enrolledCodes=[]; pendingCodes=[]; renderSelected();
+      }
+    }catch(e){
+      console.error(e);
+      idHint.style.display='none';
+    }
   }, 400);
 });
+
+document.getElementById('subjectSearch').addEventListener('input', (e)=>{
+  const q=e.target.value.trim();
+  if(!q){ document.getElementById('subjectDropdown').style.display='none'; return; }
+  fetchSubjects(q);
+});
+document.getElementById('subjectSearch').addEventListener('focus', (e)=>{
+  if(e.target.value.trim()) fetchSubjects(e.target.value.trim());
+  else fetchSubjects('');
+});
+document.addEventListener('click', (e)=>{
+  if(!e.target.closest('#subjectPicker')) document.getElementById('subjectDropdown').style.display='none';
+});
+document.getElementById('clearSubjects').addEventListener('click', ()=>{ selectedCodes.clear(); renderSelected(); });
+
+document.getElementById('enrollForm').addEventListener('submit', (e)=>{
+  if(selectedCodes.size===0){
+    e.preventDefault();
+    alert('Please select at least one subject to enroll. Type in the search box.');
+    document.getElementById('subjectSearch').focus();
+  }
+});
+renderSelected();
 </script>
 {% endblock %}

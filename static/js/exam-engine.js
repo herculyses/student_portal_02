@@ -703,241 +703,190 @@ const Exam = {
     security: {
 
         selectionLock: false,
+        lastSelectionLog: 0,
 
         init() {
+            // Use arrow wrappers so `this` is always Exam.security and listeners actually fire
+            document.addEventListener("visibilitychange", () => this.handleVisibilityChange());
+            window.addEventListener("blur", () => this.handleVisibilityChange());
+            window.addEventListener("pagehide", () => this.handleVisibilityChange());
 
-            document.addEventListener(
-                "visibilitychange",
-                this.handleVisibilityChange
-            );
-
-            document.addEventListener(
-                "contextmenu",
-                this.handleRightClick
-            );
-
-            document.addEventListener(
-                "copy",
-                this.handleCopy
-            );
-
-            document.addEventListener(
-                "cut",
-                this.handleCut
-            );
-
-            document.addEventListener(
-                "paste",
-                this.handlePaste
-            );
-
-            document.addEventListener(
-                "keydown",
-                this.handleKeyDown
-            );
-
-            document.addEventListener(
-                "selectionchange",
-                this.handleTextSelection
-            );
-
-            document.addEventListener(
-                "fullscreenchange",
-                this.handleFullscreenChange
-            );
-
+            // Use capture phase (true) so we catch before Bootstrap/other handlers stop it
+            document.addEventListener("contextmenu", (e) => this.handleRightClick(e), true);
+            document.addEventListener("copy", (e) => this.handleCopy(e), true);
+            document.addEventListener("cut", (e) => this.handleCut(e), true);
+            document.addEventListener("paste", (e) => this.handlePaste(e), true);
+            document.addEventListener("keydown", (e) => this.handleKeyDown(e), true);
+            document.addEventListener("selectionchange", () => this.handleTextSelection());
+            document.addEventListener("fullscreenchange", () => this.handleFullscreenChange());
+            // Also listen for PrintScreen key
+            window.addEventListener("keyup", (e) => this.handleKeyUp(e), true);
         },
 
         handleVisibilityChange() {
-
-            if (document.hidden) {
-
-                Exam.security.logEvent("TAB_SWITCH");
-
+            // Log if hidden OR if window lost focus (more reliable for tab switch)
+            if (document.hidden || !document.hasFocus()) {
+                this.logEvent("TAB_SWITCH");
             }
-
         },
 
         handleRightClick(event) {
-
             event.preventDefault();
-
+            event.stopPropagation();
             console.log("Right click blocked.");
-
-            Exam.security.logEvent("RIGHT_CLICK");
-
+            this.logEvent("RIGHT_CLICK");
+            return false;
         },
 
         handleCopy(event) {
-
             event.preventDefault();
-
+            event.stopPropagation();
             console.log("Copy blocked.");
-
-            Exam.security.logEvent("COPY");
-
+            this.logEvent("COPY");
+            return false;
         },
 
         handleCut(event) {
-
             event.preventDefault();
-
+            event.stopPropagation();
             console.log("Cut blocked.");
-
-            Exam.security.logEvent("CUT");
-
+            this.logEvent("CUT");
+            return false;
         },
 
         handlePaste(event) {
-
             event.preventDefault();
-
+            event.stopPropagation();
             console.log("Paste blocked.");
-
-            Exam.security.logEvent("PASTE");
-
+            this.logEvent("PASTE");
+            return false;
         },
 
         handleKeyDown(event) {
-
-            // ----------------------------------------------------
             // F12
-            // ----------------------------------------------------
-
-            if (event.key === "F12") {
-
+            if (event.key === "F12" || event.keyCode === 123) {
+                event.preventDefault();
                 console.log("F12 detected.");
-
-                Exam.security.logEvent("F12");
-
+                this.logEvent("F12");
             }
 
-            // ----------------------------------------------------
             // Ctrl + U
-            // ----------------------------------------------------
-
             if (event.ctrlKey && event.key.toLowerCase() === "u") {
-
                 event.preventDefault();
-
+                event.stopPropagation();
                 console.log("Ctrl + U detected.");
-
-                Exam.security.logEvent("CTRL_U");
-
+                this.logEvent("CTRL_U");
+                return false;
             }
 
-            // ----------------------------------------------------
-            // Ctrl + Shift + I
-            // ----------------------------------------------------
-
-            if (
-                event.ctrlKey &&
-                event.shiftKey &&
-                event.key.toLowerCase() === "i"
-            ) {
-
+            // Ctrl + Shift + I / J / C  (all devtools)
+            if (event.ctrlKey && event.shiftKey && ["i","j","c"].includes(event.key.toLowerCase())) {
                 event.preventDefault();
-
-                console.log("Ctrl + Shift + I detected.");
-
-                Exam.security.logEvent("CTRL_SHIFT_I");
-
+                event.stopPropagation();
+                console.log("Ctrl + Shift + " + event.key.toUpperCase() + " detected.");
+                this.logEvent("CTRL_SHIFT_I");
+                return false;
             }
 
+            // Ctrl + S, Ctrl + P, Ctrl + C, Ctrl + X, Ctrl + V also count
+            if (event.ctrlKey && ["s","p"].includes(event.key.toLowerCase())) {
+                event.preventDefault();
+                this.logEvent(event.key.toLowerCase() === "s" ? "CTRL_U" : "COPY");
+            }
+        },
+
+        handleKeyUp(event) {
+            // PrintScreen key (often key is PrintScreen or keyCode 44)
+            if (event.key === "PrintScreen" || event.keyCode === 44) {
+                console.log("PrintScreen detected.");
+                this.logEvent("COPY");
+            }
         },
 
         handleTextSelection() {
+            const now = Date.now();
+            // Throttle to 1.5s to avoid spamming security_events table
+            if (now - this.lastSelectionLog < 1500) return;
 
             const selectedText = window.getSelection().toString().trim();
-
-            if (!selectedText) {
-        return;
-            }
-
-            if (Exam.security.selectionLock) {
+            if (!selectedText || selectedText.length < 2) {
                 return;
             }
+            if (this.selectionLock) {
+                return;
+            }
+            this.selectionLock = true;
+            this.lastSelectionLog = now;
 
-            Exam.security.selectionLock = true;
+            console.log("Text selection detected:", selectedText.substring(0,20));
+            this.logEvent("TEXT_SELECTION");
 
-            console.log("Text selection detected.");
-
-            Exam.security.logEvent("TEXT_SELECTION");
-
-            window.getSelection().removeAllRanges();
+            // Delay clearing so COPY event can still fire first, then clear
+            setTimeout(() => {
+                try { window.getSelection().removeAllRanges(); } catch(e){}
+            }, 150);
 
             setTimeout(() => {
-
-                Exam.security.selectionLock = false;
-
-            }, 1000);
-
+                this.selectionLock = false;
+            }, 1200);
         },
 
         handleFullscreenChange() {
-
-            console.log("Fullscreen Changed");
-
-            // If still in fullscreen, do nothing.
+            console.log("Fullscreen Changed, element:", document.fullscreenElement);
             if (document.fullscreenElement) {
                 return;
             }
-
             console.log("Fullscreen exited.");
-
-            Exam.security.logEvent("FULLSCREEN_EXIT");
-
+            this.logEvent("FULLSCREEN_EXIT");
         },
 
-        // LOG EVENT HERE
-
+        // LOG EVENT HERE - FIXED WITH keepalive + sendBeacon
         async logEvent(eventType) {
-
-            // Ignore security events after instructor has force submitted
             if (Exam.live.forceSubmitted) {
                 return;
             }
 
+            const payload = JSON.stringify({ event: eventType });
+
+            // For visibilitychange / blur, sendBeacon is more reliable than fetch
             try {
+                if ((document.hidden || eventType === "TAB_SWITCH" || eventType === "FULLSCREEN_EXIT") && navigator.sendBeacon) {
+                    const blob = new Blob([payload], { type: "application/json" });
+                    const beaconOk = navigator.sendBeacon("/log-security-event", blob);
+                    console.log("sendBeacon for", eventType, "->", beaconOk);
+                    // Still do fetch as well for response handling (score update), but don't await blocking
+                    if (!beaconOk) {
+                        // fallback below
+                    }
+                }
+            } catch (e) {
+                console.warn("Beacon failed", e);
+            }
 
+            try {
                 const response = await fetch("/log-security-event", {
-
                     method: "POST",
-
                     headers: {
                         "Content-Type": "application/json"
                     },
-
-                    body: JSON.stringify({
-                        event: eventType
-                    })
-
+                    body: payload,
+                    keepalive: true,
+                    credentials: "same-origin"
                 });
 
                 if (!response.ok) {
-
-                    console.error("Unable to log security event.");
-
+                    const txt = await response.text();
+                    console.error("Unable to log security event:", eventType, response.status, txt);
                     return;
-
                 }
 
                 const data = await response.json();
-
-                console.log(data);
-
-                // ------------------------------------
-                // Update Security Thresholds
-                // ------------------------------------
-
-                Exam.security.updateSecurityStatus(data);
+                console.log("Logged", eventType, data);
+                this.updateSecurityStatus(data);
 
             } catch (error) {
-
-                console.error(error);
-
+                console.error("logEvent error for", eventType, error);
             }
-
         },
 
         updateSecurityStatus(data) {

@@ -1,93 +1,105 @@
 {% extends "base.html" %}
 {% block title %}Edit Student{% endblock %}
 {% block content %}
+<<<<<<< HEAD
+=======
+<div class="container mt-4" style="max-width:850px;">
+  <div class="card soft-card shadow-sm p-4">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+      <h3 class="mb-0"><i class="bi bi-pencil-square" style="color:#5a6cf3;"></i> Edit Student</h3>
+      <span class="badge" style="background:#eef2ff; color:#5a6cf3; border-radius:50px; padding:8px 14px;"><i class="bi bi-person-badge"></i> {{ student.student_id }}</span>
+    </div>
+    <h6 class="text-center text-muted mb-4"><i class="bi bi-eye"></i> Display: <strong>{{ student.display_name if student.display_name else student.name }}</strong> | Format: SURNAME, First Mi.</h6>
+>>>>>>> 67d5f7b (updated dozens of improvements unto the system)
 
-<link rel="icon" type="image/png"
-      href="{{ url_for('static', filename='favicon.png') }}">
-
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-</head>
-<body class="bg-light">
-
-<div class="container mt-5">
-  <div class="card shadow-sm p-4">
-
-    <!-- Header -->
-    <h3 class="text-center text-primary mb-2">Edit Student</h3>
-    {% if student.subject %}
-      <h5 class="text-center text-secondary mb-4">
-        Subject: <span class="badge bg-info text-dark">{{ student.subject }}</span>
-      </h5>
-    {% endif %}
-
-    <!-- Flash Messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         {% for category, message in messages %}
-          <div class="alert alert-{{ category }} flash" role="alert">{{ message }}</div>
+          <div class="alert alert-{{ category }} flash" style="border-radius:14px; font-weight:600;">{{ message }}</div>
         {% endfor %}
       {% endif %}
     {% endwith %}
 
+    <!-- BASIC INFO FORM -->
     <form method="POST">
       {{ form.hidden_tag() }}
-
-      <!-- Basic Info -->
       <div class="row">
-        <div class="col-md-4 mb-3">
-          {{ form.student_id.label(class="form-label") }}
-          {{ form.student_id(class="form-control", placeholder="Enter Student ID") }}
+        <div class="col-md-3 mb-3">
+          <label class="form-label fw-bold"><i class="bi bi-upc-scan"></i> Student ID</label>
+          {{ form.student_id(class="form-control") }}
         </div>
-        <div class="col-md-4 mb-3">
-          {{ form.name.label(class="form-label") }}
-          {{ form.name(class="form-control", placeholder="Enter Student Name") }}
+        <div class="col-md-3 mb-3">
+          <label class="form-label fw-bold">Surname *</label>
+          <input type="text" name="last_name" class="form-control" value="{{ student.last_name or '' }}" required>
         </div>
-        <div class="col-md-4 mb-3">
-          {{ form.subject.label(class="form-label") }}
-          {{ form.subject(class="form-control", placeholder="Enter Subject") }}
+        <div class="col-md-3 mb-3">
+          <label class="form-label fw-bold">First Name *</label>
+          <input type="text" name="first_name" class="form-control" value="{{ student.first_name or '' }}" required>
+        </div>
+        <div class="col-md-3 mb-3">
+          <label class="form-label fw-bold">Middle Name</label>
+          <input type="text" name="middle_name" class="form-control" value="{{ student.middle_name or '' }}">
         </div>
       </div>
+<<<<<<< HEAD
 
       <button type="submit" class="btn btn-primary w-100">Save Changes</button>
+=======
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <label class="form-label"><i class="bi bi-journal-bookmark"></i> Subject</label>
+          {{ form.subject(class="form-control") }}
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="form-label"><i class="bi bi-people"></i> Section</label>
+          <input type="text" name="section" value="{{ student.section }}" class="form-control">
+        </div>
+      </div>
+      <div class="d-flex gap-2 mt-3 flex-wrap">
+        <button type="submit" class="friendly-btn success w-100" data-flip="pop"><i class="bi bi-check-circle-fill"></i> Save Changes</button>
+      </div>
+>>>>>>> 67d5f7b (updated dozens of improvements unto the system)
     </form>
 
-<hr>
-<h5 class="text-danger mt-4">Password Management</h5>
+    <hr class="my-4" style="border-color:#f0eaff;">
 
-<!-- Change Password -->
-<form method="POST" action="{{ url_for('change_student_password', student_id=student.student_id) }}">
-  <div class="mb-3">
-    <label class="form-label">New Password</label>
-    <input type="text" name="new_password" class="form-control" placeholder="Enter new password">
-  </div>
-  <button type="submit" class="btn btn-warning w-100">
-    Change Password
-  </button>
-</form>
+    <!-- PASSWORD MANAGEMENT - ADDED FROM OLD -->
+    <div class="card" style="border-radius:18px; border:1.5px solid #ffe0e0; background:linear-gradient(135deg, #fff5f5 0%, #fffaf0 100%);">
+      <div class="card-body p-4">
+        <h5 class="mb-3" style="font-weight:800; color:#c53030;"><i class="bi bi-shield-lock-fill me-2"></i>Password Management</h5>
+        
+        <!-- Change Password -->
+        <form method="POST" action="{{ url_for('change_student_password', student_id=student.student_id) }}" class="mb-3">
+          <label class="form-label fw-bold" style="color:#5a5f7a;"><i class="bi bi-key me-1"></i> New Password</label>
+          <div class="input-group" style="border-radius:50px; overflow:hidden;">
+            <span class="input-group-text" style="border-radius:50px 0 0 50px; background:#fff7ed; border-color:#fed7aa;"><i class="bi bi-lock"></i></span>
+            <input type="text" name="new_password" class="form-control" placeholder="Enter new password" style="border-color:#fed7aa;" required>
+            <button type="submit" class="friendly-btn warning" data-flip="spin" style="border-radius:0 50px 50px 0;"><i class="bi bi-arrow-repeat"></i> Change Password</button>
+          </div>
+        </form>
 
-<!-- Reset Password -->
-<form method="POST" action="{{ url_for('reset_password', student_id=student.student_id) }}" class="mt-2">
-  <button type="submit" class="btn btn-danger w-100"
-    onclick="return confirm('Reset password to Student ID?')">
-    Reset to Default Password
-  </button>
-</form>
+        <!-- Reset Password -->
+        <form method="POST" action="{{ url_for('reset_password', student_id=student.student_id) }}">
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 p-3" style="background:#fff; border-radius:14px; border:1px dashed #feb2b2;">
+            <div>
+              <strong style="color:#c53030;"><i class="bi bi-exclamation-triangle me-1"></i> Reset to Default?</strong>
+              <div class="small text-muted">Password will become: <code style="background:#fee2e2; padding:2px 6px; border-radius:6px;">{{ student.student_id }}</code></div>
+            </div>
+            <button type="submit" class="friendly-btn danger" data-flip="trash" onclick="return confirm('Reset password to Student ID ({{ student.student_id }})?')"><i class="bi bi-arrow-counterclockwise"></i> Reset to Default Password</button>
+          </div>
+        </form>
+      </div>
+    </div>
 
-    <!-- Back Button -->
-    {% if session.get('role') == 'Admin' %}
-      <a href="{{ url_for('dashboard_admin') }}" class="btn btn-secondary mt-3 w-100">Back to Dashboard</a>
-    {% elif session.get('role') == 'Instructor' %}
-      <a href="{{ url_for('dashboard_instructor') }}" class="btn btn-secondary mt-3 w-100">Back to Dashboard</a>
-    {% else %}
-      <a href="{{ url_for('students') }}" class="btn btn-secondary mt-3 w-100">Back to Students List</a>
-    {% endif %}
+    <hr class="my-4" style="border-color:#f0eaff;">
+    <div class="d-flex gap-2 flex-wrap">
+      <a href="{{ url_for('view_students') }}" class="friendly-btn slate w-100" data-flip="back"><i class="bi bi-arrow-left-circle"></i> Back to Students</a>
+    </div>
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
 <script>
+<<<<<<< HEAD
 document.addEventListener("DOMContentLoaded", function() {
   // Auto-hide flash messages
   document.querySelectorAll(".flash").forEach(flash => {
@@ -98,6 +110,17 @@ document.addEventListener("DOMContentLoaded", function() {
       setTimeout(() => flash.remove(), 500);
     }, 5000);
   });
+=======
+console.log('%c✏️ Edit Student + Password - Loaded', 'color:#5a6cf3; font-weight:800; background:#eef2ff; padding:4px 10px; border-radius:50px;');
+console.log('Student:', '{{ student.student_id }}', 'Display:', '{{ student.display_name or student.name }}');
+document.querySelectorAll(".flash").forEach(flash => {
+  setTimeout(() => {
+    flash.style.transition = "opacity 0.5s ease, transform 0.5s ease";
+    flash.style.opacity = "0";
+    flash.style.transform = "translateY(-10px)";
+    setTimeout(() => flash.remove(), 500);
+  }, 5000);
+>>>>>>> 67d5f7b (updated dozens of improvements unto the system)
 });
 </script>
 {% endblock %}

@@ -1,23 +1,16 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Add Student</title>
+{% extends "base.html" %}
+{% block title %}Add Student{% endblock %}
+{% block content %}
 
-<link rel="icon" type="image/png"
-      href="{{ url_for('static', filename='favicon.png') }}">
-
+<link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body class="bg-light">
 
 <div class="container mt-5">
-    <!-- Page Heading -->
     <h4 class="text-primary text-center mb-4">Add Student</h4>
 
-    <!-- Flash Messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         {% for category, message in messages %}
@@ -26,7 +19,6 @@
       {% endif %}
     {% endwith %}
 
-    <!-- Form Card -->
     <div class="card shadow-sm p-4">
         <form method="POST">
             {{ form.hidden_tag() }}
@@ -34,26 +26,79 @@
             <div class="mb-3">
                 {{ form.student_id.label(class="form-label") }}
                 {{ form.student_id(class="form-control", placeholder="Enter Student ID") }}
+                {% for error in form.student_id.errors %}
+                  <small class="text-danger">{{ error }}</small>
+                {% endfor %}
             </div>
 
-            <div class="mb-3">
-                {{ form.name.label(class="form-label") }}
-                {{ form.name(class="form-control", placeholder="Enter Name") }}
+            <!-- NEW: Split Name Fields -->
+            <div class="row">
+                <div class="col-md-5 mb-3">
+                    {{ form.last_name.label(class="form-label") }}
+                    {{ form.last_name(class="form-control", placeholder="Enter Surname") }}
+                    {% for error in form.last_name.errors %}
+                      <small class="text-danger">{{ error }}</small>
+                    {% endfor %}
+                </div>
+                <div class="col-md-4 mb-3">
+                    {{ form.first_name.label(class="form-label") }}
+                    {{ form.first_name(class="form-control", placeholder="Enter First Name") }}
+                    {% for error in form.first_name.errors %}
+                      <small class="text-danger">{{ error }}</small>
+                    {% endfor %}
+                </div>
+                <div class="col-md-3 mb-3">
+                    {{ form.middle_name.label(class="form-label") }}
+                    {{ form.middle_name(class="form-control", placeholder="Middle Name (optional)") }}
+                </div>
             </div>
 
-            <div class="mb-3">
-                {{ form.subject.label(class="form-label") }}
-                {{ form.subject(class="form-control", placeholder="Enter Subject") }}
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    {{ form.subject.label(class="form-label") }}
+                    {{ form.subject(class="form-control", placeholder="Enter Subject e.g. CS101") }}
+                    {% for error in form.subject.errors %}
+                      <small class="text-danger">{{ error }}</small>
+                    {% endfor %}
+                </div>
+                <div class="col-md-6 mb-3">
+                    {{ form.section.label(class="form-label") }}
+                    {{ form.section(class="form-control", placeholder="Enter Section") }}
+                </div>
             </div>
 
-            <div class="mb-3">
-                {{ form.final_grade.label(class="form-label") }}
-                {{ form.final_grade(class="form-control", placeholder="Enter Grade") }}
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    {{ form.subject_name.label(class="form-label") }}
+                    {{ form.subject_name(class="form-control", placeholder="Subject Name") }}
+                </div>
+                <div class="col-md-6 mb-3">
+                    {{ form.subject_code.label(class="form-label") }}
+                    {{ form.subject_code(class="form-control", placeholder="Subject Code") }}
+                </div>
             </div>
 
-            <div class="mb-3">
-                {{ form.final_remarks.label(class="form-label") }}
-                {{ form.final_remarks(class="form-control", placeholder="Enter Remarks") }}
+            <hr>
+            <h6>Initial Grades (Optional)</h6>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    {{ form.midterm_grade.label(class="form-label") }}
+                    {{ form.midterm_grade(class="form-control", placeholder="Midterm Grade") }}
+                </div>
+                <div class="col-md-6 mb-3">
+                    {{ form.final_grade.label(class="form-label") }}
+                    {{ form.final_grade(class="form-control", placeholder="Final Grade") }}
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    {{ form.midterm_remarks.label(class="form-label") }}
+                    {{ form.midterm_remarks(class="form-control", placeholder="Midterm Remarks") }}
+                </div>
+                <div class="col-md-6 mb-3">
+                    {{ form.final_remarks.label(class="form-label") }}
+                    {{ form.final_remarks(class="form-control", placeholder="Final Remarks") }}
+                </div>
             </div>
 
             <div class="mb-3">
@@ -67,5 +112,4 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="{{ url_for('static', filename='js/script.js') }}"></script>
-</body>
-</html>
+{% endblock %}

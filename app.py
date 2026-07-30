@@ -64,6 +64,42 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
+# =========================
+# NAME FORMATTING HELPER
+# =========================
+def format_display_name(last_name, first_name, middle_name=None):
+    """Returns SURNAME, First name M.  Middle is optional."""
+    if not last_name and not first_name:
+        return ""
+    last = (last_name or "").strip().upper()
+    first = (first_name or "").strip()
+    # Title case first name but keep as entered if already cased
+    if first:
+        # keep original casing but ensure first letter capital
+        first = first.title() if first.isupper() or first.islower() else first
+    if middle_name and middle_name.strip():
+        mi = middle_name.strip()[0].upper() + "."
+        return f"{last}, {first} {mi}" if last and first else f"{last or first} {mi}".strip()
+    else:
+        if last and first:
+            return f"{last}, {first}"
+        return last or first
+
+def parse_fullname_to_parts(fullname):
+    """Fallback for old data: try to split fullname into last, first, middle"""
+    if not fullname:
+        return "", "", ""
+    parts = fullname.strip().split()
+    if len(parts)==1:
+        return parts[0], "", ""
+    elif len(parts)==2:
+        # Assume First Last? We want surname last word
+        return parts[1], parts[0], ""
+    else:
+        # First Middle Last
+        return parts[-1], parts[0], " ".join(parts[1:-1])
+
+
 sse_events = defaultdict(list)  # LIVE auto-refresh - required, tiny RAM
 
 # --- Models ---
@@ -84,7 +120,31 @@ class Student(db.Model):
 
     student_id = db.Column(db.String(100), primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
-    name = db.Column(db.String(150), nullable=False)
+    # --- NEW SPLIT NAME FIELDS ---
+    last_name = db.Column(db.String(100), nullable=False, default='')
+    first_name = db.Column(db.String(100), nullable=False, default='')
+    middle_name = db.Column(db.String(100), nullable=True)
+    # Keep old column for backward migration (can be removed later)
+    name = db.Column(db.String(150), nullable=True)
+
+    @property
+    def display_name(self):
+        # Preferred display: SURNAME, First name M.
+        if self.last_name or self.first_name:
+            return format_display_name(self.last_name, self.first_name, self.middle_name)
+        # fallback to old name
+        if self.name:
+            ln, fn, mn = parse_fullname_to_parts(self.name)
+            return format_display_name(ln, fn, mn)
+        return ""
+
+    @property
+    def middle_initial(self):
+        return (self.middle_name[0].upper() + ".") if self.middle_name else ""
+
+    def sync_legacy_name(self):
+        self.name = self.display_name
+
 
     year = db.Column(db.String(20))
     section = db.Column(db.String(50))
@@ -190,20 +250,42 @@ class Log(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
 # =========================
-# ENROLLMENT SYSTEM - NEW
+# ENROLLMENT SYSTEM - NEW (MULTI-SUBJECT RE-ENROLLMENT)
 # =========================
 class Enrollment(db.Model):
     __tablename__ = 'enrollment'
     id = db.Column(db.Integer, primary_key=True)
-    student_id = db.Column(db.String(100), unique=True, nullable=False)  # PRIORITY FIELD
-    name = db.Column(db.String(150), nullable=False)
+    student_id = db.Column(db.String(100), nullable=False, index=True)  # NOT unique - allows re-enroll
+    last_name = db.Column(db.String(100), nullable=False, default='')
+    first_name = db.Column(db.String(100), nullable=False, default='')
+    middle_name = db.Column(db.String(100), nullable=True)
+    name = db.Column(db.String(150), nullable=True)
+
+    @property
+    def display_name(self):
+        if self.last_name or self.first_name:
+            return format_display_name(self.last_name, self.first_name, self.middle_name)
+        if self.name:
+            ln, fn, mn = parse_fullname_to_parts(self.name)
+            return format_display_name(ln, fn, mn)
+        return ""
+
+    def sync_legacy_name(self):
+        self.name = self.display_name
+
     course = db.Column(db.String(100))
     year = db.Column(db.String(20))
     section = db.Column(db.String(50))
     email = db.Column(db.String(150))
     contact = db.Column(db.String(50))
     username = db.Column(db.String(100))
-    status = db.Column(db.String(20), default='pending')  # pending/approved/rejected
+    # NEW: subject tracking for re-enrollment
+    subject = db.Column(db.String(100), nullable=True)
+    subject_code = db.Column(db.String(50), nullable=True)
+    subject_name = db.Column(db.String(150), nullable=True)
+    status = db.Column(db.String(20), default='pending')
+    is_deleted = db.Column(db.Boolean, default=False, nullable=False)
+    deleted_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     approved_at = db.Column(db.DateTime, nullable=True)
 
@@ -225,6 +307,14 @@ class Subject(db.Model):
         lazy=True,
         cascade="all, delete"
     )
+
+class Section(db.Model):
+    __tablename__ = 'sections'
+    id = db.Column(db.Integer, primary_key=True)
+    section_code = db.Column(db.String(20), unique=True, nullable=False)  # e.g. 1A, 2A, 3A, 4A
+    description = db.Column(db.String(150), nullable=True)  # e.g. First Year Section A
+    school_year = db.Column(db.String(20), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 class Exam(db.Model):
     __tablename__ = 'exam'
@@ -529,7 +619,10 @@ class CreateUserForm(FlaskForm):
 
 class StudentForm(FlaskForm):
     student_id = StringField('Student ID', validators=[DataRequired()])
-    name = StringField('Name', validators=[DataRequired()])
+    last_name = StringField('Surname', validators=[DataRequired()])
+    first_name = StringField('First Name', validators=[DataRequired()])
+    middle_name = StringField('Middle Name', validators=[Optional()])
+    name = StringField('Name (legacy)', validators=[Optional()])
     section = StringField('Section', validators=[Optional()])
     subject = StringField('Subject', validators=[Optional()])
     subject_name = StringField('Subject Name', validators=[Optional()])
@@ -1047,7 +1140,7 @@ def update_exam_access(
     payload = {
         "access_id": access.id,
         "student_id": access.student_id,
-        "student_name": access.student.name,
+        "student_name": access.student.display_name,
         "section": access.student.section,
         "exam_id": access.exam_id,
         "status": status,
@@ -1194,7 +1287,7 @@ def notify_exam_status(access, status, extra=None):
     data = {
         "access_id": access.id,
         "student_id": access.student_id,
-        "student_name": access.student.name,
+        "student_name": access.student.display_name,
         "section": access.student.section,
         "exam_id": access.exam_id,
         "status": status,
@@ -1281,7 +1374,7 @@ def build_live_update_payload(
         "access_id": access.id,
 
         "student_id": access.student_id,
-        "student_name": access.student.name,
+        "student_name": access.student.display_name,
         "section": access.student.section,
 
         "exam_id": access.exam_id,
@@ -1427,128 +1520,263 @@ def check_id():
     sid = request.args.get('id','').strip()
     if not sid:
         return jsonify({"exists": False})
-    exists_enroll = Enrollment.query.filter_by(student_id=sid).first() is not None
-    exists_student = Student.query.filter_by(student_id=sid).first() is not None
-    exists_user = User.query.filter_by(username=sid).first() is not None
-    exists = exists_enroll or exists_student or exists_user
-    has_user = exists_user
+    exists_student = Student.query.filter_by(student_id=sid).first()
+    exists_enroll = Enrollment.query.filter_by(student_id=sid).first()
+    exists_user = User.query.filter_by(username=sid).first()
+    has_user = exists_user is not None
+    exists = exists_student is not None or has_user
     if exists_student:
-        msg = f"ID {sid} already in student records."
+        msg = f"ID {sid} found. Welcome back! You can add more subjects."
     elif exists_enroll:
-        msg = f"ID {sid} already enrolled."
+        msg = f"ID {sid} already enrolled (pending). Can add more subjects."
     elif exists_user:
-        msg = f"ID {sid} has account."
+        msg = f"ID {sid} has account. Welcome back!"
     else:
-        msg = "Available"
-    return jsonify({"exists": exists, "has_user": has_user, "message": msg})
+        msg = "Available - new student"
+    return jsonify({"exists": exists, "has_user": has_user, "message": msg, "allow_reenroll": True})
+
+@app.route('/api/check-id-subjects')
+def check_id_subjects():
+    sid = request.args.get('id','').strip()
+    if not sid:
+        return jsonify({"found": False})
+    students = Student.query.filter_by(student_id=sid).all()
+    enrolls = Enrollment.query.filter_by(student_id=sid).all()
+    if not students and not enrolls:
+        return jsonify({"found": False})
+    ref = students[0] if students else enrolls[0]
+    enrolled_codes = list(set([s.subject_code for s in students if s.subject_code]))
+    enrolled_names = [{"code": s.subject_code, "name": s.subject_name or s.subject, "subject": s.subject} for s in students if s.subject_code]
+    pending_codes = list(set([e.subject_code for e in enrolls if e.subject_code and e.status=='pending']))
+    return jsonify({
+        "found": True,
+        "last_name": ref.last_name or "",
+        "first_name": ref.first_name or "",
+        "middle_name": ref.middle_name or "",
+        "course": getattr(ref, 'course', ''),
+        "year": getattr(ref, 'year', ''),
+        "section": getattr(ref, 'section', ''),
+        "email": getattr(ref, 'email', ''),
+        "contact": getattr(ref, 'contact', ''),
+        "enrolled_codes": enrolled_codes,
+        "enrolled_subjects": enrolled_names,
+        "pending_codes": pending_codes
+    })
+
+@app.route('/api/subjects/search')
+def search_subjects():
+    q = request.args.get('q','').strip().lower()
+    limit = int(request.args.get('limit', 30))
+    query = Subject.query
+    if q:
+        query = query.filter(
+            db.or_(
+                func.lower(Subject.subject_code).like(f'%{q}%'),
+                func.lower(Subject.subject_name).like(f'%{q}%')
+            )
+        )
+    subjects = query.order_by(Subject.subject_code.asc()).limit(limit).all()
+    result = [{"code": s.subject_code, "name": s.subject_name, "id": s.id} for s in subjects]
+    return jsonify(result)
 
 @app.route('/enrollment', methods=['GET','POST'])
 def enrollment():
     form = None
     if request.method == 'POST':
         student_id = request.form.get('student_id','').strip()
-        name = request.form.get('name','').strip()
+        last_name = request.form.get('last_name','').strip()
+        first_name = request.form.get('first_name','').strip()
+        middle_name = request.form.get('middle_name','').strip()
         course = request.form.get('course','').strip()
         year = request.form.get('year','').strip()
         section = request.form.get('section','').strip()
         email = request.form.get('email','').strip()
         contact = request.form.get('contact','').strip()
         username = request.form.get('username','').strip() or student_id
-        password = request.form.get('password','').strip()
+        subjects_selected = request.form.getlist('subjects[]')
+        if not subjects_selected:
+            raw = request.form.get('subjects','').strip()
+            if raw:
+                subjects_selected = [s.strip() for s in raw.split(',') if s.strip()]
 
-        if not student_id or not name:
-            flash("ID Number and Name are required (ID is priority).", "danger")
+        if not student_id or not last_name or not first_name:
+            flash("ID Number, Surname and First Name are required (ID is priority).", "danger")
             return render_template('enrollment.html', form=form)
 
-        if Enrollment.query.filter_by(student_id=student_id).first() or Student.query.filter_by(student_id=student_id).first() or User.query.filter_by(username=student_id).first():
-            flash(f"ID {student_id} already exists in system.", "warning")
+        if not subjects_selected:
+            flash("Please select at least one subject to enroll.", "warning")
+            return render_template('enrollment.html', form=form)
+
+        existing_students = Student.query.filter_by(student_id=student_id).all()
+        is_reenroll = len(existing_students) > 0
+
+        selected_codes = [c.strip().upper() for c in subjects_selected if c.strip()]
+        selected_codes = list(dict.fromkeys(selected_codes))
+
+        already_enrolled_codes = [s.subject_code.upper() for s in existing_students if s.subject_code]
+        pending_enroll_codes = [e.subject_code.upper() for e in Enrollment.query.filter_by(student_id=student_id, status='pending').all() if e.subject_code]
+
+        new_codes = []
+        skipped_codes = []
+        for code in selected_codes:
+            if code in already_enrolled_codes or code in pending_enroll_codes:
+                skipped_codes.append(code)
+            else:
+                new_codes.append(code)
+
+        if not new_codes:
+            flash(f"You are already enrolled in: {', '.join(skipped_codes)}. No new subjects.", "warning")
             return render_template('enrollment.html', form=form)
 
         try:
-            enroll = Enrollment(
-                student_id=student_id,
-                name=name,
-                course=course,
-                year=year,
-                section=section,
-                email=email,
-                contact=contact,
-                username=username,
-                status='pending'
-            )
-            db.session.add(enroll)
-            student_rec = Student(
-                student_id=student_id,
-                name=name,
-                year=year,
-                section=section,
-                subject='GENERAL'
-            )
-            db.session.add(student_rec)
+            disp = format_display_name(last_name, first_name, middle_name)
+            created_count = 0
+            for code in new_codes:
+                subj_obj = Subject.query.filter(func.upper(Subject.subject_code)==code).first()
+                subj_name = subj_obj.subject_name if subj_obj else code
+                subj_display = subj_obj.subject_code if subj_obj else code
 
-            if password and len(password) >= 6:
-                if not User.query.filter_by(username=username).first():
-                    u = User(username=username, password=generate_password_hash(password), role='Student')
-                    db.session.add(u)
+                enroll = Enrollment(
+                    student_id=student_id,
+                    last_name=last_name,
+                    first_name=first_name,
+                    middle_name=middle_name,
+                    name=disp,
+                    course=course,
+                    year=year,
+                    section=section,
+                    email=email,
+                    contact=contact,
+                    username=username,
+                    subject=subj_display,
+                    subject_code=subj_display,
+                    subject_name=subj_name,
+                    status='pending'
+                )
+                db.session.add(enroll)
+
+                existing_user = User.query.filter_by(username=student_id).first()
+                should_auto_create_student = existing_user is not None or is_reenroll
+
+                if should_auto_create_student:
+                    if not Student.query.filter_by(student_id=student_id, subject_code=subj_display).first() and not Student.query.filter_by(student_id=student_id, subject=subj_display).first():
+                        stud = Student(
+                            student_id=student_id,
+                            last_name=last_name,
+                            first_name=first_name,
+                            middle_name=middle_name,
+                            name=disp,
+                            year=year,
+                            section=section,
+                            subject=subj_display,
+                            subject_code=subj_display,
+                            subject_name=subj_name,
+                            school_year=f"{datetime.now().year}-{datetime.now().year+1}"
+                        )
+                        db.session.add(stud)
+
+                created_count += 1
+
+            if is_reenroll:
+                for s in existing_students:
+                    s.last_name = last_name or s.last_name
+                    s.first_name = first_name or s.first_name
+                    s.middle_name = middle_name if middle_name else s.middle_name
+                    s.year = year or s.year
+                    s.section = section or s.section
+                    s.name = disp
 
             db.session.commit()
-            add_log(student_id, f"Enrolled - {name}")
-            flash(f"Enrollment successful for ID {student_id}! You can now login.", "success")
-            return redirect(url_for('login'))
+            flash(f"Success! ID {student_id} enrolled in {created_count} subject(s): {', '.join(new_codes)}" + (f" | Skipped: {', '.join(skipped_codes)}" if skipped_codes else ""), "success")
+            add_log(student_id, f"{'Re-enrollment' if is_reenroll else 'Enrollment'} - {disp} added: {', '.join(new_codes)}")
+            return redirect(url_for('login') if not is_reenroll else url_for('enrollment'))
         except Exception as e:
             db.session.rollback()
             flash(f"Enrollment failed: {str(e)}", "danger")
 
     return render_template('enrollment.html', form=form)
 
+
 @app.route('/register', methods=['GET','POST'])
 def register():
     form = LoginForm()
     if request.method == 'POST':
         student_id = request.form.get('student_id','').strip()
-        name = request.form.get('name','').strip()
+        last_name = request.form.get('last_name','').strip()
+        first_name = request.form.get('first_name','').strip()
+        middle_name = request.form.get('middle_name','').strip()
+        legacy_name = request.form.get('name','').strip()
+        if not last_name and legacy_name:
+            ln, fn, mn = parse_fullname_to_parts(legacy_name)
+            last_name, first_name, middle_name = ln, fn, mn
+
         username = request.form.get('username','').strip() or student_id
         password = request.form.get('password','').strip()
         confirm = request.form.get('confirm_password','').strip()
-        role = request.form.get('role','Student').strip()
+        role = 'Student'
 
         if not student_id:
-            flash("ID Number is Priority - cannot be empty!", "danger")
+            flash("ID Number is required!", "danger")
             return render_template('register.html', form=form)
-        if not name or not username or not password:
-            flash("All fields required.", "danger")
+        if not last_name or not first_name or not username or not password:
+            flash("Surname, First Name, Username and Password are required.", "danger")
             return render_template('register.html', form=form)
         if password != confirm:
-            flash("Passwords do not match.", "danger")
+            flash("Passwords do not match. Please check Confirm Password.", "danger")
             return render_template('register.html', form=form)
         if len(password) < 6:
-            flash("Password must be at least 6 chars.", "danger")
+            flash("Password must be at least 6 characters.", "danger")
             return render_template('register.html', form=form)
 
+        # Check enrollment must exist and be approved
         enroll = Enrollment.query.filter_by(student_id=student_id).first()
-        stud = Student.query.filter_by(student_id=student_id).first()
-
-        if not enroll and not stud:
-            enroll = Enrollment(student_id=student_id, name=name, status='pending')
-            db.session.add(enroll)
-            if not stud:
-                stud = Student(student_id=student_id, name=name, subject='GENERAL')
-                db.session.add(stud)
-
-        if User.query.filter_by(username=username).first():
-            flash(f"Username/ID {username} already has account.", "danger")
+        if not enroll:
+            flash(f"ID {student_id} not found in enrollment. Please enroll first.", "warning")
             return render_template('register.html', form=form)
+        if enroll.status == 'pending':
+            flash(f"ID {student_id} is still pending approval. Please wait for admin to approve.", "warning")
+            return render_template('register.html', form=form)
+        if enroll.status == 'rejected':
+            flash(f"ID {student_id} enrollment was rejected. Contact admin.", "danger")
+            return render_template('register.html', form=form)
+
+        # Check if username already exists
+        if User.query.filter_by(username=username).first():
+            flash(f"Username/ID {username} already has an account. Please login.", "danger")
+            return render_template('register.html', form=form)
+
+        # Check if Student ID already has a User linked
+        if User.query.filter_by(username=student_id).first() and username != student_id:
+            # allow if username different? but still prevent duplicate student_id user
+            pass
+
+        disp = format_display_name(last_name, first_name, middle_name)
 
         try:
+            # Create User
             user = User(username=username, password=generate_password_hash(password), role=role)
             db.session.add(user)
+            
+            # Ensure Student record exists (should have been created on approval, but fallback)
+            stud = Student.query.filter_by(student_id=student_id).first()
+            if not stud:
+                # Use enrollment data for year/section if available
+                stud = Student(
+                    student_id=student_id,
+                    last_name=enroll.last_name or last_name,
+                    first_name=enroll.first_name or first_name,
+                    middle_name=enroll.middle_name or middle_name,
+                    name=disp,
+                    year=enroll.year,
+                    section=enroll.section,
+                    subject='GENERAL',
+                    school_year=f"{datetime.now().year}-{datetime.now().year+1}"
+                )
+                db.session.add(stud)
+
             db.session.commit()
-            if enroll:
-                enroll.status = 'approved'
-                enroll.approved_at = datetime.utcnow()
-                db.session.commit()
             flash(f"Account created for ID {student_id}! Please login.", "success")
-            add_log(username, f"Registered new account with ID {student_id}")
+            add_log(username, f"Registered new account with ID {student_id} - {disp}")
             return redirect(url_for('login'))
         except Exception as e:
             db.session.rollback()
@@ -1559,8 +1787,120 @@ def register():
 @app.route('/dashboard/admin/enrollments')
 @login_required(role=['Admin','Instructor'])
 def enrollment_admin():
+    # Exclude deleted by default? No, show all and let tabs filter
     enrollments = Enrollment.query.order_by(Enrollment.created_at.desc()).all()
     return render_template('enrollment_admin.html', enrollments=enrollments)
+
+@app.route('/api/enrollments/action', methods=['POST'])
+@login_required(role=['Admin','Instructor'])
+def api_enrollment_action():
+    data = request.get_json() or request.form
+    action = (data.get('action') or '').lower()
+    eid = data.get('id')
+    ids = data.get('ids') or []
+    if eid:
+        ids = [eid]
+    if isinstance(ids, str):
+        ids = [ids]
+    try:
+        ids = [int(i) for i in ids if str(i).strip()!='']
+    except:
+        return jsonify({"success": False, "error": "Invalid ids"}), 400
+    if not ids:
+        return jsonify({"success": False, "error": "No ids"}), 400
+    enrollments = Enrollment.query.filter(Enrollment.id.in_(ids)).all()
+    count=0
+    results=[]
+    for e in enrollments:
+        prev_status = e.status
+        if action == 'approve':
+            e.status = 'approved'
+            e.is_deleted = False
+            e.deleted_at = None
+            e.approved_at = datetime.utcnow()
+            subj_code = (e.subject_code or e.subject or 'GENERAL').strip().upper() if (e.subject_code or e.subject) else 'GENERAL'
+            subj_name = e.subject_name or subj_code
+            existing = Student.query.filter_by(student_id=e.student_id, subject_code=subj_code).first() or Student.query.filter_by(student_id=e.student_id, subject=subj_code).first()
+            if not existing:
+                stud = Student(student_id=e.student_id, last_name=e.last_name, first_name=e.first_name, middle_name=e.middle_name, name=e.display_name, year=e.year, section=e.section, subject=subj_code, subject_code=subj_code, subject_name=subj_name, school_year=f"{datetime.now().year}-{datetime.now().year+1}")
+                db.session.add(stud)
+        elif action == 'reject':
+            e.status = 'rejected'
+            e.is_deleted = False
+            e.deleted_at = None
+        elif action == 'delete':
+            e.is_deleted = True
+            e.deleted_at = datetime.utcnow()
+            # optionally also remove from Student table? Keep for restore logic - we will delete student record on delete
+            subj_code = (e.subject_code or e.subject or '').strip().upper()
+            if subj_code:
+                st = Student.query.filter_by(student_id=e.student_id, subject_code=subj_code).first() or Student.query.filter_by(student_id=e.student_id, subject=subj_code).first()
+                if st:
+                    db.session.delete(st)
+        elif action == 'restore':
+            e.is_deleted = False
+            e.deleted_at = None
+            e.status = 'approved'
+            e.approved_at = datetime.utcnow()
+            subj_code = (e.subject_code or e.subject or 'GENERAL').strip().upper() if (e.subject_code or e.subject) else 'GENERAL'
+            subj_name = e.subject_name or subj_code
+            existing = Student.query.filter_by(student_id=e.student_id, subject_code=subj_code).first() or Student.query.filter_by(student_id=e.student_id, subject=subj_code).first()
+            if not existing:
+                stud = Student(student_id=e.student_id, last_name=e.last_name, first_name=e.first_name, middle_name=e.middle_name, name=e.display_name, year=e.year, section=e.section, subject=subj_code, subject_code=subj_code, subject_name=subj_name, school_year=f"{datetime.now().year}-{datetime.now().year+1}")
+                db.session.add(stud)
+        elif action == 'move_pending':
+            e.status = 'pending'
+            e.is_deleted = False
+            e.deleted_at = None
+            # also remove student record if exists so they don't show in Students page while pending
+            subj_code = (e.subject_code or e.subject or '').strip().upper()
+            if subj_code:
+                st = Student.query.filter_by(student_id=e.student_id, subject_code=subj_code).first() or Student.query.filter_by(student_id=e.student_id, subject=subj_code).first()
+                if st:
+                    db.session.delete(st)
+        elif action == 'hard_delete':
+            subj_code = (e.subject_code or e.subject or '').strip().upper()
+            if subj_code:
+                st = Student.query.filter_by(student_id=e.student_id, subject_code=subj_code).first() or Student.query.filter_by(student_id=e.student_id, subject=subj_code).first()
+                if st:
+                    db.session.delete(st)
+            db.session.delete(e)
+        else:
+            return jsonify({"success": False, "error": "Unknown action"}), 400
+        count+=1
+        results.append({"id": e.id, "student_id": e.student_id, "subject_code": e.subject_code or e.subject, "status": e.status, "is_deleted": e.is_deleted, "prev_status": prev_status})
+    try:
+        db.session.commit()
+        return jsonify({"success": True, "count": count, "results": results, "action": action})
+    except Exception as ex:
+        db.session.rollback()
+        return jsonify({"success": False, "error": str(ex)}), 500
+
+@app.route('/api/enrollments/list')
+@login_required(role=['Admin','Instructor'])
+def api_enrollments_list():
+    enrolls = Enrollment.query.order_by(Enrollment.created_at.desc()).all()
+    def serialize(e):
+        return {
+            "id": e.id,
+            "student_id": e.student_id,
+            "last_name": e.last_name,
+            "first_name": e.first_name,
+            "middle_name": e.middle_name,
+            "display_name": e.display_name,
+            "course": e.course,
+            "year": e.year,
+            "section": e.section,
+            "subject": e.subject,
+            "subject_code": e.subject_code,
+            "subject_name": e.subject_name,
+            "status": e.status,
+            "is_deleted": bool(e.is_deleted),
+            "created_at": e.created_at.isoformat() if e.created_at else None,
+            "created_at_str": e.created_at.strftime('%b %d, %Y') if e.created_at else ''
+        }
+    return jsonify([serialize(e) for e in enrolls])
+
 
 @app.route('/dashboard/admin/enrollments/<int:id>/approve', methods=['POST'])
 @login_required(role=['Admin','Instructor'])
@@ -1568,8 +1908,30 @@ def approve_enrollment(id):
     e = Enrollment.query.get_or_404(id)
     e.status = 'approved'
     e.approved_at = datetime.utcnow()
-    db.session.commit()
-    flash(f"Approved enrollment ID {e.student_id}", "success")
+    subj_code = (e.subject_code or e.subject or 'GENERAL').strip().upper() if (e.subject_code or e.subject) else 'GENERAL'
+    subj_name = e.subject_name or subj_code
+    existing = Student.query.filter_by(student_id=e.student_id, subject_code=subj_code).first() or Student.query.filter_by(student_id=e.student_id, subject=subj_code).first()
+    if not existing:
+        stud = Student(
+            student_id=e.student_id,
+            last_name=e.last_name,
+            first_name=e.first_name,
+            middle_name=e.middle_name,
+            name=e.display_name,
+            year=e.year,
+            section=e.section,
+            subject=subj_code,
+            subject_code=subj_code,
+            subject_name=subj_name,
+            school_year=f"{datetime.now().year}-{datetime.now().year+1}"
+        )
+        db.session.add(stud)
+    try:
+        db.session.commit()
+        flash(f"Approved enrollment ID {e.student_id} - now visible in Students page, can register", "success")
+    except Exception as ex:
+        db.session.rollback()
+        flash(f"Approve failed: {ex}", "danger")
     return redirect(url_for('enrollment_admin'))
 
 @app.route('/dashboard/admin/enrollments/<int:id>/reject', methods=['POST'])
@@ -1577,8 +1939,24 @@ def approve_enrollment(id):
 def reject_enrollment(id):
     e = Enrollment.query.get_or_404(id)
     e.status = 'rejected'
-    db.session.commit()
-    flash(f"Rejected enrollment ID {e.student_id}", "warning")
+    # If student was previously approved and has Student record, remove it so they don't appear in Students page
+    existing_students = Student.query.filter_by(student_id=e.student_id).all()
+    for s in existing_students:
+        db.session.delete(s)
+    # Also remove User account if exists (must re-enroll and re-register)
+    u = User.query.filter_by(username=e.student_id).first()
+    if u:
+        # Only delete if student role, keep admin/instructor safe
+        if u.role == 'Student':
+            # Check if another enrollment uses different username? Keep simple: if username == student_id, delete
+            if u.username == e.student_id or u.username == e.username:
+                db.session.delete(u)
+    try:
+        db.session.commit()
+        flash(f"Rejected enrollment ID {e.student_id} - removed from Students page", "warning")
+    except Exception as ex:
+        db.session.rollback()
+        flash(f"Reject failed: {ex}", "danger")
     return redirect(url_for('enrollment_admin'))
 
 @app.route('/dashboard/admin/enrollments/batch', methods=['POST'])
@@ -1599,9 +1977,11 @@ def batch_approve_enrollments():
         if action == 'approve':
             e.status = 'approved'
             e.approved_at = datetime.utcnow()
-            # Auto-create Student if not exists
-            if not Student.query.filter_by(student_id=e.student_id).first():
-                stud = Student(student_id=e.student_id, name=e.name, course=e.course, year=e.year, section=e.section)
+            subj_code = (e.subject_code or e.subject or 'GENERAL').strip().upper() if (e.subject_code or e.subject) else 'GENERAL'
+            subj_name = e.subject_name or subj_code
+            existing = Student.query.filter_by(student_id=e.student_id, subject_code=subj_code).first() or Student.query.filter_by(student_id=e.student_id, subject=subj_code).first()
+            if not existing:
+                stud = Student(student_id=e.student_id, last_name=e.last_name, first_name=e.first_name, middle_name=e.middle_name, name=e.display_name, year=e.year, section=e.section, subject=subj_code, subject_code=subj_code, subject_name=subj_name)
                 db.session.add(stud)
             count += 1
         elif action == 'reject':
@@ -1631,6 +2011,19 @@ def login():
         user = User.query.filter_by(username=form.username.data).first()
 
         if user and check_password_hash(user.password, form.password.data):
+
+            # SECURITY FIX: If Student, check enrollment approval
+            if user.role == 'Student':
+                enroll = Enrollment.query.filter_by(student_id=user.username).first()
+                # Also check by username field in enrollment
+                if not enroll:
+                    enroll = Enrollment.query.filter_by(username=user.username).first()
+                if enroll and enroll.status != 'approved':
+                    if enroll.status == 'pending':
+                        flash(f'Account {user.username} is pending approval. Wait for admin to approve enrollment.', 'warning')
+                    else:
+                        flash(f'Account {user.username} enrollment was rejected. Contact admin.', 'danger')
+                    return render_template('login.html', form=form)
 
             session['user_id'] = user.id
             session['username'] = user.username
@@ -1816,17 +2209,32 @@ def dashboard_student():
 
     # Get all subjects this student is enrolled in
     all_enrollments = Student.query.filter_by(student_id=student.student_id).all()
-    enrolled_subject_codes = [s.subject_code.strip() for s in all_enrollments if s.subject_code]
+    enrolled_subject_codes_raw = [s.subject_code.strip() for s in all_enrollments if s.subject_code]
+    enrolled_subject_codes = list(set(enrolled_subject_codes_raw))
+    # For display
+    enrolled_subjects = [{"code": s.subject_code, "name": s.subject_name or s.subject} for s in all_enrollments if s.subject_code]
 
-    # FILTER: Only show exams for enrolled subjects
+    # Determine current semester/year from request or latest enrollment
+    current_semester = request.args.get('semester') or (all_enrollments[0].semester if all_enrollments and all_enrollments[0].semester else "1st")
+    current_school_year = all_enrollments[0].school_year if all_enrollments and all_enrollments[0].school_year else f"{datetime.now().year}-{datetime.now().year+1}"
+
+    # FILTER: Only show exams for enrolled subjects - CASE-INSENSITIVE FIX
     if enrolled_subject_codes:
         active_exams = Exam.query.join(Subject).filter(
-            Subject.subject_code.in_(enrolled_subject_codes),
+            func.upper(Subject.subject_code).in_([c.upper() for c in enrolled_subject_codes]),
             Exam.is_active==True
         ).all()
+        print(f"[DASHBOARD] Student {student.student_id} enrolled in {enrolled_subject_codes} -> found {len(active_exams)} active exams")
     else:
-        # Fallback: if no enrollment found, show nothing to prevent cross-subject request
         active_exams = []
+        enrolled_subjects = []
+        print(f"[DASHBOARD] No enrollment codes for {student.student_id}")
+
+    # Debug: if no exams, list all active exams to see mismatch
+    if not active_exams:
+        all_active = Exam.query.filter_by(is_active=True).all()
+        print(f"[DEBUG] No active exams for enrolled codes. All active exams in DB: {[(e.id, e.title, e.subject.subject_code if e.subject else 'no-subject') for e in all_active]}")
+
 
     # ALL EXAMS (for Examination Results)
     all_exams = Exam.query.all()
@@ -1925,7 +2333,10 @@ def dashboard_student():
         role=role,
         allowed_exams=allowed_exams,
         grades=grades,
-        exam_results=exam_results
+        exam_results=exam_results,
+        enrolled_subjects=enrolled_subjects,
+        current_semester=current_semester,
+        current_school_year=current_school_year
     )
 
 # =========================
@@ -1993,30 +2404,248 @@ def view_subjects():
         current_year=f"{datetime.now().year}-{datetime.now().year+1}"
     )
 
+# =========================
+# SECTIONS MANAGEMENT - NEW (like subjects but for sections)
+# =========================
+@app.route('/sections')
+@login_required(role=['Admin', 'Instructor'])
+def view_sections():
+    sections = Section.query.order_by(Section.section_code.asc()).all()
+    # also get distinct sections from Student table to auto-populate counts
+    student_sections = db.session.query(Student.section, func.count(Student.student_id)).group_by(Student.section).all() if hasattr(Student, 'section') else []
+    # count per section_code
+    counts = {sec: cnt for sec, cnt in student_sections if sec}
+    # also get all students for stats
+    all_students = Student.query.order_by(Student.last_name.asc()).all()
+    return render_template('view_sections.html', sections=sections, counts=counts, all_students=all_students)
+
+@app.route('/add-section', methods=['POST'])
+@login_required(role=['Admin','Instructor'])
+def add_section():
+    code = request.form.get('section_code','').strip().upper()
+    desc = request.form.get('description','').strip()
+    sy = request.form.get('school_year','').strip() or f"{datetime.now().year}-{datetime.now().year+1}"
+    if not code:
+        flash("Section code required", "danger")
+        return redirect(url_for('view_sections'))
+    existing = Section.query.filter_by(section_code=code).first()
+    if existing:
+        flash(f"Section {code} already exists", "warning")
+        return redirect(url_for('view_sections'))
+    sec = Section(section_code=code, description=desc, school_year=sy)
+    db.session.add(sec)
+    db.session.commit()
+    flash(f"Section {code} added", "success")
+    return redirect(url_for('view_sections'))
+
+@app.route('/edit-section/<int:section_id>', methods=['POST'])
+@login_required(role=['Admin','Instructor'])
+def edit_section(section_id):
+    sec = Section.query.get_or_404(section_id)
+    new_code = request.form.get('section_code','').strip().upper()
+    desc = request.form.get('description','').strip()
+    sy = request.form.get('school_year','').strip()
+    if not new_code:
+        flash("Section code required", "danger")
+        return redirect(url_for('view_sections'))
+    # check duplicate
+    dup = Section.query.filter(Section.section_code==new_code, Section.id!=section_id).first()
+    if dup:
+        flash(f"Section code {new_code} already exists", "warning")
+        return redirect(url_for('view_sections'))
+    old_code = sec.section_code
+    sec.section_code = new_code
+    sec.description = desc
+    sec.school_year = sy
+    # update Student records that have old section
+    try:
+        Student.query.filter_by(section=old_code).update({"section": new_code})
+    except Exception as e:
+        print(f"update students section failed: {e}")
+    db.session.commit()
+    flash(f"Section updated to {new_code}", "success")
+    return redirect(url_for('view_sections'))
+
+@app.route('/delete-section/<int:section_id>', methods=['POST'])
+@login_required(role=['Admin','Instructor'])
+def delete_section(section_id):
+    sec = Section.query.get_or_404(section_id)
+    # don't delete if students still use it? allow but warn
+    count = Student.query.filter_by(section=sec.section_code).count()
+    if count>0:
+        flash(f"Cannot delete {sec.section_code} - still has {count} students. Move them first.", "warning")
+        return redirect(url_for('view_sections'))
+    db.session.delete(sec)
+    db.session.commit()
+    flash(f"Section {sec.section_code} deleted", "success")
+    return redirect(url_for('view_sections'))
+
+@app.route('/sections/bulk_delete', methods=['POST'])
+@login_required(role=['Admin','Instructor'])
+def bulk_delete_sections():
+    section_ids = request.form.getlist('section_ids')
+    if not section_ids:
+        flash("No sections selected", "warning")
+        return redirect(url_for('view_sections'))
+    deleted=0
+    skipped=0
+    for sid in section_ids:
+        try:
+            sec = Section.query.get(int(sid))
+            if not sec:
+                continue
+            count = Student.query.filter_by(section=sec.section_code).count()
+            if count>0:
+                skipped+=1
+                continue
+            db.session.delete(sec)
+            deleted+=1
+        except Exception as e:
+            print(f"bulk delete section error: {e}")
+            skipped+=1
+    db.session.commit()
+    if deleted>0:
+        flash(f"Deleted {deleted} section(s), {skipped} skipped (has students)", "success" if skipped==0 else "warning")
+    else:
+        flash(f"No sections deleted. {skipped} section(s) have students.", "warning")
+    return redirect(url_for('view_sections'))
+
+@app.route('/sections/<int:section_id>/bulk_remove', methods=['POST'])
+@login_required(role=['Admin','Instructor'])
+def bulk_remove_section_students(section_id):
+    section = Section.query.get_or_404(section_id)
+    student_ids = request.form.getlist('student_ids')
+    if not student_ids:
+        flash("No students selected", "warning")
+        return redirect(url_for('view_section_students', section_id=section_id))
+    removed=0
+    for sid in student_ids:
+        sid=sid.strip()
+        if not sid: continue
+        # remove all records with this section? set section to None
+        try:
+            updated = Student.query.filter_by(student_id=sid, section=section.section_code).update({"section": None})
+            if updated:
+                removed+=updated
+        except Exception as e:
+            print(f"bulk remove error: {e}")
+    db.session.commit()
+    flash(f"Removed {removed} student(s) from {section.section_code}", "success")
+    return redirect(url_for('view_section_students', section_id=section_id))
+
+@app.route('/view_section_students/<int:section_id>')
+@app.route('/sections/<int:section_id>/students')
+@login_required(role=['Admin','Instructor'])
+def view_section_students(section_id):
+    section = Section.query.get_or_404(section_id)
+    students = Student.query.filter_by(section=section.section_code).order_by(Student.last_name.asc(), Student.first_name.asc()).all()
+    # dedupe by student_id and sort alphabetically
+    seen = {}
+    for s in students:
+        if s.student_id not in seen:
+            seen[s.student_id] = s
+    students = sorted(seen.values(), key=lambda x: (x.last_name or '', x.first_name or '', x.student_id))
+    all_students = Student.query.order_by(Student.last_name.asc()).all()
+    tmp = {}
+    for s in all_students:
+        if s.student_id not in tmp:
+            tmp[s.student_id] = s
+    all_students = list(tmp.values())
+    all_sections = Section.query.order_by(Section.section_code.asc()).all()
+    return render_template('view_section_students.html', section=section, students=students, all_students=all_students, all_sections=all_sections, current_year=f"{datetime.now().year}-{datetime.now().year+1}")
+
+@app.route('/sections/<int:section_id>/batch_assign', methods=['POST'])
+@login_required(role=['Admin','Instructor'])
+def batch_assign_section_students(section_id):
+    section = Section.query.get_or_404(section_id)
+    student_ids = request.form.getlist('student_ids')
+    if not student_ids:
+        flash("No students selected", "warning")
+        return redirect(url_for('view_section_students', section_id=section_id))
+    added=0
+    for sid in student_ids:
+        sid=sid.strip()
+        if not sid: continue
+        st = Student.query.filter_by(student_id=sid).first()
+        if not st:
+            continue
+        # update all records of this student to new section
+        try:
+            Student.query.filter_by(student_id=sid).update({"section": section.section_code})
+            added+=1
+        except Exception as e:
+            print(e)
+    db.session.commit()
+    flash(f"Moved {added} students to {section.section_code}", "success")
+    return redirect(url_for('view_section_students', section_id=section_id))
+
+@app.route('/sections/<int:section_id>/remove_student/<student_id>', methods=['POST'])
+@login_required(role=['Admin','Instructor'])
+def remove_student_from_section(section_id, student_id):
+    section = Section.query.get_or_404(section_id)
+    st = Student.query.filter_by(student_id=student_id, section=section.section_code).first()
+    if not st:
+        flash("Student not found in this section", "warning")
+        return redirect(url_for('view_section_students', section_id=section_id))
+    # set section to None or empty instead of delete
+    st.section = None
+    db.session.commit()
+    flash(f"Removed {st.display_name} from {section.section_code}", "success")
+    return redirect(url_for('view_section_students', section_id=section_id)
+)
+
+@app.route('/sections/<int:section_id>/bulk_transfer', methods=['POST'])
+@login_required(role=['Admin','Instructor'])
+def bulk_transfer_section_students(section_id):
+    section = Section.query.get_or_404(section_id)
+    target_code = request.form.get('target_section_code','').strip().upper()
+    student_ids = request.form.getlist('student_ids')
+    if not target_code or not student_ids:
+        flash("No target or students", "warning")
+        return redirect(url_for('view_section_students', section_id=section_id))
+    # Check target exists
+    target = Section.query.filter_by(section_code=target_code).first()
+    if not target:
+        flash(f"Section {target_code} not found", "danger")
+        return redirect(url_for('view_section_students', section_id=section_id))
+    for sid in student_ids:
+        Student.query.filter_by(student_id=sid.strip(), section=section.section_code).update({"section": target_code})
+    db.session.commit()
+    flash(f"Transferred {len(student_ids)} to {target_code}", "success")
+    return redirect(url_for('view_section_students', section_id=section_id))
+
 @app.route('/subjects/<int:subject_id>/students')
 @app.route('/view_subject_students/<int:subject_id>')
 @login_required(role=['Admin', 'Instructor'])
 def view_subject_students(subject_id):
     subject = Subject.query.get_or_404(subject_id)
-    # Get students enrolled in this subject - try multiple possible relationships
     students = []
     try:
-        # If Student has subject relationship
         if hasattr(Student, 'subject_id'):
-            students = Student.query.filter_by(subject_id=subject_id).all()
+            students = Student.query.filter_by(subject_id=subject_id).order_by(Student.last_name.asc(), Student.first_name.asc()).all()
         elif hasattr(Student, 'subject'):
-            # Check if subject field contains code
-            students = Student.query.filter(Student.subject == subject.subject_code).all()
+            students = Student.query.filter(Student.subject == subject.subject_code).order_by(Student.last_name.asc(), Student.first_name.asc(), Student.student_id.asc()).all()
         else:
-            # Fallback: get all students and filter if they have subjects association
-            students = Student.query.limit(50).all()
+            students = Student.query.limit(50).order_by(Student.last_name.asc()).all()
     except Exception as e:
         print(f"Error fetching students for subject {subject_id}: {e}")
         students = []
 
-    # NEW: Get ALL students for searchable dropdown
+    # Dedupe enrolled by student_id and sort alphabetically by display name
+    seen = {}
+    for s in students:
+        if s.student_id not in seen:
+            seen[s.student_id] = s
+    students = sorted(seen.values(), key=lambda x: (x.last_name or '', x.first_name or '', x.student_id))
+
     try:
-        all_students = Student.query.order_by(Student.student_id).all()
+        all_students_raw = Student.query.order_by(Student.last_name.asc(), Student.first_name.asc()).all()
+        # dedupe for dropdown
+        tmp = {}
+        for s in all_students_raw:
+            if s.student_id not in tmp:
+                tmp[s.student_id] = s
+        all_students = list(tmp.values())
     except Exception as e:
         print(f"Error fetching all_students: {e}")
         all_students = []
@@ -2028,6 +2657,84 @@ def view_subject_students(subject_id):
         all_students=all_students,
         current_year="2026-2027"
     )
+@app.route('/subjects/<int:subject_id>/remove_student/<student_id>', methods=['POST'])
+@login_required(role=['Admin','Instructor'])
+def remove_student_from_subject(subject_id, student_id):
+    subject = Subject.query.get_or_404(subject_id)
+    existing = Student.query.filter_by(student_id=student_id, subject=subject.subject_code).first()
+    if not existing:
+        flash(f"Student {student_id} not found in {subject.subject_code}", "warning")
+        return redirect(url_for('view_subject_students', subject_id=subject_id))
+    try:
+        db.session.delete(existing)
+        db.session.commit()
+        flash(f"Removed {existing.display_name or student_id} from {subject.subject_code}", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Failed to remove: {e}", "danger")
+    return redirect(url_for('view_subject_students', subject_id=subject_id))
+
+@app.route('/subjects/<int:subject_id>/batch_assign', methods=['POST'])
+@login_required(role=['Admin','Instructor'])
+def batch_assign_students(subject_id):
+    subject = Subject.query.get_or_404(subject_id)
+    student_ids = request.form.getlist('student_ids')
+    semester = request.form.get('semester') or getattr(subject, 'semester', None) or '1st'
+    school_year = request.form.get('school_year') or getattr(subject, 'school_year', None) or f"{datetime.now().year}-{datetime.now().year+1}"
+    if not student_ids:
+        flash("No students selected", "warning")
+        return redirect(url_for('view_subject_students', subject_id=subject_id))
+    added=0; skipped=0
+    for sid in student_ids:
+        sid=sid.strip()
+        if not sid: continue
+        template_student = Student.query.filter_by(student_id=sid).first()
+        if not template_student:
+            continue
+        existing = Student.query.filter_by(student_id=sid, subject=subject.subject_code).first()
+        if existing:
+            skipped+=1; continue
+        try:
+            new_row = Student(
+                student_id=template_student.student_id,
+                user_id=template_student.user_id,
+                last_name=template_student.last_name,
+                first_name=template_student.first_name,
+                middle_name=template_student.middle_name,
+                name=template_student.name or template_student.display_name,
+                year=template_student.year,
+                section=template_student.section,
+                school_year=school_year,
+                semester=semester,
+                subject=subject.subject_code,
+                subject_code=subject.subject_code,
+                subject_name=subject.subject_name
+            )
+            db.session.add(new_row)
+            added+=1
+        except:
+            skipped+=1
+    db.session.commit()
+    flash(f"Batch assign: {added} added, {skipped} skipped", "success")
+    return redirect(url_for('view_subject_students', subject_id=subject_id))
+
+@app.route('/subjects/<int:subject_id>/batch_remove', methods=['POST'])
+@login_required(role=['Admin','Instructor'])
+def batch_remove_students(subject_id):
+    subject = Subject.query.get_or_404(subject_id)
+    student_ids = request.form.getlist('student_ids')
+    if not student_ids:
+        flash("No students selected", "warning")
+        return redirect(url_for('view_subject_students', subject_id=subject_id))
+    removed=0
+    for sid in student_ids:
+        existing = Student.query.filter_by(student_id=sid, subject=subject.subject_code).first()
+        if existing:
+            db.session.delete(existing)
+            removed+=1
+    db.session.commit()
+    flash(f"Removed {removed} student(s) from {subject.subject_code}", "success")
+    return redirect(url_for('view_subject_students', subject_id=subject_id))
 
 @app.route('/assign_student_to_subject', methods=['POST'])
 @login_required(role=['Admin', 'Instructor'])
@@ -4217,12 +4924,40 @@ def review_answers(exam_id):
 def log_security_event():
     attempt = ExamAttempt.query.get(session.get('attempt_id'))
     if not attempt:
-        return jsonify({"success": False}), 404
-    data = request.get_json()
-    event = data.get("event")
+        return jsonify({"success": False, "error": "no_attempt"}), 404
+
+    # FIX: handle both fetch (application/json) and sendBeacon (blob) - Beacon sometimes arrives as raw bytes
+    data = None
+    try:
+        data = request.get_json(force=False, silent=True)
+    except:
+        data = None
+    if not data:
+        try:
+            # Try raw body as json
+            import json as _json
+            raw = request.get_data(as_text=True) or ""
+            if raw:
+                data = _json.loads(raw)
+        except:
+            data = None
+    if not data:
+        data = request.form.to_dict() if request.form else {}
+
+    event = (data.get("event") if data else None)
+    if not event:
+        event = request.args.get("event")
+    if not event:
+        return jsonify({"success": False, "error": "missing_event"}), 400
+
+    # Normalize: upper + strip
+    event = str(event).strip().upper()
+
     config = SECURITY_EVENTS.get(event)
     if not config:
-        return jsonify({"success": False}), 400
+        # Log unknown for debugging instead of 400, so you see it in DB
+        print(f"Unknown security event received: {event}")
+        return jsonify({"success": False, "error": f"unknown_event:{event}"}), 400
 
     security_event = SecurityEvent(
         attempt_id=attempt.id,
@@ -4778,35 +5513,62 @@ def delete_exam(exam_id):
 
 @app.route('/student-exam-status')
 @login_required(role=['Student'])
-@cache.cached(timeout=10, query_string=True)
 def student_exam_status():
-
+    # FIXED: Returns ALL active exams for enrolled subjects, not just those with ExamAccess
     student_id = session.get('student_id')
+    if not student_id:
+        return jsonify([])
 
-    accesses = ExamAccess.query.filter_by(
-        student_id=student_id
-    ).all()
+    student = Student.query.filter_by(student_id=student_id).first()
+    if not student:
+        return jsonify([])
+
+    # Get enrolled subject codes - strip and normalize
+    all_enrollments = Student.query.filter_by(student_id=student_id).all()
+    enrolled_codes = []
+    for s in all_enrollments:
+        if s.subject_code:
+            enrolled_codes.append(s.subject_code.strip().upper())
+            enrolled_codes.append(s.subject_code.strip())  # keep original case too
+
+    # Deduplicate
+    enrolled_codes = list(set([c for c in enrolled_codes if c]))
+    print(f"[REFRESH] Student {student_id} enrolled codes: {enrolled_codes}")
+
+    if enrolled_codes:
+        # Use case-insensitive comparison by uppercasing Subject codes in query
+        # Fetch active exams for enrolled subjects
+        active_exams = Exam.query.join(Subject).filter(
+            Exam.is_active==True,
+            func.upper(Subject.subject_code).in_([c.upper() for c in enrolled_codes])
+        ).all()
+    else:
+        active_exams = []
+        print(f"[REFRESH] No enrolled codes for {student_id} - returning empty")
 
     result = []
+    for exam in active_exams:
+        access = ExamAccess.query.filter_by(
+            student_id=student_id,
+            exam_id=exam.id
+        ).first()
 
-    for access in accesses:
-
-        exam = Exam.query.get(access.exam_id)
+        status = access.status if access else "not_requested"
 
         result.append({
-            "exam_id": access.exam_id,
-            "status": access.status,
-            "title": exam.title if exam else "",
-            "subject": exam.subject.subject_code if exam and exam.subject else "N/A",
-            "description": exam.description if exam else "",
-            "duration": exam.duration_minutes if exam else 0,
-            "exam_type": exam.exam_type if exam else "",
-            "term": exam.term if exam else "",
-            "question_count": len(exam.questions) if exam else 0,
-
-            "start_url": url_for("start_exam", exam_id=access.exam_id)
+            "exam_id": exam.id,
+            "status": status,
+            "title": exam.title,
+            "subject": exam.subject.subject_code if exam.subject else "N/A",
+            "description": exam.description or "",
+            "duration": exam.duration_minutes or 0,
+            "exam_type": exam.exam_type or "",
+            "term": exam.term or "",
+            "question_count": len(exam.questions) if exam.questions else 0,
+            "start_url": url_for("start_exam", exam_id=exam.id)
         })
 
+    print(f"[REFRESH] Returning {len(result)} exams for {student_id}")
     return jsonify(result)
 
 @app.route('/student-dashboard-data')
@@ -5985,96 +6747,97 @@ def exams_page(student_id, subject):
         saved=saved
     )
 
-# View/Add/Edit/Delete Students
+# ====================
+# --- Student View ---
+# ====================
 @app.route('/dashboard/admin/students')
 @app.route('/dashboard/instructor/students')
 @login_required(role=['Admin','Instructor'])
 def view_students():
-    students = Student.query.all()
+    # Only show students whose enrollment is approved (fixes bug where pending/rejected appear)
+    approved_ids = [e.student_id for e in Enrollment.query.filter_by(status='approved').all()]
+    if approved_ids:
+        students = Student.query.filter(Student.student_id.in_(approved_ids)).all()
+    else:
+        # Fallback: if no enrollment system used (legacy data), show all
+        # But prefer approved only
+        students = Student.query.filter(Student.student_id.notin_(
+            db.session.query(Enrollment.student_id).filter(Enrollment.status.in_(['pending','rejected']))
+        )).all() if Enrollment.query.first() else Student.query.all()
     return render_template('students.html', students=students)
 
-# --- Student add ---
+# ====================
+# --- Student Add ---
+# ====================
 @app.route('/add_student', methods=['GET', 'POST'])
 @login_required(role=['Admin','Instructor'])
 def add_student():
     form = StudentForm()
+
+    def get_val(field):
+        """Safely get .data as string or None"""
+        if not field or not field.data:
+            return None
+        v = str(field.data).strip()
+        return v if v != "" else None
+
     if form.validate_on_submit():
-        # No automatic calculation; all fields stored as strings
-        student = Student(
-            student_id=form.student_id.data,
-            name=form.name.data,
-            subject=form.subject.data,
-            section=form.section.data,
-            midterm_quiz1=clean_input(form.midterm_quiz1),
-            midterm_quiz2=clean_input(form.midterm_quiz2),
-            midterm_quiz3=clean_input(form.midterm_quiz3),
-            midterm_quiz4=clean_input(form.midterm_quiz4),
-            midterm_e_quiz1=clean_input(form.midterm_e_quiz1),
-            midterm_e_quiz2=clean_input(form.midterm_e_quiz2),
-            midterm_e_quiz3=clean_input(form.midterm_e_quiz3),
-            midterm_e_quiz4=clean_input(form.midterm_e_quiz4),
-            midterm_l_quiz1=clean_input(form.midterm_l_quiz1),
-            midterm_l_quiz2=clean_input(form.midterm_l_quiz2),
-            midterm_l_quiz3=clean_input(form.midterm_l_quiz3),
-            midterm_l_quiz4=clean_input(form.midterm_l_quiz4),
+        try:
+            student_id = get_val(form.student_id)
+            last_name = get_val(form.last_name)
+            first_name = get_val(form.first_name)
+            middle_name = get_val(form.middle_name)
+            subject = get_val(form.subject)
 
-            final_quiz1=clean_input(form.final_quiz1),
-            final_quiz2=clean_input(form.final_quiz2),
-            final_quiz3=clean_input(form.final_quiz3),
-            final_quiz4=clean_input(form.final_quiz4),
-            final_e_quiz1=clean_input(form.final_e_quiz1),
-            final_e_quiz2=clean_input(form.final_e_quiz2),
-            final_e_quiz3=clean_input(form.final_e_quiz3),
-            final_e_quiz4=clean_input(form.final_e_quiz4),
-            final_l_quiz1=clean_input(form.final_l_quiz1),
-            final_l_quiz2=clean_input(form.final_l_quiz2),
-            final_l_quiz3=clean_input(form.final_l_quiz3),
-            final_l_quiz4=clean_input(form.final_l_quiz4),
+            if not subject:
+                flash("Subject is required (part of primary key).", "danger")
+                return render_template('add_student.html', form=form)
 
-            # PIT
-            midterm_pit1=clean_input(form.midterm_pit1),
-            midterm_pit2=clean_input(form.midterm_pit2),
-            midterm_pit3=clean_input(form.midterm_pit3),
-            midterm_pit4=clean_input(form.midterm_pit4),
-            final_pit1=clean_input(form.final_pit1),
-            final_pit2=clean_input(form.final_pit2),
-            final_pit3=clean_input(form.final_pit3),
-            final_pit4=clean_input(form.final_pit4),
+            if Student.query.filter_by(student_id=student_id, subject=subject).first():
+                flash(f"Student ID {student_id} with subject {subject} already exists!", "danger")
+                return render_template('add_student.html', form=form)
 
-            # Exercises
-            midterm_exercise1=clean_input(form.midterm_exercise1),
-            midterm_exercise2=clean_input(form.midterm_exercise2),
-            midterm_exercise3=clean_input(form.midterm_exercise3),
-            midterm_exercise4=clean_input(form.midterm_exercise4),
-            final_exercise1=clean_input(form.final_exercise1),
-            final_exercise2=clean_input(form.final_exercise2),
-            final_exercise3=clean_input(form.final_exercise3),
-            final_exercise4=clean_input(form.final_exercise4),
+            student = Student(
+                student_id=student_id,
+                last_name=last_name or "",
+                first_name=first_name or "",
+                middle_name=middle_name,
+                subject=subject,
+                section=get_val(form.section),
+                subject_name=get_val(form.subject_name) or get_val(form.subject),
+                subject_code=get_val(form.subject_code),
 
-            # Laboratory
-            midterm_laboratory1=clean_input(form.midterm_laboratory1),
-            midterm_laboratory2=clean_input(form.midterm_laboratory2),
-            midterm_laboratory3=clean_input(form.midterm_laboratory3),
-            midterm_laboratory4=clean_input(form.midterm_laboratory4),
-            final_laboratory1=clean_input(form.final_laboratory1),
-            final_laboratory2=clean_input(form.final_laboratory2),
-            final_laboratory3=clean_input(form.final_laboratory3),
-            final_laboratory4=clean_input(form.final_laboratory4),
+                # Grades / Remarks - FIXED: use .data not field object
+                midterm_grade=get_val(form.midterm_grade),
+                final_grade=get_val(form.final_grade),
+                midterm_remarks=get_val(form.midterm_remarks),
+                final_remarks=get_val(form.final_remarks),
+            )
+            # Sync legacy name column
+            student.sync_legacy_name()
 
+            db.session.add(student)
+            db.session.commit()
+            flash(f"Student {student.display_name} added successfully!", "success")
+            return redirect(url_for('view_students'))
 
-            midterm_exam=clean_input(form.midterm_exam),
-            final_exam=clean_input(form.final_exam),
-            midterm_grade=clean_input(form.midterm_grade),
-            final_grade=clean_input(form.final_grade),
-        )
-        db.session.add(student)
-        db.session.commit()
-        flash(f"Student {student.name} added successfully!", "success")
-        return redirect(url_for('view_students'))
+        except IntegrityError as e:
+            db.session.rollback()
+            flash(f"Database error: Duplicate Student ID + Subject? {str(e)}", "danger")
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Error adding student: {str(e)}", "danger")
+    else:
+        if request.method == 'POST':
+            for field, errors in form.errors.items():
+                for error in errors:
+                    flash(f"{field}: {error}", "danger")
 
     return render_template('add_student.html', form=form)
 
+# ====================
 # --- Student Edit ---
+# ====================
 @app.route('/dashboard/admin/students/edit/<student_id>/<subject>', methods=['GET', 'POST'])
 @app.route('/dashboard/instructor/students/edit/<student_id>/<subject>', methods=['GET', 'POST'])
 @login_required(role=['Admin', 'Instructor'])
@@ -6084,164 +6847,48 @@ def edit_student(student_id, subject):
 
     if form.validate_on_submit():
         old_student_id = student.student_id
-        new_student_id = form.student_id.data.strip()
-        new_subject = form.subject.data.strip() or student.subject
-
-        # Update core info
         new_student_id = (form.student_id.data or "").strip()
-        student.name = (form.name.data or "").strip()
-        student.section = (form.section.data or "").strip()
+        new_subject = (form.subject.data or "").strip() or student.subject
+
+        # --- NEW: split name handling ---
+        last_name = request.form.get('last_name','').strip() or getattr(student, 'last_name', '')
+        first_name = request.form.get('first_name','').strip() or getattr(student, 'first_name', '')
+        middle_name = request.form.get('middle_name','').strip() or getattr(student, 'middle_name', '')
+
+        if last_name or first_name:
+            student.last_name = last_name
+            student.first_name = first_name
+            student.middle_name = middle_name
+            # Build display: SURNAME, First M.
+            disp = last_name.upper() + ', ' + first_name
+            if middle_name:
+                disp += ' ' + middle_name[0].upper() + '.'
+            student.name = disp
+        else:
+            # fallback to old form.name if exists
+            student.name = (form.name.data or "").strip() if hasattr(form, 'name') else student.name
+
+        student.section = (request.form.get('section','') or getattr(form, 'section', None) and form.section.data or "").strip()
         student.subject = new_subject
 
-        # Update quizzes
-        student.midterm_quiz1 = clean_input(form.midterm_quiz1.data)
-        student.midterm_quiz2 = clean_input(form.midterm_quiz2.data)
-        student.midterm_quiz3 = clean_input(form.midterm_quiz3.data)
-        student.midterm_quiz4 = clean_input(form.midterm_quiz4.data)
-        student.midterm_e_quiz1 = clean_input(form.midterm_e_quiz1.data)
-        student.midterm_e_quiz2 = clean_input(form.midterm_e_quiz2.data)
-        student.midterm_e_quiz3 = clean_input(form.midterm_e_quiz3.data)
-        student.midterm_e_quiz4 = clean_input(form.midterm_e_quiz4.data)
-        student.midterm_l_quiz1 = clean_input(form.midterm_l_quiz1.data)
-        student.midterm_l_quiz2 = clean_input(form.midterm_l_quiz2.data)
-        student.midterm_l_quiz3 = clean_input(form.midterm_l_quiz3.data)
-        student.midterm_l_quiz4 = clean_input(form.midterm_l_quiz4.data)
-
-        student.final_quiz1 = clean_input(form.final_quiz1.data)
-        student.final_quiz2 = clean_input(form.final_quiz2.data)
-        student.final_quiz3 = clean_input(form.final_quiz3.data)
-        student.final_quiz4 = clean_input(form.final_quiz4.data)
-        student.final_e_quiz1 = clean_input(form.final_e_quiz1.data)
-        student.final_e_quiz2 = clean_input(form.final_e_quiz2.data)
-        student.final_e_quiz3 = clean_input(form.final_e_quiz3.data)
-        student.final_e_quiz4 = clean_input(form.final_e_quiz4.data)
-        student.final_l_quiz1 = clean_input(form.final_l_quiz1.data)
-        student.final_l_quiz2 = clean_input(form.final_l_quiz2.data)
-        student.final_l_quiz3 = clean_input(form.final_l_quiz3.data)
-        student.final_l_quiz4 = clean_input(form.final_l_quiz4.data)
-
-        # Update PIT
-        student.midterm_pit1 = clean_input(form.midterm_pit1.data)
-        student.midterm_pit2 = clean_input(form.midterm_pit2.data)
-        student.midterm_pit3 = clean_input(form.midterm_pit3.data)
-        student.midterm_pit4 = clean_input(form.midterm_pit4.data)
-        student.final_pit1 = clean_input(form.final_pit1.data)
-        student.final_pit2 = clean_input(form.final_pit2.data)
-        student.final_pit3 = clean_input(form.final_pit3.data)
-        student.final_pit4 = clean_input(form.final_pit4.data)
-
-        # Update Exercises
-        student.midterm_exercise1 = clean_input(form.midterm_exercise1.data)
-        student.midterm_exercise2 = clean_input(form.midterm_exercise2.data)
-        student.midterm_exercise3 = clean_input(form.midterm_exercise3.data)
-        student.midterm_exercise4 = clean_input(form.midterm_exercise4.data)
-        student.final_exercise1 = clean_input(form.final_exercise1.data)
-        student.final_exercise2 = clean_input(form.final_exercise2.data)
-        student.final_exercise3 = clean_input(form.final_exercise3.data)
-        student.final_exercise4 = clean_input(form.final_exercise4.data)
-
-        # Update Laboratories
-        student.midterm_laboratory1 = clean_input(form.midterm_laboratory1.data)
-        student.midterm_laboratory2 = clean_input(form.midterm_laboratory2.data)
-        student.midterm_laboratory3 = clean_input(form.midterm_laboratory3.data)
-        student.midterm_laboratory4 = clean_input(form.midterm_laboratory4.data)
-        student.final_laboratory1 = clean_input(form.final_laboratory1.data)
-        student.final_laboratory2 = clean_input(form.final_laboratory2.data)
-        student.final_laboratory3 = clean_input(form.final_laboratory3.data)
-        student.final_laboratory4 = clean_input(form.final_laboratory4.data)
-
-        # Update exams and grades (all strings.data)
-        student.midterm_exam = clean_input(form.midterm_exam.data)
-        student.final_exam = clean_input(form.final_exam.data)
-        student.midterm_grade = clean_input(form.midterm_grade.data)
-        student.final_grade = clean_input(form.final_grade.data)
-        student.midterm_remarks = clean_input(form.midterm_remarks.data)
-        student.final_remarks = clean_input(form.final_remarks.data)
-
-        # Update User table if student_id changed
+        # If student_id changed
         if old_student_id != new_student_id:
             existing_user = User.query.filter_by(username=new_student_id).first()
-            if existing_user:
+            if existing_user and new_student_id != old_student_id:
                 flash(f"A user with ID {new_student_id} already exists!", "danger")
                 return render_template('edit_student.html', form=form, student=student)
-
             user = User.query.filter_by(username=old_student_id, role='Student').first()
             if user:
                 user.username = new_student_id
-
+            student.student_id = new_student_id
             db.session.flush()
 
         db.session.commit()
-        add_log(session.get('username'),
-                f'Edited Student: {old_student_id} → {student.student_id} ({new_subject})')
+        add_log(session.get('username'), f'Edited Student: {old_student_id} → {student.student_id} ({new_subject}) | {student.name}')
         flash('Student record updated successfully!', 'success')
 
-        return redirect(url_for('dashboard_student', student_id=new_student_id))
-
-    # Only pre-fill manually on GET
-    if request.method == 'GET':
-        form.midterm_quiz1.data = clean_input(student.midterm_quiz1)
-        form.midterm_quiz2.data = clean_input(student.midterm_quiz2)
-        form.midterm_quiz3.data = clean_input(student.midterm_quiz3)
-        form.midterm_quiz4.data = clean_input(student.midterm_quiz4)
-        form.midterm_e_quiz1.data = clean_input(student.midterm_e_quiz1)
-        form.midterm_e_quiz2.data = clean_input(student.midterm_e_quiz2)
-        form.midterm_e_quiz3.data = clean_input(student.midterm_e_quiz3)
-        form.midterm_e_quiz4.data = clean_input(student.midterm_e_quiz4)
-        form.midterm_l_quiz1.data = clean_input(student.midterm_l_quiz1)
-        form.midterm_l_quiz2.data = clean_input(student.midterm_l_quiz2)
-        form.midterm_l_quiz3.data = clean_input(student.midterm_l_quiz3)
-        form.midterm_l_quiz4.data = clean_input(student.midterm_l_quiz4)
-
-        form.final_quiz1.data = clean_input(student.final_quiz1)
-        form.final_quiz2.data = clean_input(student.final_quiz2)
-        form.final_quiz3.data = clean_input(student.final_quiz3)
-        form.final_quiz4.data = clean_input(student.final_quiz4)
-        form.final_e_quiz1.data = clean_input(student.final_e_quiz1)
-        form.final_e_quiz2.data = clean_input(student.final_e_quiz2)
-        form.final_e_quiz3.data = clean_input(student.final_e_quiz3)
-        form.final_e_quiz4.data = clean_input(student.final_e_quiz4)
-        form.final_l_quiz1.data = clean_input(student.final_l_quiz1)
-        form.final_l_quiz2.data = clean_input(student.final_l_quiz2)
-        form.final_l_quiz3.data = clean_input(student.final_l_quiz3)
-        form.final_l_quiz4.data = clean_input(student.final_l_quiz4)
-
-        # PIT
-        form.midterm_pit1.data = clean_input(student.midterm_pit1)
-        form.midterm_pit2.data = clean_input(student.midterm_pit2)
-        form.midterm_pit3.data = clean_input(student.midterm_pit3)
-        form.midterm_pit4.data = clean_input(student.midterm_pit4)
-        form.final_pit1.data = clean_input(student.final_pit1)
-        form.final_pit2.data = clean_input(student.final_pit2)
-        form.final_pit3.data = clean_input(student.final_pit3)
-        form.final_pit4.data = clean_input(student.final_pit4)
-
-        # Exercises
-        form.midterm_exercise1.data = clean_input(student.midterm_exercise1)
-        form.midterm_exercise2.data = clean_input(student.midterm_exercise2)
-        form.midterm_exercise3.data = clean_input(student.midterm_exercise3)
-        form.midterm_exercise4.data = clean_input(student.midterm_exercise4)
-        form.final_exercise1.data = clean_input(student.final_exercise1)
-        form.final_exercise2.data = clean_input(student.final_exercise2)
-        form.final_exercise3.data = clean_input(student.final_exercise3)
-        form.final_exercise4.data = clean_input(student.final_exercise4)
-
-        # Laboratories
-        form.midterm_laboratory1.data = clean_input(student.midterm_laboratory1)
-        form.midterm_laboratory2.data = clean_input(student.midterm_laboratory2)
-        form.midterm_laboratory3.data = clean_input(student.midterm_laboratory3)
-        form.midterm_laboratory4.data = clean_input(student.midterm_laboratory4)
-        form.final_laboratory1.data = clean_input(student.final_laboratory1)
-        form.final_laboratory2.data = clean_input(student.final_laboratory2)
-        form.final_laboratory3.data = clean_input(student.final_laboratory3)
-        form.final_laboratory4.data = clean_input(student.final_laboratory4)
-
-        form.midterm_exam.data = clean_input(student.midterm_exam)
-        form.final_exam.data = clean_input(student.final_exam)
-        form.midterm_grade.data = clean_input(student.midterm_grade)
-        form.final_grade.data = clean_input(student.final_grade)
-        form.midterm_remarks.data = clean_input(student.midterm_remarks)
-        form.final_remarks.data = clean_input(student.final_remarks)
+        # --- CHANGED: go back to students.html not dashboard_student ---
+        return redirect(url_for('view_students'))
 
     return render_template('edit_student.html', form=form, student=student)
 
@@ -6334,6 +6981,30 @@ def bulk_delete_students():
     return redirect(url_for('view_students'))
 
 # --- CSV upload ---
+def parse_fullname(fullname):
+    """Parse 'DEL SOCORRO, Charles T' -> last, first, middle"""
+    if not fullname:
+        return '', '', ''
+    fullname = fullname.strip().strip('"')
+    if ',' in fullname:
+        parts = [p.strip() for p in fullname.split(',', 1)]
+        last = parts[0]
+        rest = parts[1] if len(parts) > 1 else ''
+        rest_parts = rest.split()
+        if not rest_parts:
+            return last, '', ''
+        first = rest_parts[0]
+        middle = ' '.join(rest_parts[1:]) if len(rest_parts) > 1 else ''
+        return last, first, middle
+    else:
+        toks = fullname.split()
+        if len(toks) == 1:
+            return toks[0], '', ''
+        elif len(toks) == 2:
+            return toks[1], toks[0], ''
+        else:
+            return toks[-1], toks[0], ' '.join(toks[1:-1])
+
 @app.route('/dashboard/admin/students/upload', methods=['GET', 'POST'])
 @app.route('/dashboard/instructor/students/upload', methods=['GET', 'POST'])
 @login_required(role=['Admin', 'Instructor'])
@@ -6367,56 +7038,86 @@ def upload_students():
         try:
             with open(filepath, newline='', encoding='utf-8-sig') as csvfile:
                 reader = csv.DictReader(csvfile)
-                required_columns = ['student_id', 'name', 'subject']
-                if not reader.fieldnames or not all(col in reader.fieldnames for col in required_columns):
-                    msg = f"CSV missing required columns: {required_columns}"
+                # Allow both old and new formats
+                if not reader.fieldnames:
+                    msg = "CSV has no header"
                     errors.append(msg)
-                    add_log(username, f"CSV upload failed ({filename}): {msg}")
+                    return render_template('upload_students.html', form=form, summary=summary, errors=errors)
+
+                # Normalize fieldnames lower
+                lower_fields = [f.lower() for f in reader.fieldnames]
+                # Required: student_id and subject, and at least one of name OR last_name+first_name
+                has_name = 'name' in lower_fields or 'fullname' in lower_fields
+                has_split = 'last_name' in lower_fields and 'first_name' in lower_fields
+                if 'student_id' not in lower_fields or 'subject' not in lower_fields or not (has_name or has_split):
+                    msg = f"CSV missing required columns. Found: {reader.fieldnames}. Need student_id, subject and (name OR last_name+first_name)"
+                    errors.append(msg)
                     return render_template('upload_students.html', form=form, summary=summary, errors=errors)
 
                 for row_num, row in enumerate(reader, start=2):
                     try:
-                        student_id = safe_str(row.get('student_id')).strip()
-                        name = safe_str(row.get('name')).strip()
-                        section = safe_str(row.get('section')).strip()
-                        subject = safe_str(row.get('subject')).strip().title()
+                        # Case-insensitive get
+                        def get_col(*keys):
+                            for k in keys:
+                                if k in row:
+                                    return row.get(k)
+                                # try case-insensitive
+                                for rk in row.keys():
+                                    if rk.lower() == k.lower():
+                                        return row.get(rk)
+                            return ''
 
-                        # Look up the subject information
-                        subject_record = Subject.query.filter_by(
-                            subject_name=subject
-                        ).first()
+                        student_id = safe_str(get_col('student_id')).strip()
+                        section = safe_str(get_col('section')).strip()
+                        subject = safe_str(get_col('subject')).strip().title()
 
+                        # Try split first
+                        last_name = safe_str(get_col('last_name')).strip()
+                        first_name = safe_str(get_col('first_name')).strip()
+                        middle_name = safe_str(get_col('middle_name', 'mi')).strip()
+
+                        # If split not provided, parse from name/fullname
+                        name_raw = safe_str(get_col('name', 'fullname')).strip()
+                        if (not last_name or not first_name) and name_raw:
+                            ln, fn, mn = parse_fullname(name_raw)
+                            last_name = last_name or ln
+                            first_name = first_name or fn
+                            middle_name = middle_name or mn
+
+                        # Build display name: SURNAME, First M.
+                        if last_name or first_name:
+                            disp = last_name.upper() + ', ' + first_name
+                            if middle_name:
+                                disp += ' ' + middle_name[0].upper() + '.'
+                            name = disp
+                        else:
+                            name = name_raw
+
+                        # Subject lookup
+                        subject_record = Subject.query.filter_by(subject_name=subject).first()
                         subject_code = ""
                         subject_name = subject
-
                         if subject_record:
                             subject_code = subject_record.subject_code
                             subject_name = subject_record.subject_name
 
-                        if not student_id or not subject:
-                            msg = f"Row {row_num}: missing required field(s)."
+                        if not student_id or not subject or not name:
+                            msg = f"Row {row_num}: missing required field(s) student_id/subject/name."
                             errors.append(msg)
-                            add_log(username, f"CSV upload warning ({filename}): {msg}")
                             continue
 
-                        # Skip rows where subject accidentally equals the student's name
                         if subject.lower() == name.lower() or subject.lower() in name.lower():
-                            msg = f"Row {row_num}: skipped because subject matches student name ({name})."
                             skipped_students.append(f"{student_id} - {name} ({subject})")
-                            add_log(username, f"CSV upload skipped ({filename}): {msg}")
                             continue
 
-                        # Prepare grade-related fields
                         field_updates = {
-
                             'section': section,
-                            'year': row.get('year'),
-                            'school_year': row.get('school_year'),
-                            'semester': row.get('semester'),
+                            'year': get_col('year'),
+                            'school_year': get_col('school_year'),
+                            'semester': get_col('semester'),
                             'subject_code': subject_code,
                             'subject_name': subject_name,
-
-                            # Attendance
+                            # Attendance, quizzes etc - keep original mapping
                             'midterm_attendance1': row.get('midterm_attendance1'),
                             'midterm_attendance2': row.get('midterm_attendance2'),
                             'midterm_attendance3': row.get('midterm_attendance3'),
@@ -6425,8 +7126,6 @@ def upload_students():
                             'final_attendance2': row.get('final_attendance2'),
                             'final_attendance3': row.get('final_attendance3'),
                             'final_attendance4': row.get('final_attendance4'),
-
-                            # Midterm Quizzes
                             'midterm_quiz1': row.get('midterm_quiz1'),
                             'midterm_quiz2': row.get('midterm_quiz2'),
                             'midterm_quiz3': row.get('midterm_quiz3'),
@@ -6439,8 +7138,6 @@ def upload_students():
                             'midterm_l_quiz2': row.get('midterm_l_quiz2'),
                             'midterm_l_quiz3': row.get('midterm_l_quiz3'),
                             'midterm_l_quiz4': row.get('midterm_l_quiz4'),
-
-                            # Final Quizzes
                             'final_quiz1': row.get('final_quiz1'),
                             'final_quiz2': row.get('final_quiz2'),
                             'final_quiz3': row.get('final_quiz3'),
@@ -6453,8 +7150,6 @@ def upload_students():
                             'final_l_quiz2': row.get('final_l_quiz2'),
                             'final_l_quiz3': row.get('final_l_quiz3'),
                             'final_l_quiz4': row.get('final_l_quiz4'),
-
-                                # PIT
                             'midterm_pit1': row.get('midterm_pit1'),
                             'midterm_pit2': row.get('midterm_pit2'),
                             'midterm_pit3': row.get('midterm_pit3'),
@@ -6463,12 +7158,8 @@ def upload_students():
                             'final_pit2': row.get('final_pit2'),
                             'final_pit3': row.get('final_pit3'),
                             'final_pit4': row.get('final_pit4'),
-
-                                # PIT
                             'midterm_report1': row.get('midterm_report1'),
                             'final_report1': row.get('final_report1'),
-
-                            # Exercise
                             'midterm_exercise1': row.get('midterm_exercise1'),
                             'midterm_exercise2': row.get('midterm_exercise2'),
                             'midterm_exercise3': row.get('midterm_exercise3'),
@@ -6477,8 +7168,6 @@ def upload_students():
                             'final_exercise2': row.get('final_exercise2'),
                             'final_exercise3': row.get('final_exercise3'),
                             'final_exercise4': row.get('final_exercise4'),
-
-                            # Laboratory
                             'midterm_laboratory1': row.get('midterm_laboratory1'),
                             'midterm_laboratory2': row.get('midterm_laboratory2'),
                             'midterm_laboratory3': row.get('midterm_laboratory3'),
@@ -6487,48 +7176,42 @@ def upload_students():
                             'final_laboratory2': row.get('final_laboratory2'),
                             'final_laboratory3': row.get('final_laboratory3'),
                             'final_laboratory4': row.get('final_laboratory4'),
-
-                            # Exams
                             'midterm_exam': row.get('midterm_exam'),
                             'final_exam': row.get('final_exam'),
                             'midterm_laboratory_exam': row.get('midterm_laboratory_exam'),
                             'final_laboratory_exam': row.get('final_laboratory_exam'),
-
-                            # Grades
                             'midterm_grade': row.get('midterm_grade'),
                             'final_grade': row.get('final_grade'),
-
-                            # Remarks
-
                             'midterm_remarks': row.get('midterm_remarks'),
                             'final_remarks': row.get('final_remarks'),
-                            }
+                        }
 
-                        # --- Lookup student by student_id and subject ---
+                        # If your Student model has last_name, first_name, middle_name columns, include them
+                        if hasattr(Student, 'last_name'):
+                            field_updates['last_name'] = last_name
+                            field_updates['first_name'] = first_name
+                            field_updates['middle_name'] = middle_name
+
                         student = Student.query.filter(
                             db.func.lower(Student.student_id) == student_id.lower(),
                             db.func.lower(Student.subject) == subject.lower()
                         ).first()
                         if student:
-                            # Update existing record
                             patch_update(student, field_updates)
                             if name:
-                                student.name = name  # always update name if provided
+                                student.name = name
                             updated_students.append(f"{student_id} - {name} ({subject})")
                         else:
-                            # Create new student-subject record
                             create_kwargs = {
                                 'student_id': student_id.strip(),
                                 'name': name.strip(),
                                 'section': section.strip(),
                                 'subject': subject.strip().title(),
-
                                 'subject_code': subject_code,
                                 'subject_name': subject_name,
-
-                                'year': safe_str(row.get('year')).strip(),
-                                'school_year': safe_str(row.get('school_year')).strip(),
-                                'semester': safe_str(row.get('semester')).strip(),
+                                'year': safe_str(get_col('year')).strip(),
+                                'school_year': safe_str(get_col('school_year')).strip(),
+                                'semester': safe_str(get_col('semester')).strip(),
                             }
                             for k, v in field_updates.items():
                                 if hasattr(Student, k):
@@ -6537,50 +7220,34 @@ def upload_students():
                             db.session.add(new_student)
                             added_students.append(f"{student_id} - {name} ({subject})")
 
-                        # --- Ensure User exists without duplicating ---
                         existing_user = User.query.filter_by(username=student_id).first()
                         if not existing_user:
                             hashed_password = generate_password_hash(student_id)
                             new_user = User(username=student_id, password=hashed_password, role='Student')
                             db.session.add(new_user)
-                        else:
-                            # Correct role if needed
-                            if existing_user.role != 'Student':
-                                existing_user.role = 'Student'
 
                     except Exception as row_error:
                         msg = f"Row {row_num}: {type(row_error).__name__} - {row_error}"
                         errors.append(msg)
-                        add_log(username, f"CSV upload error ({filename}): {msg}")
 
-            # Commit once after all rows processed
             try:
                 db.session.commit()
             except Exception as e:
                 db.session.rollback()
-                msg = f"Database commit failed: {type(e).__name__} - {e}"
-                errors.append(msg)
-                add_log(username, f"CSV upload failed ({filename}): {msg}")
+                errors.append(f"Database commit failed: {e}")
 
         except Exception as file_error:
-            msg = f"Error reading file: {type(file_error).__name__} - {file_error}"
-            errors.append(msg)
-            add_log(username, f"CSV upload failed ({filename}): {msg}")
+            errors.append(f"Error reading file: {file_error}")
 
-        # Render summary including errors
         if errors:
-            add_log(username, f"CSV upload completed with {len(errors)} error(s) ({filename}).")
             return render_template('upload_students.html', form=form, summary=None, errors=errors)
 
-        add_log(username, f'Uploaded CSV: {filename} ({len(added_students)} added, {len(updated_students)} updated)')
         flash(f'CSV uploaded: {len(added_students)} added, {len(updated_students)} updated', 'success')
-
-        summary = {
-            'added': added_students,
-            'updated': updated_students,
-            'skipped': skipped_students  # currently empty; can populate for duplicates if needed
-        }
+        summary = {'added': added_students, 'updated': updated_students, 'skipped': skipped_students}
         return render_template('upload_students.html', form=form, summary=summary, errors=None)
+
+    return render_template('upload_students.html', form=form, summary=summary, errors=None)
+
 
     return render_template('upload_students.html', form=form, summary=summary, errors=None)
 
@@ -6845,6 +7512,29 @@ def export_csv():
 def export_page():
     return render_template('export.html')
 
+def ensure_enrollment_columns():
+    """Auto-migrate enrollment for multi-subject re-enrollment"""
+    try:
+        from sqlalchemy import text as _text
+        with db.engine.connect() as conn:
+            conn.execute(_text("ALTER TABLE enrollment ADD COLUMN IF NOT EXISTS subject VARCHAR(100);"))
+            conn.execute(_text("ALTER TABLE enrollment ADD COLUMN IF NOT EXISTS subject_code VARCHAR(50);"))
+            conn.execute(_text("ALTER TABLE enrollment ADD COLUMN IF NOT EXISTS subject_name VARCHAR(150);"))
+            conn.execute(_text("ALTER TABLE enrollment ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE;"))
+            conn.execute(_text("ALTER TABLE enrollment ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP;"))
+            conn.execute(_text("CREATE INDEX IF NOT EXISTS idx_enrollment_is_deleted ON enrollment(is_deleted);"))
+            conn.execute(_text("UPDATE enrollment SET is_deleted = FALSE WHERE is_deleted IS NULL;"))
+            conn.execute(_text("ALTER TABLE enrollment DROP CONSTRAINT IF EXISTS enrollment_student_id_key;"))
+            conn.execute(_text("CREATE INDEX IF NOT EXISTS idx_enrollment_student_id ON enrollment(student_id);"))
+            conn.execute(_text("CREATE INDEX IF NOT EXISTS idx_enrollment_subject_code ON enrollment(subject_code);"))
+            # Also allow student table to have multiple subjects per ID (composite PK already handles it, but ensure columns)
+            conn.execute(_text("ALTER TABLE student ADD COLUMN IF NOT EXISTS subject_name VARCHAR(100);"))
+            conn.execute(_text("ALTER TABLE student ADD COLUMN IF NOT EXISTS subject_code VARCHAR(50);"))
+            conn.commit()
+        print("✅ Enrollment auto-migration OK")
+    except Exception as e:
+        print(f"⚠️ Enrollment auto-migration skipped: {e}")
+
 def ensure_question_columns():
     """Auto-migrate NeonDB - IF NOT EXISTS, safe for 0.1 CPU Render + gunicorn - no manual cd command"""
     try:
@@ -6867,6 +7557,7 @@ def ensure_question_columns():
 # Run on import - for gunicorn on Render (no waitress)
 try:
     with app.app_context():
+        ensure_enrollment_columns()
         ensure_question_columns()
 except Exception as _e:
     print(f"Auto-migrate on import skipped: {_e}")
@@ -6876,6 +7567,7 @@ except Exception as _e:
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
+        ensure_enrollment_columns()
         ensure_question_columns()
         if not User.query.filter_by(username='admin').first():
             db.session.add(User(username='admin', password=generate_password_hash('admin123'), role='Admin'))

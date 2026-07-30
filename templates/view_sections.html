@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% block title %}Sections{% endblock %}
+{% block content %}
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+      <a href="{{ url_for('dashboard_admin') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i> Back to Dashboard</a>
+      <h3 class="mt-2 mb-0"><span class="badge" style="background:#e8f5e9; color:#3daa5e; border-radius:50px;">Sections</span> Management</h3>
+      <small class="text-muted">Manage class sections like 1A, 2A, 3A, 4A - like Subjects but for sections</small>
+    </div>
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+      <button class="btn btn-danger btn-sm" id="bulkDeleteSectionsBtn" style="border-radius:50px; font-weight:700; display:none;">
+        <i class="bi bi-trash"></i> Delete Selected (<span id="selectedSectionCount">0</span>)
+      </button>
+      <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#addSectionModal" style="border-radius:50px; font-weight:700;">
+        <i class="bi bi-plus-circle"></i> Add Section
+      </button>
+    </div>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}{% for cat,msg in messages %}<div class="alert alert-{{cat}}" style="border-radius:14px;">{{msg}}</div>{% endfor %}{% endif %}{% endwith %}
+
+  <form id="bulkDeleteSectionsForm" method="POST" action="{{ url_for('bulk_delete_sections') }}">
+  <div class="card shadow-sm" style="border-radius:18px; overflow:hidden;">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead class="table-light">
+          <tr>
+            <th style="width:40px;"><input type="checkbox" id="checkAllSections"></th>
+            <th>Section Code</th>
+            <th>Description</th>
+            <th>Students</th>
+            <th style="width:180px;">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for sec in sections %}
+          <tr>
+            <td><input type="checkbox" name="section_ids" value="{{ sec.id }}" class="section-check"></td>
+            <td><span class="badge" style="background:#eef2ff; color:#5a6cf3; border-radius:50px;">{{ sec.section_code }}</span></td>
+            <td>{{ sec.description or '' }}</td>
+            <td><span class="badge bg-primary rounded-pill">{{ counts.get(sec.section_code, 0) }} enrolled</span></td>
+            <td>
+              <div class="d-flex gap-1">
+                <a href="{{ url_for('view_section_students', section_id=sec.id) }}" class="btn btn-sm btn-outline-primary" style="border-radius:50px;"><i class="bi bi-people"></i> View</a>
+                <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editSectionModal{{ sec.id }}" style="border-radius:50px;"><i class="bi bi-pencil"></i></button>
+                <form method="POST" action="{{ url_for('delete_section', section_id=sec.id) }}" onsubmit="return confirm('Delete section {{ sec.section_code }}?')">
+                  <button class="btn btn-sm btn-outline-danger" style="border-radius:50px;"><i class="bi bi-trash"></i></button>
+                </form>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Edit Modal per section -->
+          <div class="modal fade" id="editSectionModal{{ sec.id }}" tabindex="-1">
+            <div class="modal-dialog">
+              <div class="modal-content" style="border-radius:22px;">
+                <form method="POST" action="{{ url_for('edit_section', section_id=sec.id) }}">
+                  <div class="modal-header" style="background: linear-gradient(135deg, #5a6cf3 0%, #7a5af0 100%); color:#fff; border-radius:22px 22px 0 0;">
+                    <h5 class="modal-title">Edit Section {{ sec.section_code }}</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                  </div>
+                  <div class="modal-body">
+                    <div class="mb-3">
+                      <label class="form-label fw-bold">Section Code (e.g. 1A, 2A, 3A)</label>
+                      <input type="text" name="section_code" class="form-control" value="{{ sec.section_code }}" required style="border-radius:12px;">
+                    </div>
+                    <div class="mb-3">
+                      <label class="form-label">Description</label>
+                      <input type="text" name="description" class="form-control" value="{{ sec.description or '' }}" placeholder="e.g. First Year Section A" style="border-radius:12px;">
+                    </div>
+                    <div class="mb-3">
+                      <label class="form-label">School Year</label>
+                      <input type="text" name="school_year" class="form-control" value="{{ sec.school_year or '' }}" style="border-radius:12px;">
+                    </div>
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius:50px;">Cancel</button>
+                    <button type="submit" class="btn btn-primary" style="border-radius:50px; font-weight:700;">Save Changes</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+          {% else %}
+          <tr><td colspan="6" class="text-center py-4 text-muted">No sections yet. Add 1A, 2A, 3A, 4A etc.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  </form>
+
+  <!-- Also show distinct sections from Student table that are not in Section table -->
+  {% set existing_codes = sections|map(attribute='section_code')|list %}
+  {% set orphan_sections = [] %}
+  {% for code in counts.keys() %}
+    {% if code not in existing_codes %}
+      {% set _ = orphan_sections.append(code) %}
+    {% endif %}
+  {% endfor %}
+  {% if orphan_sections %}
+  <div class="card mt-3 p-3" style="border-radius:18px; background:#fff8e1;">
+    <h6><i class="bi bi-exclamation-triangle"></i> Found sections in student records not yet registered:</h6>
+    <div class="d-flex flex-wrap gap-2 mt-2">
+      {% for code in orphan_sections %}
+        <form method="POST" action="{{ url_for('add_section') }}" class="d-inline">
+          <input type="hidden" name="section_code" value="{{ code }}">
+          <input type="hidden" name="description" value="Auto-imported from students">
+          <button class="btn btn-sm btn-warning" style="border-radius:50px;">+ Add {{ code }} ({{ counts[code] }} students)</button>
+        </form>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Add Section Modal -->
+<div class="modal fade" id="addSectionModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content" style="border-radius:22px;">
+      <form method="POST" action="{{ url_for('add_section') }}">
+        <div class="modal-header" style="background: linear-gradient(135deg, #5a6cf3 0%, #7a5af0 100%); color:#fff; border-radius:22px 22px 0 0;">
+          <h5 class="modal-title"><i class="bi bi-collection"></i> Add Section</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label fw-bold">Section Code *</label>
+            <input type="text" name="section_code" class="form-control" required placeholder="e.g. 1A, 2A, 3A, 4A" style="border-radius:12px; text-transform:uppercase;">
+            <small class="text-muted">This will be used to group students. Example: 1A = First Year A</small>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Description</label>
+            <input type="text" name="description" class="form-control" placeholder="e.g. BSIT First Year Section A" style="border-radius:12px;">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">School Year</label>
+            <input type="text" name="school_year" class="form-control" value="2026-2027" style="border-radius:12px;">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius:50px;">Cancel</button>
+          <button type="submit" class="btn btn-success" style="border-radius:50px; font-weight:700;">Add Section</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  const checkAll = document.getElementById('checkAllSections');
+  const bulkBtn = document.getElementById('bulkDeleteSectionsBtn');
+  const countSpan = document.getElementById('selectedSectionCount');
+  function updateCount(){
+    const checked = document.querySelectorAll('.section-check:checked');
+    const c = checked.length;
+    countSpan.textContent = c;
+    bulkBtn.style.display = c>0 ? 'inline-flex' : 'none';
+    if(checkAll) checkAll.checked = c>0 && c===document.querySelectorAll('.section-check').length;
+  }
+  checkAll?.addEventListener('change', function(){
+    document.querySelectorAll('.section-check').forEach(ch=> ch.checked = checkAll.checked);
+    updateCount();
+  });
+  document.querySelectorAll('.section-check').forEach(ch=>{
+    ch.addEventListener('change', updateCount);
+  });
+  bulkBtn?.addEventListener('click', function(){
+    const c = document.querySelectorAll('.section-check:checked').length;
+    if(c===0) return;
+    if(confirm(`Delete ${c} selected section(s)? Only empty sections will be deleted. Sections with students will be skipped.`)){
+      document.getElementById('bulkDeleteSectionsForm').submit();
+    }
+  });
+});
+</script>
+{% endblock %}

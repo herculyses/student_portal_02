@@ -1,0 +1,415 @@
+{% extends "base.html" %}
+{% block title %}Section Students{% endblock %}
+{% block content %}
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+      <a href="{{ url_for('view_sections') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i> Back to Sections</a>
+      <h3 class="mt-2 mb-0"><span class="badge" style="background:#e8f5e9; color:#3daa5e; border-radius:50px;">{{ section.section_code }}</span> {{ section.description or '' }}</h3>
+      <small class="text-muted">{{ section.school_year or '' }}</small>
+    </div>
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+      <span class="badge bg-primary rounded-pill" style="font-size:1rem;">{{ students|length }} students</span>
+      <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#batchAddModal" style="border-radius:50px; font-weight:700;">
+        <i class="bi bi-people"></i> Batch Move
+      </button>
+      <button class="btn btn-danger btn-sm" id="bulkDeleteBtn" style="border-radius:50px; font-weight:700; display:none;">
+        <i class="bi bi-trash"></i> Remove Selected (<span id="selectedCount">0</span>)
+      </button>
+      <button class="btn btn-warning btn-sm" id="bulkTransferBtn" style="border-radius:50px; font-weight:700; display:none; background:#ffc107; border-color:#ffc107; color:#000;">
+        <i class="bi bi-arrow-left-right"></i> Transfer Selected (<span id="selectedCount2">0</span>)
+      </button>
+    </div>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}{% for cat,msg in messages %}<div class="alert alert-{{cat}}" style="border-radius:14px;">{{msg}}</div>{% endfor %}{% endif %}{% endwith %}
+
+  <!-- Search filter for enrolled list -->
+  <div class="card shadow-sm mb-3" style="border-radius:18px;">
+    <div class="card-body py-2">
+      <div class="position-relative">
+        <i class="bi bi-search position-absolute" style="left:14px; top:50%; transform:translateY(-50%); color:#888;"></i>
+        <input type="text" id="filterEnrolled" class="form-control" placeholder="Search by ID or Name... (alphabetically sorted)" style="border-radius:50px; padding-left:40px;">
+      </div>
+    </div>
+  </div>
+
+  <!-- BULK TRANSFER PANEL - NEW, NOT MODAL -->
+  <div class="card shadow-sm mb-3" id="bulkTransferPanel" style="border-radius:18px; display:none; border:2px solid #ffc107; background:#fffdf0;">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h6 class="mb-0 fw-bold"><i class="bi bi-arrow-left-right"></i> Transfer <span id="transferCount">0</span> student(s) to:</h6>
+        <button type="button" class="btn-close" id="closeTransferPanel"></button>
+      </div>
+      <div class="d-flex flex-wrap gap-2" id="transferSectionsList">
+        <!-- Sections will be populated by JS from all_sections if available, else fallback -->
+        {% if all_sections is defined %}
+          {% for sec in all_sections %}
+            {% if sec.id != section.id %}
+            <button type="button" class="btn btn-sm btn-outline-primary transfer-target-btn" data-target-id="{{ sec.id }}" data-target-code="{{ sec.section_code }}" style="border-radius:50px;">
+              {{ sec.section_code }} {% if sec.description %} - {{ sec.description }}{% endif %}
+            </button>
+            {% endif %}
+          {% endfor %}
+        {% else %}
+          <!-- Fallback if all_sections not passed - JS will show input -->
+          <small class="text-muted">No sections list found. Use manual code below.</small>
+        {% endif %}
+      </div>
+      <div class="mt-3 d-flex gap-2 align-items-center flex-wrap">
+        <span class="small fw-bold">Or type section code:</span>
+        <input type="text" id="manualTargetCode" class="form-control form-control-sm" placeholder="e.g. 2A, 3B" style="width:120px; border-radius:50px; text-transform:uppercase;">
+        <button type="button" class="btn btn-sm btn-warning" id="confirmManualTransfer" style="border-radius:50px; font-weight:700;">Transfer</button>
+      </div>
+      <small class="text-muted d-block mt-2"><i class="bi bi-info-circle"></i> Uses your existing <code>batch_assign</code> route - no app.py change needed. Transfers FROM {{ section.section_code }} TO selected.</small>
+    </div>
+  </div>
+
+  <form id="bulkRemoveForm" method="POST" action="{{ url_for('bulk_remove_section_students', section_id=section.id) }}">
+  <div class="card shadow-sm" style="border-radius:18px; overflow:hidden;">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0" id="enrolledTable">
+        <thead class="table-light">
+          <tr>
+            <th style="width:40px;"><input type="checkbox" id="checkAllEnrolled"></th>
+            <th>Student ID</th>
+            <th>Name (Alphabetically)</th>
+            <th>Section</th>
+            <th style="width:100px;">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in students %}
+          <tr class="enrolled-row" data-search="{{ s.student_id }} {{ s.display_name or s.name }} {{ s.name|lower }}">
+            <td><input type="checkbox" name="student_ids" value="{{ s.student_id }}" class="enrolled-check"></td>
+            <td><span class="badge" style="background:#eef2ff; color:#5a6cf3; border-radius:50px;">{{ s.student_id }}</span></td>
+            <td style="font-weight:600;">{{ s.display_name or s.name }}</td>
+            <td><span class="badge bg-light text-dark" style="border-radius:50px;">{{ s.section or '' }}</span></td>
+            <td>
+              <form method="POST" action="{{ url_for('remove_student_from_section', section_id=section.id, student_id=s.student_id) }}" onsubmit="return confirm('Remove {{ (s.display_name or s.name)|e }} from {{ section.section_code }}?')">
+                <button type="submit" class="btn btn-sm btn-outline-danger" style="border-radius:50px;"><i class="bi bi-trash"></i></button>
+              </form>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6" class="text-center py-4 text-muted">No students in this section yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  </form>
+</div>
+
+<!-- BATCH ADD MODAL - same logic as subjects but for sections -->
+<div class="modal fade" id="batchAddModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content" style="border-radius:22px;">
+      <form method="POST" action="{{ url_for('batch_assign_section_students', section_id=section.id) }}" id="batchAddForm">
+        <div class="modal-header" style="background: linear-gradient(135deg, #5a6cf3 0%, #7a5af0 100%); color:#fff; border-radius:22px 22px 0 0;">
+          <h5 class="modal-title"><i class="bi bi-people"></i> Move Students to {{ section.section_code }}</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3 position-relative">
+            <i class="bi bi-search position-absolute" style="left:12px; top:50%; transform:translateY(-50%); color:#888;"></i>
+            <input type="text" id="batchSearch" class="form-control" placeholder="Search by ID or Name to select..." style="border-radius:12px; padding-left:38px;">
+          </div>
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <small class="text-muted"><span id="availableCount">0</span></small>
+            <button type="button" class="btn btn-sm btn-outline-primary" id="checkAllAvailable" style="border-radius:50px;">Select All Filtered</button>
+          </div>
+          <div class="border rounded" style="max-height:280px; overflow-y:auto; border-radius:12px !important;">
+            <div id="availableList" class="p-2"></div>
+          </div>
+          <div class="mt-3" id="selectedPreviewWrap" style="display:none;">
+            <label class="form-label fw-bold small">Selected (<span id="batchSelectedCount2">0</span>) - click X to unselect:</label>
+            <div id="selectedPreviewList" class="border rounded p-2" style="max-height:140px; overflow-y:auto; background:#f8f9ff; border-radius:12px !important; display:flex; flex-wrap:wrap; gap:6px;"></div>
+          </div>
+          <div class="mt-3">
+            <div class="alert alert-info py-2" style="border-radius:12px; font-size:0.85rem;">
+              <i class="bi bi-info-circle"></i> Selected: <strong><span id="batchSelectedCount">0</span></strong> student(s) will be moved to {{ section.section_code }}
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius:50px;">Cancel</button>
+          <button type="submit" class="btn btn-success" style="border-radius:50px; font-weight:700;">Move Selected</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<style>
+.available-item{ padding:8px 10px; border-bottom:1px solid #f3f4f6; display:flex; align-items:center; gap:10px; cursor:pointer; border-radius:8px; }
+.available-item:hover{ background:#f8f9ff; }
+</style>
+
+<script>
+const ALL_STUDENTS_RAW = [
+  {% for s in all_students %}
+  { id: "{{ s.student_id }}", name: "{{ (s.display_name or s.name)|e }}", display: "{{ s.student_id }} - {{ (s.display_name or s.name)|e }}", section: "{{ s.section or '' }}" },
+  {% endfor %}
+];
+const ALL_STUDENTS_MAP = new Map();
+ALL_STUDENTS_RAW.forEach(s => { if(!ALL_STUDENTS_MAP.has(s.id)) ALL_STUDENTS_MAP.set(s.id, s); });
+const ALL_STUDENTS = Array.from(ALL_STUDENTS_MAP.values()).sort((a,b)=> a.name.localeCompare(b.name));
+
+const CURRENT_SECTION = "{{ section.section_code }}";
+const AVAILABLE_STUDENTS = ALL_STUDENTS.filter(s => s.section !== CURRENT_SECTION);
+
+document.addEventListener('DOMContentLoaded', function(){
+  initEnrolledFilter();
+  initBatchAdd();
+  initBulkRemove();
+  initBulkTransfer();
+});
+
+function initEnrolledFilter(){
+  const filterInput = document.getElementById('filterEnrolled');
+  if(!filterInput) return;
+  filterInput.addEventListener('input', function(){
+    const q=this.value.toLowerCase().trim();
+    document.querySelectorAll('.enrolled-row').forEach(row=>{
+      const search=row.getAttribute('data-search')||"";
+      row.style.display = search.toLowerCase().includes(q) ? "" : "none";
+    });
+  });
+}
+
+function initBatchAdd(){
+  const batchSearch = document.getElementById('batchSearch');
+  const availableList = document.getElementById('availableList');
+  const batchSelectedCount = document.getElementById('batchSelectedCount');
+  const batchSelectedCount2 = document.getElementById('batchSelectedCount2');
+  const availableCount = document.getElementById('availableCount');
+  const checkAllBtn = document.getElementById('checkAllAvailable');
+  const previewWrap = document.getElementById('selectedPreviewWrap');
+  const previewList = document.getElementById('selectedPreviewList');
+  const batchSelectedIds = new Map();
+  
+  function renderAvailable(filter=""){
+    const q=filter.toLowerCase().trim();
+    let filtered = AVAILABLE_STUDENTS;
+    if(q){
+      filtered = AVAILABLE_STUDENTS.filter(s=> s.id.toLowerCase().includes(q) || s.name.toLowerCase().includes(q));
+    }
+    availableCount.textContent = `${filtered.length} available (not in this section)`;
+    availableList.innerHTML = filtered.map(s=>`
+      <label class="available-item">
+        <input type="checkbox" value="${s.id}" class="available-check" ${batchSelectedIds.has(s.id) ? 'checked' : ''}>
+        <div><strong style="color:#5a6cf3;">${s.id}</strong> - ${s.name} <small class="text-muted">(${s.section||'No Sec'})</small></div>
+      </label>
+    `).join('') || '<div class="p-3 text-muted text-center"><small>No available students</small></div>';
+    availableList.querySelectorAll('.available-check').forEach(chk=>{
+      chk.addEventListener('change', function(){
+        const id = this.value;
+        const student = AVAILABLE_STUDENTS.find(s=>s.id===id);
+        if(this.checked) batchSelectedIds.set(id, student ? student.name : id);
+        else batchSelectedIds.delete(id);
+        renderSelectedPreview();
+        updateSelectAllBtnText(filtered);
+      });
+    });
+    updateSelectAllBtnText(filtered);
+  }
+  
+  function renderSelectedPreview(){
+    const count = batchSelectedIds.size;
+    batchSelectedCount.textContent = count;
+    batchSelectedCount2.textContent = count;
+    previewWrap.style.display = count>0 ? "block" : "none";
+    document.querySelectorAll('#batchAddForm .batch-hidden-id').forEach(el=>el.remove());
+    const form = document.getElementById('batchAddForm');
+    previewList.innerHTML = "";
+    batchSelectedIds.forEach((name, id)=>{
+      const inp = document.createElement('input');
+      inp.type='hidden'; inp.name='student_ids'; inp.value=id; inp.className='batch-hidden-id';
+      form.appendChild(inp);
+      const chip = document.createElement('span');
+      chip.className = 'badge d-inline-flex align-items-center gap-1';
+      chip.style.cssText = 'background:#eef2ff; color:#5a6cf3; border-radius:50px; padding:6px 10px; font-size:0.8rem;';
+      chip.innerHTML = `${id} - ${name} <button type="button" data-id="${id}" class="btn-close btn-close-sm ms-1 remove-chip" style="font-size:0.6rem;"></button>`;
+      previewList.appendChild(chip);
+    });
+    previewList.querySelectorAll('.remove-chip').forEach(btn=>{
+      btn.addEventListener('click', function(){
+        batchSelectedIds.delete(this.getAttribute('data-id'));
+        renderAvailable(batchSearch.value);
+        renderSelectedPreview();
+      });
+    });
+  }
+  function updateSelectAllBtnText(filtered){
+    if(!checkAllBtn) return;
+    const allFilteredSelected = filtered.length>0 && filtered.every(s=>batchSelectedIds.has(s.id));
+    checkAllBtn.textContent = allFilteredSelected ? "Unselect All Filtered" : "Select All Filtered";
+  }
+  batchSearch?.addEventListener('input', function(){ renderAvailable(this.value); });
+  checkAllBtn?.addEventListener('click', function(){
+    const q = batchSearch.value.toLowerCase().trim();
+    let filtered = AVAILABLE_STUDENTS;
+    if(q) filtered = AVAILABLE_STUDENTS.filter(s=> s.id.toLowerCase().includes(q) || s.name.toLowerCase().includes(q));
+    const allSelected = filtered.length>0 && filtered.every(s=>batchSelectedIds.has(s.id));
+    if(allSelected) filtered.forEach(s=>batchSelectedIds.delete(s.id));
+    else filtered.forEach(s=>batchSelectedIds.set(s.id, s.name));
+    renderAvailable(batchSearch.value);
+    renderSelectedPreview();
+  });
+  document.getElementById('batchAddModal')?.addEventListener('shown.bs.modal', ()=>{
+    renderAvailable(batchSearch.value || "");
+    renderSelectedPreview();
+    batchSearch.focus();
+  });
+  renderAvailable("");
+  renderSelectedPreview();
+}
+</script>
+
+<script>
+function initBulkRemove(){
+  const checkAll = document.getElementById('checkAllEnrolled');
+  const bulkBtn = document.getElementById('bulkDeleteBtn');
+  const selectedCount = document.getElementById('selectedCount');
+  function updateSelected(){
+    const checks = document.querySelectorAll('.enrolled-check:checked');
+    const count = checks.length;
+    if(selectedCount) selectedCount.textContent = count;
+    if(bulkBtn) bulkBtn.style.display = count>0 ? "inline-flex" : "none";
+  }
+  checkAll?.addEventListener('change', function(){
+    document.querySelectorAll('.enrolled-check').forEach(c=>{
+      if(c.closest('tr').style.display !== "none"){
+        c.checked = checkAll.checked;
+      }
+    });
+    updateSelected();
+  });
+  document.querySelectorAll('.enrolled-check').forEach(c=>{
+    c.addEventListener('change', updateSelected);
+  });
+  bulkBtn?.addEventListener('click', function(){
+    const count = document.querySelectorAll('.enrolled-check:checked').length;
+    if(count===0) return;
+    if(confirm(`Remove ${count} selected student(s) from {{ section.section_code }}? This will set their section to empty.`)){
+      document.getElementById('bulkRemoveForm').submit();
+    }
+  });
+}
+document.addEventListener('DOMContentLoaded', function(){
+  if(typeof initBulkRemove === 'function') initBulkRemove();
+});
+</script>
+
+<script>
+function initBulkTransfer(){
+  const bulkTransferBtn = document.getElementById('bulkTransferBtn');
+  const transferPanel = document.getElementById('bulkTransferPanel');
+  const transferCount = document.getElementById('transferCount');
+  const closePanel = document.getElementById('closeTransferPanel');
+  const manualInput = document.getElementById('manualTargetCode');
+  const confirmManualBtn = document.getElementById('confirmManualTransfer');
+
+  function getSelectedIds(){
+    return Array.from(document.querySelectorAll('.enrolled-check:checked')).map(c=>c.value);
+  }
+
+  function updateTransferButtons(){
+    const count = document.querySelectorAll('.enrolled-check:checked').length;
+    // sync counts for both buttons
+    const sel1 = document.getElementById('selectedCount');
+    const sel2 = document.getElementById('selectedCount2');
+    if(sel1) sel1.textContent = count;
+    if(sel2) sel2.textContent = count;
+    if(transferCount) transferCount.textContent = count;
+    const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
+    if(bulkTransferBtn) bulkTransferBtn.style.display = count>0 ? 'inline-flex' : 'none';
+    if(bulkDeleteBtn) bulkDeleteBtn.style.display = count>0 ? 'inline-flex' : 'none';
+  }
+
+  // Hook into existing checkboxes
+  document.querySelectorAll('.enrolled-check').forEach(ch=>{
+    ch.addEventListener('change', updateTransferButtons);
+  });
+  const checkAll = document.getElementById('checkAllEnrolled');
+  checkAll?.addEventListener('change', function(){
+    setTimeout(updateTransferButtons, 50);
+  });
+
+  bulkTransferBtn?.addEventListener('click', function(){
+    const ids = getSelectedIds();
+    if(ids.length===0) return;
+    transferPanel.style.display = 'block';
+    transferPanel.scrollIntoView({behavior:'smooth', block:'center'});
+    updateTransferButtons();
+  });
+
+  closePanel?.addEventListener('click', function(){
+    transferPanel.style.display = 'none';
+  });
+
+  // Transfer to existing section via existing batch_assign route
+  document.querySelectorAll('.transfer-target-btn').forEach(btn=>{
+    btn.addEventListener('click', function(){
+      const targetId = this.getAttribute('data-target-id');
+      const targetCode = this.getAttribute('data-target-code');
+      const ids = getSelectedIds();
+      if(ids.length===0) return;
+      if(!confirm(`Transfer ${ids.length} student(s) from {{ section.section_code }} to ${targetCode}?`)) return;
+      
+      // Create form POST to /sections/<targetId>/batch_assign - reuses existing function!
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = `/sections/${targetId}/batch_assign`;
+      ids.forEach(id=>{
+        const inp = document.createElement('input');
+        inp.type='hidden';
+        inp.name='student_ids';
+        inp.value=id;
+        form.appendChild(inp);
+      });
+      document.body.appendChild(form);
+      form.submit();
+    });
+  });
+
+  // Manual code transfer - uses new additive route if you add it, else fallback to same via code lookup
+  confirmManualBtn?.addEventListener('click', function(){
+    const code = manualInput.value.trim().toUpperCase();
+    const ids = getSelectedIds();
+    if(!code){ alert('Enter target section code'); return; }
+    if(ids.length===0){ alert('Select students first'); return; }
+    if(!confirm(`Transfer ${ids.length} student(s) to ${code}?`)) return;
+
+    // Try to find matching button first (has id)
+    const matchingBtn = document.querySelector(`.transfer-target-btn[data-target-code="${code}"]`);
+    if(matchingBtn){
+      matchingBtn.click();
+      return;
+    }
+
+    // Fallback: POST to custom transfer-by-code route (additive, doesn't change existing)
+    // If you don't want to add app.py route, this will 404 - so use manual section buttons instead
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = `/sections/{{ section.id }}/bulk_transfer`;
+    const codeInp = document.createElement('input');
+    codeInp.type='hidden';
+    codeInp.name='target_section_code';
+    codeInp.value=code;
+    form.appendChild(codeInp);
+    ids.forEach(id=>{
+      const inp = document.createElement('input');
+      inp.type='hidden';
+      inp.name='student_ids';
+      inp.value=id;
+      form.appendChild(inp);
+    });
+    document.body.appendChild(form);
+    form.submit();
+  });
+}
+</script>
+
+{% endblock %}

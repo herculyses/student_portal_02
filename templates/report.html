@@ -176,7 +176,7 @@ if (localStorage.getItem("darkMode") === "true") {
       {% endmacro %}
 
       <!-- STUDENT INFO -->
-      <h5 class="mb-0">{{ student.name }}</h5>
+      <h5 class="mb-0">{{ student.display_name }}</h5>
       <small class="text-muted">Subject: {{ student.subject }}</small>
 
       <form method="POST">

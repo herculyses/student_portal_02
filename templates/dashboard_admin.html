@@ -1,8 +1,6 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin Panel - Student Grade Portal</title>
+{% extends "base.html" %}
+{% block title %}Admin Panel - Student Grade Portal{% endblock %}
+{% block content %}
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Quicksand:wght@600;700&display=swap" rel="stylesheet">
@@ -12,17 +10,7 @@ body { background:#fdfbff !important; font-family:'Nunito', sans-serif !importan
 h4,h5 { font-weight:800; color:#2e334d; font-family:'Quicksand' !important; }
 .card { border-radius:22px !important; border:1px solid #f2eefb !important; box-shadow:0 6px 28px rgba(120,100,180,0.07) !important; }
 .friendly-btn { display:inline-flex; align-items:center; gap:8px; padding:10px 18px; border-radius:50px; font-weight:700; font-size:0.84rem; border:1.5px solid transparent; transition:all .32s cubic-bezier(.34,1.56,.64,1); text-decoration:none; cursor:pointer; background:#fff !important; }
-.friendly-btn:hover { transform:translateY(-2px); box-shadow:0 8px 22px rgba(0,0,0,.12); }
-.friendly-btn:active { animation: breathPress 0.45s ease; transform:scale(0.96); }
-@keyframes breathPress { 0%{transform:scale(1);} 30%{transform:scale(0.92);} 60%{transform:scale(1.05);} 100%{transform:scale(0.98);} }
 .friendly-btn i { display:inline-block; transition:transform 0.55s cubic-bezier(.34,1.56,.64,1); font-size:1.05rem; }
-.friendly-btn[data-flip="pop"]:hover i { transform:translateY(-3px) scale(1.3); }
-.friendly-btn.primary { background:#ffffff !important; color:#5a6cf3 !important; border-color:#d9e0ff !important; } .friendly-btn.primary:hover { background:#5a6cf3 !important; color:#ffffff !important; }
-.friendly-btn.success { background:#ffffff !important; color:#3daa5e !important; border-color:#cde9d3 !important; } .friendly-btn.success:hover { background:#3daa5e !important; color:#ffffff !important; }
-.friendly-btn.warning { background:#ffffff !important; color:#b78a1f !important; border-color:#ffefb0 !important; } .friendly-btn.warning:hover { background:#b78a1f !important; color:#ffffff !important; }
-.friendly-btn.danger { background:#fff !important; color:#e05252 !important; border-color:#ffd0d0 !important; } .friendly-btn.danger:hover { background:#e05252 !important; color:#fff !important; }
-.friendly-btn.info { background:#ffffff !important; color:#4fb8e0 !important; border-color:#cdefff !important; } .friendly-btn.info:hover { background:#4fb8e0 !important; color:#ffffff !important; }
-.friendly-btn.purple { background:#ffffff !important; color:#7a5af0 !important; border-color:#e2d8ff !important; } .friendly-btn.purple:hover { background:#7a5af0 !important; color:#ffffff !important; }
 .friendly-btn.dark { background:#ffffff !important; color:#2e334d !important; border-color:#ececf2 !important; } .friendly-btn.dark:hover { background:#2e334d !important; color:#ffffff !important; }
 .friendly-btn.enroll { background: linear-gradient(135deg, #5a6cf3 0%, #7a5af0 100%) !important; color:#fff !important; border:none !important; } 
 .sidebar { width:285px; position:fixed; height:100vh; background: linear-gradient(180deg, #5a6cf3 0%, #7a5af0 100%) !important; overflow-y:auto; }
@@ -31,31 +19,6 @@ h4,h5 { font-weight:800; color:#2e334d; font-family:'Quicksand' !important; }
 .fc-event { cursor:pointer; border-radius:8px !important; padding:2px 6px !important; }
 .dark-mode { background:#121212 !important; color:#e0e0e0 !important; }
 .dark-mode .card { background:#1e1e1e !important; color:#fff !important; }
-/* Unique hover effects - each different */
-.friendly-btn[data-flip="pop"]:hover i{ transform:translateY(-4px) scale(1.35); }
-.friendly-btn[data-flip="spin"]:hover i{ transform:rotate(360deg) scale(1.25); }
-.friendly-btn[data-flip="y"]:hover i{ transform:rotateY(360deg) scale(1.2); }
-.friendly-btn[data-flip="x"]:hover i{ transform:rotateX(360deg) scale(1.2); }
-.friendly-btn[data-flip="bounce"]:hover i{ animation:softBounce 0.65s cubic-bezier(.34,1.56,.64,1); }
-.friendly-btn[data-flip="wobble"]:hover i{ animation:softWobble 0.7s ease; }
-.friendly-btn[data-flip="send"]:hover i{ transform:translate(7px,-7px) scale(1.3) rotate(12deg); }
-.friendly-btn[data-flip="heart"]:hover i{ animation:heartBeat 0.6s ease infinite alternate; }
-.friendly-btn[data-flip="swing"]:hover i{ animation:swing 0.6s ease; }
-.friendly-btn[data-flip="float"]:hover i{ animation:floaty 0.8s ease-in-out infinite alternate; }
-.friendly-btn[data-flip="shake"]:hover i{ animation:shake 0.5s ease; }
-.friendly-btn[data-flip="back"]:hover i{ transform:translateX(-5px) scale(1.2); }
-.friendly-btn[data-flip="eye"]:hover i{ transform:scale(1.4); animation:blink 0.5s ease; }
-.friendly-btn[data-flip="pencil"]:hover i{ transform:rotate(-18deg) translateY(-3px) scale(1.3); }
-.friendly-btn[data-flip="trash"]:hover i{ animation:trashShake 0.55s ease; }
-
-@keyframes softBounce{ 0%{transform:translateY(0)} 40%{transform:translateY(-7px) scale(1.3)} 100%{transform:translateY(0) scale(1.15)} }
-@keyframes softWobble{ 0%{transform:rotate(0)} 20%{transform:rotate(14deg) scale(1.2)} 40%{transform:rotate(-12deg)} 70%{transform:rotate(8deg)} 100%{transform:rotate(0) scale(1.1)} }
-@keyframes heartBeat{ 0%{transform:scale(1)} 100%{transform:scale(1.35)} }
-@keyframes swing{ 0%{transform:rotate(0)} 25%{transform:rotate(18deg) scale(1.2)} 50%{transform:rotate(-14deg)} 100%{transform:rotate(0)} }
-@keyframes floaty{ 0%{transform:translateY(0)} 100%{transform:translateY(-6px) scale(1.15)} }
-@keyframes shake{ 0%,100%{transform:translateX(0)} 20%{transform:translateX(-4px) rotate(-6deg)} 40%{transform:translateX(4px) rotate(6deg)} 60%{transform:translateX(-3px)} 80%{transform:translateX(3px)} }
-@keyframes trashShake{ 0%{transform:rotate(0) scale(1)} 20%{transform:rotate(-18deg) scale(1.2)} 40%{transform:rotate(18deg)} 60%{transform:rotate(-10deg) scale(1.25)} 100%{transform:rotate(0)} }
-@keyframes blink{ 0%{transform:scaleY(1)} 50%{transform:scaleY(0.1) scale(1.4)} 100%{transform:scaleY(1) scale(1.4)} }
 </style>
 </head>
 <body>
@@ -67,17 +30,18 @@ h4,h5 { font-weight:800; color:#2e334d; font-family:'Quicksand' !important; }
     <a href="{{ url_for('enrollment_admin') }}" class="friendly-btn enroll w-100 mt-2" data-flip="pop"><i class="bi bi-person-lines-fill"></i> Enrollment Requests</a>
     <a href="{{ url_for('enrollment') }}" class="btn w-100 mt-2" style="background:rgba(255,255,255,0.18); color:#fff; border-radius:50px; font-weight:700; border:1px solid rgba(255,255,255,0.25);"><i class="bi bi-plus-circle me-1"></i> New Enrollment</a>
   </div>
-  <a href="{{ url_for('view_students') }}" class="friendly-btn primary w-100 mb-2" data-flip="pop"><i class="bi bi-people" ></i> Students</a>
+  <a href="{{ url_for('view_students') }}" class="friendly-btn primary w-100 mb-2" data-flip="jiggle"><i class="bi bi-people" ></i> Students</a>
+  <a href="{{ url_for('view_sections') }}" class="friendly-btn primary w-100 mb-2" data-flip="send" style="border-color:#cde9d3 !important; color:#3daa5e !important;"><i class="bi bi-collection"></i> Sections</a>
   <a href="{{ url_for('view_subjects') }}" class="friendly-btn purple w-100 mb-2" data-flip="pop"><i class="bi bi-journal"></i> Subjects</a>
-  <a href="{{ url_for('view_exams') }}" class="friendly-btn info w-100 mb-2" data-flip="pop"><i class="bi bi-file-earmark-text"></i> View Exams</a>
-  <a href="{{ url_for('upload_students') }}" class="friendly-btn warning w-100 mb-2" data-flip="pop"><i class="bi bi-upload"></i> Upload CSV</a>
-  <a href="{{ url_for('download_csv') }}" class="friendly-btn success w-100 mb-2" data-flip="pop"><i class="bi bi-download"></i> Download CSV</a>
-  <a href="{{ url_for('export_page') }}" class="friendly-btn primary w-100 mb-2" data-flip="pop"><i class="bi bi-funnel"></i> Export Data</a>
-  <a href="{{ url_for('view_logs') }}" class="friendly-btn dark w-100 mb-2" data-flip="pop"><i class="bi bi-journal-text"></i> Logs</a>
-  <button onclick="toggleDarkMode()" class="friendly-btn dark w-100 mb-3" data-flip="pop"><i class="bi bi-moon-stars"></i> Dark Mode</button>
+  <a href="{{ url_for('view_exams') }}" class="friendly-btn info w-100 mb-2" data-flip="zoom"><i class="bi bi-file-earmark-text"></i> View Exams</a>
+  <a href="{{ url_for('upload_students') }}" class="friendly-btn warning w-100 mb-2" data-flip="sway"><i class="bi bi-upload"></i> Upload CSV</a>
+  <a href="{{ url_for('download_csv') }}" class="friendly-btn success w-100 mb-2" data-flip="spinY"><i class="bi bi-download"></i> Download CSV</a>
+  <a href="{{ url_for('export_page') }}" class="friendly-btn primary w-100 mb-2" data-flip="wobble"><i class="bi bi-funnel"></i> Export Data</a>
+  <a href="{{ url_for('view_logs') }}" class="friendly-btn dark w-100 mb-2" data-flip="heart"><i class="bi bi-journal-text"></i> Logs</a>
+  <button onclick="toggleDarkMode()" class="friendly-btn dark w-100 mb-3" data-flip="glide"><i class="bi bi-moon-stars"></i> Dark Mode</button>
   <hr style="border-color:rgba(255,255,255,0.2);">
-  <a href="{{ url_for('register') }}" class="friendly-btn w-100 mb-2" style="background:rgba(255,255,255,0.15) !important; color:#fff !important; border:1px solid rgba(255,255,255,0.25);" data-flip="pop"><i class="bi bi-person-plus"></i> Register User</a>
-  <a href="{{ url_for('logout') }}" class="btn btn-danger w-100" data-flip="pop" style="border-radius:50px; font-weight:700;"><i class="bi bi-box-arrow-right"></i> Logout</a>
+  <a href="{{ url_for('register') }}" class="friendly-btn w-100 mb-2" style="background:rgba(255,255,255,0.15) !important; color:#fff !important; border:1px solid rgba(255,255,255,0.25);" data-flip="shake"><i class="bi bi-person-plus"></i> Register User</a>
+  <a href="{{ url_for('logout') }}" class="btn btn-danger w-100" style="border-radius:50px; font-weight:700;"><i class="bi bi-box-arrow-right"></i> Logout</a>
 </div>
 
 <div class="flex-grow-1 main-content">
@@ -254,5 +218,4 @@ document.addEventListener('DOMContentLoaded', function() {
   calendar.render();
 });
 </script>
-</body>
-</html>
+{% endblock %}

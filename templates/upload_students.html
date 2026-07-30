@@ -1,171 +1,260 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Upload Students CSV</title>
+{% extends "base.html" %}
+{% block title %}Upload Students{% endblock %}
 
-<link rel="icon" type="image/png"
-      href="{{ url_for('static', filename='favicon.png') }}">
+{% block extra_css %}
+<style>
+.req-card { background: linear-gradient(135deg, #fff7ed 0%, #fef2f2 100%) !important; border:2px solid #fed7aa !important; border-left:5px solid #f59e0b !important; border-radius:18px !important; }
+.req-title { font-weight:800; color:#92400e; }
+.upload-card { border-radius:22px !important; }
+.preview-box { background:#f8f7ff; border:1px dashed #d9d0ff; border-radius:14px; padding:12px; font-family:monospace; font-size:0.85rem; }
+</style>
+{% endblock %}
 
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-</head>
-<body class="bg-light">
-
-<div class="container mt-5">
-
-  <h3 class="text-primary mb-4">Upload Students via CSV</h3>
-
-  <!-- IMPORTANT NOTICE -->
-  <div class="alert alert-info shadow-sm">
-    <h5 class="mb-2">⚠ Upload Requirements</h5>
-    <ul class="mb-0">
-      <li>Save your Excel file as <strong>CSV UTF-8 (Comma delimited)</strong>.</li>
-      <li>This is required to properly include letters like <strong>Ñ</strong> and <strong>ñ</strong>.</li>
-      <li>Make sure the CSV headers are exactly correct before uploading.</li>
-      <li>Wrong or missing headers will cause upload validation errors.</li>
-    </ul>
+{% block content %}
+<div class="container mt-4" style="max-width:900px;">
+  <!-- Header + Back to Dashboard -->
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+    <h3 class="mb-0"><i class="bi bi-cloud-upload-fill title-icon" style="color:#7a5af0;"></i> Upload Students via CSV</h3>
+    <div class="d-flex gap-2">
+      <a href="{{ url_for('dashboard_admin') }}" class="friendly-btn slate" data-flip="back"><i class="bi bi-arrow-left-circle"></i> Back to Dashboard</a>
+    </div>
   </div>
 
-  <!-- EXPECTED HEADERS -->
-  <div class="card shadow-sm p-3 mb-4">
-    <h6 class="text-primary">Required Headers:</h6>
-    <code>
-      student_id, fullname, course, year, section, subject
-    </code>
-  </div>
-
-  <!-- Flash Messages -->
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      {% for category, message in messages %}
-        <div class="alert alert-{{ category }} alert-dismissible fade show flash" role="alert">
-          {{ message }}
-          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  <!-- ⚠ Upload Requirements - ADDED -->
+  <div class="card req-card mb-4 p-3 shadow-sm">
+    <div class="d-flex gap-2">
+      <div style="font-size:1.6rem;"><i class="bi bi-exclamation-triangle-fill" style="color:#f59e0b;"></i></div>
+      <div class="flex-grow-1">
+        <h5 class="req-title mb-2"><i class="bi bi-shield-exclamation"></i> ⚠ Upload Requirements</h5>
+        <ul class="mb-2" style="font-weight:600; color:#78350f;">
+          <li><i class="bi bi-filetype-csv me-1"></i> Save your Excel file as <strong>CSV UTF-8 (Comma delimited)</strong>. This is required to properly include letters like <strong>Ñ, ñ, é, ü</strong>.</li>
+          <li><i class="bi bi-check2-square me-1"></i> Make sure the CSV headers are <strong>exactly correct</strong> before uploading. Wrong or missing headers will cause upload validation errors.</li>
+          <li><i class="bi bi-type me-1"></i> Supported formats: 
+            <code>student_id, last_name, first_name, middle_name, subject, section, year</code> <small>(middle_name optional)</small><br>
+            Legacy also accepted: <code>student_id, name, subject</code> where <code>name</code> = <code>"DEL SOCORRO, Charles T"</code> will auto-parse to <strong>DEL SOCORRO, Charles T.</strong>
+          </li>
+        </ul>
+        <div class="d-flex gap-2 flex-wrap mt-2">
+          <span class="badge" style="background:#fff; color:#d97706; border:1px solid #fde68a; border-radius:50px; padding:6px 12px;"><i class="bi bi-translate"></i> UTF-8 Required</span>
+          <span class="badge" style="background:#fff; color:#059669; border:1px solid #a7f3d0; border-radius:50px; padding:6px 12px;"><i class="bi bi-fonts"></i> Supports Ñ ñ</span>
         </div>
-      {% endfor %}
-    {% endif %}
-  {% endwith %}
-
-  <!-- Upload Form -->
-  <div class="card shadow-sm p-4 mb-4">
-    <form method="POST" enctype="multipart/form-data" onsubmit="return validateFile()">
-      {{ form.hidden_tag() }}
-
-      <div class="mb-3">
-        {{ form.file.label(class="form-label") }}
-        {{ form.file(class="form-control", accept=".csv", required=True, id="csvFile") }}
       </div>
+    </div>
+  </div>
 
-      <button type="submit" class="btn btn-success w-100">
-        Upload CSV
-      </button>
+  <div class="card upload-card soft-card p-4 mb-3">
+    <h6 style="font-weight:800;"><i class="bi bi-file-earmark-spreadsheet" style="color:#5a6cf3;"></i> Select CSV File</h6>
+    <form method="POST" enctype="multipart/form-data" id="uploadForm">
+      {{ form.hidden_tag() }}
+      <div class="mb-3">
+        <label class="form-label fw-bold" style="color:#5a5f7a;"><i class="bi bi-folder2-open me-1"></i> CSV File</label>
+        {{ form.file(class="form-control", accept=".csv", id="csvFileInput") }}
+        <small class="text-muted mt-1 d-block"><i class="bi bi-info-circle"></i> Must be <code>.csv</code> encoded as UTF-8. Export from Excel: Save As → CSV UTF-8.</small>
+      </div>
+      <div class="d-flex gap-2 flex-wrap">
+        <button type="submit" class="friendly-btn success" data-flip="rocket" id="uploadBtn"><i class="bi bi-cloud-arrow-up-fill"></i> Upload CSV</button>
+        <button type="button" class="friendly-btn orange" data-flip="trash" id="clearBtn"><i class="bi bi-x-circle"></i> Clear</button>
+        <a href="{{ url_for('download_csv') }}" class="friendly-btn sky" data-flip="drop"><i class="bi bi-download"></i> Download Current CSV</a>
+      </div>
     </form>
 
-    <!-- Back Button -->
-    <a href="{% if session.get('role') == 'Admin' %}{{ url_for('dashboard_admin') }}
-             {% elif session.get('role') == 'Instructor' %}{{ url_for('dashboard_instructor') }}
-             {% else %}{{ url_for('students') }}{% endif %}"
-       class="btn btn-secondary mt-3 w-100">
-       Back to Dashboard
-    </a>
+    <div id="filePreview" class="mt-3 d-none">
+      <div class="preview-box">
+        <div class="fw-bold mb-1"><i class="bi bi-eye"></i> Preview (first 3 lines):</div>
+        <div id="previewContent" style="white-space:pre-wrap; max-height:150px; overflow:auto;"></div>
+      </div>
+    </div>
+
+    {% if errors %}
+      <div class="alert alert-danger mt-3" style="border-radius:14px;">
+        <h6><i class="bi bi-bug-fill"></i> Errors:</h6>
+        <ul class="mb-0">
+        {% for err in errors %}
+          <li>{{ err }}</li>
+        {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+
+    {% if summary %}
+      <div class="alert alert-success mt-3" style="border-radius:14px;">
+        <h6><i class="bi bi-check-circle-fill"></i> Upload Summary</h6>
+        <p class="mb-1">Added: <strong>{{ summary.added|length }}</strong> | Updated: <strong>{{ summary.updated|length }}</strong> | Skipped: <strong>{{ summary.skipped|length }}</strong></p>
+      </div>
+    {% endif %}
   </div>
 
-  <!-- Summary -->
+  <div class="row g-3">
+    <div class="col-md-6">
+      <div class="card p-3 soft-card">
+        <h6 style="font-weight:800;"><i class="bi bi-code-slash" style="color:#a78bfa;"></i> How display works</h6>
+{% raw %}
+        <pre style="background:#f8f7fa; padding:12px; border-radius:10px; font-size:0.8rem;">
+# Template:
+{{ student.display_name }} -> DELA CRUZ, Juan S.
+
+# Python:
+from app import format_display_name
+display = format_display_name(last, first, middle)
+# If no middle: DELA CRUZ, Juan
+        </pre>
+{% endraw %}
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card p-3 soft-card">
+        <h6 style="font-weight:800;"><i class="bi bi-lightbulb" style="color:#f59e0b;"></i> Example Row</h6>
+        <code style="font-size:0.82rem; display:block; background:#fff7ed; padding:10px; border-radius:8px; border:1px solid #fed7aa;">
+        2023-0001, Dela Cruz, Juan, Santos, Math101, CS-1A, 1st<br>
+        => Display: <strong>DELA CRUZ, Juan S.</strong>
+        </code>
+        <small class="text-muted mt-2 d-block">Middle initial auto: Santos → S.</small>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ===== F12 CONSOLE TRACKER - ONLY VISIBLE IN DEVTOOLS =====
+(function(){
+  const styleTitle = 'color:#7a5af0; font-weight:800; font-size:14px; background:#eef2ff; padding:4px 10px; border-radius:50px;';
+  const styleInfo = 'color:#5a5f7a; font-weight:600;';
+  const styleSuccess = 'color:#059669; font-weight:800; background:#d1fae5; padding:2px 8px; border-radius:50px;';
+  const styleWarn = 'color:#d97706; font-weight:700; background:#fef3c7; padding:2px 8px; border-radius:50px;';
+  const styleError = 'color:#dc2626; font-weight:800; background:#fee2e2; padding:2px 8px; border-radius:50px;';
+
+  console.log('%c📤 UPLOAD STUDENTS TRACKER INITIALIZED', styleTitle);
+  console.log('%c[Upload] Page loaded at ' + new Date().toLocaleString() + ' | User: {{ session.get("username","unknown") }}', styleInfo);
+  console.log('%c[Upload] Required headers: student_id, last_name, first_name, middle_name (optional), subject', styleInfo);
+  console.log('%c[Upload] UTF-8 check: Ñ ñ support enabled - make sure file is CSV UTF-8', styleWarn);
+
+  const fileInput = document.getElementById('csvFileInput');
+  const form = document.getElementById('uploadForm');
+  const preview = document.getElementById('filePreview');
+  const previewContent = document.getElementById('previewContent');
+  const uploadBtn = document.getElementById('uploadBtn');
+  const clearBtn = document.getElementById('clearBtn');
+
+  let uploadId = 'UP-' + Date.now().toString(36).toUpperCase();
+
+  fileInput?.addEventListener('change', (e)=>{
+    const file = e.target.files[0];
+    if(!file){
+      console.warn('%c[Upload] No file selected', styleWarn);
+      preview?.classList.add('d-none');
+      return;
+    }
+    console.log('%c[Upload] File selected', styleSuccess, {
+      name: file.name,
+      size: (file.size/1024).toFixed(2)+' KB',
+      type: file.type,
+      lastModified: new Date(file.lastModified).toLocaleString(),
+      uploadId: uploadId
+    });
+
+    // UTF-8 check hint
+    if(!file.name.toLowerCase().endsWith('.csv')){
+      console.error('%c[Upload] Invalid extension! Must be .csv', styleError);
+      alert('⚠ Please select a .csv file saved as CSV UTF-8');
+    }
+
+    // Preview first 3 lines
+    const reader = new FileReader();
+    reader.onload = (ev)=>{
+      const text = ev.target.result;
+      const lines = text.split('\n').slice(0,4).join('\n');
+      if(previewContent){
+        previewContent.textContent = lines;
+        preview?.classList.remove('d-none');
+      }
+      // Header validation in console
+      const firstLine = text.split('\n')[0].toLowerCase();
+      console.group('%c[Upload] Header Validation', styleTitle);
+      console.log('Headers found:', firstLine);
+      const required = ['student_id','subject'];
+      const hasName = firstLine.includes('name') || (firstLine.includes('last_name') && firstLine.includes('first_name'));
+      required.forEach(h=>{
+        if(firstLine.includes(h)){
+          console.log('%c✓ ' + h + ' found', styleSuccess);
+        } else {
+          console.error('%c✗ ' + h + ' MISSING', styleError);
+        }
+      });
+      if(!hasName){
+        console.error('%c✗ Name missing! Need name OR last_name+first_name', styleError);
+      } else {
+        console.log('%c✓ Name field OK', styleSuccess);
+      }
+      // Check for Ñ
+      if(text.includes('Ñ') || text.includes('ñ')){
+        console.log('%c✓ Contains Ñ/ñ - UTF-8 encoding detected correctly', styleSuccess);
+      } else {
+        console.log('%cℹ No Ñ/ñ found in preview - still ensure file is UTF-8', styleInfo);
+      }
+      console.groupEnd();
+    };
+    reader.readAsText(file, 'UTF-8');
+  });
+
+  form?.addEventListener('submit', (e)=>{
+    const file = fileInput?.files[0];
+    console.group('%c[Upload] Submitting...', styleTitle);
+    console.log('Upload ID:', uploadId);
+    console.log('File:', file?.name, 'Size:', file ? (file.size/1024).toFixed(2)+' KB' : 'none');
+    console.log('Timestamp:', new Date().toISOString());
+    if(!file){
+      console.error('%c[Upload] Submit blocked - no file!', styleError);
+      e.preventDefault();
+      alert('Please select a CSV file first');
+      console.groupEnd();
+      return;
+    }
+    uploadBtn.disabled = true;
+    uploadBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Uploading...';
+    console.log('%c[Upload] Uploading to server... Please wait', styleInfo);
+    // Performance mark
+    performance.mark('upload-start');
+    console.groupEnd();
+  });
+
+  // Clear
+  clearBtn?.addEventListener('click', ()=>{
+    fileInput.value = '';
+    preview?.classList.add('d-none');
+    uploadId = 'UP-' + Date.now().toString(36).toUpperCase();
+    console.log('%c[Upload] Cleared - new Upload ID: ' + uploadId, styleWarn);
+  });
+
+  // If summary exists from server, log it
   {% if summary %}
-  <div class="card shadow-sm p-4 mb-4">
-    <h5 class="text-primary mb-3">Upload Summary</h5>
-
-    {% if summary.added %}
-    <p>
-      <a class="btn btn-success w-100 mb-2" data-bs-toggle="collapse" href="#addedStudents">
-        Added Students ({{ summary.added|length }})
-      </a>
-    </p>
-    <div class="collapse" id="addedStudents">
-      <ul class="list-group mb-3">
-        {% for student in summary.added %}
-        <li class="list-group-item list-group-item-success">{{ student }}</li>
-        {% endfor %}
-      </ul>
-    </div>
-    {% endif %}
-
-    {% if summary.updated %}
-    <p>
-      <a class="btn btn-warning w-100 mb-2" data-bs-toggle="collapse" href="#updatedStudents">
-        Updated Students ({{ summary.updated|length }})
-      </a>
-    </p>
-    <div class="collapse" id="updatedStudents">
-      <ul class="list-group mb-3">
-        {% for student in summary.updated %}
-        <li class="list-group-item list-group-item-warning">{{ student }}</li>
-        {% endfor %}
-      </ul>
-    </div>
-    {% endif %}
-
-    {% if summary.skipped %}
-    <p>
-      <a class="btn btn-secondary w-100 mb-2" data-bs-toggle="collapse" href="#skippedStudents">
-        Skipped / Duplicates ({{ summary.skipped|length }})
-      </a>
-    </p>
-    <div class="collapse" id="skippedStudents">
-      <ul class="list-group">
-        {% for student in summary.skipped %}
-        <li class="list-group-item list-group-item-secondary">{{ student }}</li>
-        {% endfor %}
-      </ul>
-    </div>
-    {% endif %}
-
-  </div>
+  console.group('%c[Upload] Server Response', styleTitle);
+  console.log('%c✓ Upload completed', styleSuccess);
+  console.log('Added:', {{ summary.added|length if summary.added else 0 }}, 'items:', {{ summary.added|tojson if summary.added else '[]' }});
+  console.log('Updated:', {{ summary.updated|length if summary.updated else 0 }}, 'items:', {{ summary.updated|tojson if summary.updated else '[]' }});
+  console.log('Skipped:', {{ summary.skipped|length if summary.skipped else 0 }});
+  performance.mark('upload-end');
+  try{
+    performance.measure('upload-duration','upload-start','upload-end');
+    const m = performance.getEntriesByName('upload-duration')[0];
+    console.log('Duration:', m.duration.toFixed(2)+'ms');
+  }catch(e){}
+  console.groupEnd();
   {% endif %}
 
-</div>
+  {% if errors %}
+  console.group('%c[Upload] Server Errors', styleError);
+  {% for err in errors %}
+  console.error('Row error: {{ err }}');
+  {% endfor %}
+  console.groupEnd();
+  {% endif %}
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
-<script>
-/* Auto Hide Flash */
-document.addEventListener("DOMContentLoaded", function () {
-  document.querySelectorAll(".flash").forEach(flash => {
-    setTimeout(() => {
-      flash.style.transition = "0.5s";
-      flash.style.opacity = "0";
-      setTimeout(() => flash.remove(), 500);
-    }, 4000);
+  // Global error catcher
+  window.addEventListener('error', (ev)=>{
+    console.error('%c[Upload] JS Error', styleError, ev.message, ev.filename + ':' + ev.lineno);
   });
-});
-
-/* Validate file before upload */
-function validateFile() {
-  let fileInput = document.getElementById("csvFile");
-
-  if (fileInput.files.length === 0) {
-    alert("Please select a CSV file.");
-    return false;
-  }
-
-  let filename = fileInput.files[0].name.toLowerCase();
-
-  if (!filename.endsWith(".csv")) {
-    alert("Only CSV files are allowed.");
-    return false;
-  }
-
-  return confirm(
-    "Before uploading:\n\n" +
-    "✔ File must be CSV UTF-8 format\n" +
-    "✔ Supports Ñ and ñ\n" +
-    "✔ Headers must be correct\n\n" +
-    "Continue upload?"
-  );
-}
+})();
 </script>
-
-</body>
-</html>
+{% endblock %}

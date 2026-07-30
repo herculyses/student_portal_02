@@ -7,16 +7,30 @@
 <style>
 body { background:#fdfbff !important; font-family:'Nunito', sans-serif !important; }
 .card { border-radius:22px !important; border:1px solid #f2eefb !important; box-shadow:0 6px 28px rgba(120,100,180,0.07) !important; }
-.friendly-btn { display:inline-flex; align-items:center; gap:6px; padding:8px 16px; border-radius:50px; font-weight:700; font-size:0.82rem; border:1.5px solid transparent; transition:all .32s cubic-bezier(.34,1.56,.64,1); text-decoration:none; cursor:pointer; }
-.friendly-btn:hover { transform:translateY(-2px); box-shadow:0 8px 22px rgba(0,0,0,.10); }
-.friendly-btn.primary { background:#eef2ff; color:#5a6cf3; border-color:#d9e0ff; } .friendly-btn.primary:hover{ background:#5a6cf3; color:#fff; }
-.friendly-btn.success { background:#e8f6eb; color:#3daa5e; border-color:#cde9d3; } .friendly-btn.success:hover{ background:#3daa5e; color:#fff; }
-.friendly-btn.danger { background:#fff0f2; color:#ff6b7b; border-color:#ffdade; } .friendly-btn.danger:hover{ background:#ff6b7b; color:#fff; }
-.friendly-btn.enroll { background: linear-gradient(135deg, #5a6cf3 0%, #7a5af0 100%); color:#fff; border:none; box-shadow:0 6px 18px rgba(90,108,243,0.25); }
-.friendly-btn.enroll:hover{ transform:translateY(-3px); color:#fff; }
-.summary-card { border-radius:20px !important; border:none !important; padding:4px; }
+.friendly-btn { display:inline-flex; align-items:center; gap:6px; padding:8px 16px; border-radius:50px; font-weight:700; font-size:0.82rem; border:1.5px solid transparent; transition:all .2s; cursor:pointer; }
+.friendly-btn:disabled { opacity:.45; pointer-events:none; }
+.friendly-btn.primary { background:#eef2ff; color:#5a6cf3; border-color:#d9e0ff; }
+.friendly-btn.success { background:#e8f6eb; color:#3daa5e; border-color:#cde9d3; }
+.friendly-btn.danger { background:#fff0f2; color:#ff6b7b; border-color:#ffdade; }
+.friendly-btn.warning { background:#fff7e0; color:#b78a1f; border-color:#ffe8a8; }
+.friendly-btn.secondary { background:#f5f5f9; color:#5a5f7a; border-color:#ececf2; }
+.summary-card { border-radius:20px !important; border:none !important; padding:4px; cursor:pointer; transition:all .3s; }
 .summary-card .card-body { border-radius:16px; padding:18px 12px; text-align:center; }
-.summary-num { font-family:'Quicksand'; font-size:1.8rem; font-weight:700 !important; }
+.summary-num { font-family:'Quicksand'; font-size:1.8rem; font-weight:800; }
+.tabs-wrapper { display:flex; gap:8px; padding:12px 16px; background:#f8f7ff; border-radius:18px 18px 0 0; border-bottom:1px solid #f0eafb; }
+.tab-btn { display:inline-flex; align-items:center; gap:7px; padding:9px 18px; border-radius:50px; font-weight:800; font-size:0.84rem; border:1.5px solid #ece9f6; background:#fff; color:#8b90a3; cursor:pointer; }
+.tab-btn.active { color:#fff; border-color:transparent; box-shadow:0 6px 18px rgba(0,0,0,.12); }
+.tab-btn[data-tab="pending"].active { background:linear-gradient(135deg,#f5d76e,#e6b422); color:#6a4f00; }
+.tab-btn[data-tab="approved"].active { background:linear-gradient(135deg,#7ad6a0,#3daa5e); }
+.tab-btn[data-tab="rejected"].active { background:linear-gradient(135deg,#ff8a95,#e5485a); }
+.tab-btn[data-tab="deleted"].active { background:linear-gradient(135deg,#a8a8b8,#5a5a6e); }
+.tab-btn .count { background:#f5f5f9; padding:2px 8px; border-radius:50px; font-size:0.75rem; min-width:20px; text-align:center; }
+.tab-btn.active .count { background:rgba(255,255,255,.3); color:#fff; }
+tr.row-enter { animation: slideIn .35s ease; }
+tr.row-exit { animation: slideOut .35s ease forwards; }
+@keyframes slideIn { from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);} }
+@keyframes slideOut { from{opacity:1; transform:translateX(0);} to{opacity:0; transform:translateX(20px);} }
+.empty-state { padding:48px; text-align:center; color:#8b90a3; }
 </style>
 {% endblock %}
 
@@ -31,86 +45,240 @@ body { background:#fdfbff !important; font-family:'Nunito', sans-serif !importan
   </div>
 
   <div class="row g-3 mb-4">
-    <div class="col-6 col-md-3"><div class="card summary-card requested"><div class="card-body" style="background:#eef2ff;"><div class="summary-num" style="color:#4a5de8;">{{ enrollments|length }}</div><div style="font-size:0.75rem; font-weight:700; color:#7a85d0;"><i class="bi bi-people"></i> TOTAL REQUESTS</div></div></div></div>
-    <div class="col-6 col-md-3"><div class="card summary-card approved"><div class="card-body" style="background:#e6f4ee;"><div class="summary-num" style="color:#2e9d6b;">{{ enrollments|selectattr('status','equalto','approved')|list|length }}</div><div style="font-size:0.75rem; font-weight:700; color:#5abf8e;"><i class="bi bi-check-circle"></i> APPROVED</div></div></div></div>
-    <div class="col-6 col-md-3"><div class="card summary-card pending"><div class="card-body" style="background:#fff7e0;"><div class="summary-num" style="color:#b78a1f;">{{ enrollments|selectattr('status','equalto','pending')|list|length }}</div><div style="font-size:0.75rem; font-weight:700; color:#c9a43a;"><i class="bi bi-hourglass-split"></i> PENDING</div></div></div></div>
-    <div class="col-6 col-md-3"><div class="card summary-card rejected"><div class="card-body" style="background:#ffe8e8;"><div class="summary-num" style="color:#e5485a;">{{ enrollments|selectattr('status','equalto','rejected')|list|length }}</div><div style="font-size:0.75rem; font-weight:700; color:#e87a86;"><i class="bi bi-x-circle"></i> REJECTED</div></div></div></div>
+    <div class="col-6 col-md-3"><div class="card summary-card" data-filter="pending"><div class="card-body" style="background:#eef2ff;"><div class="summary-num" id="totalCount">{{ enrollments|length }}</div><div style="font-size:0.75rem; font-weight:700; color:#7a85d0;">TOTAL REQUESTS</div></div></div></div>
+    <div class="col-6 col-md-3"><div class="card summary-card" data-filter="approved"><div class="card-body" style="background:#e6f4ee;"><div class="summary-num" id="approvedCount">0</div><div style="font-size:0.75rem; font-weight:700; color:#5abf8e;">APPROVED</div></div></div></div>
+    <div class="col-6 col-md-3"><div class="card summary-card" data-filter="pending"><div class="card-body" style="background:#fff7e0;"><div class="summary-num" id="pendingCount">0</div><div style="font-size:0.75rem; font-weight:700; color:#c9a43a;">PENDING</div></div></div></div>
+    <div class="col-6 col-md-3"><div class="card summary-card" data-filter="rejected"><div class="card-body" style="background:#ffe8e8;"><div class="summary-num" id="rejectedCount">0</div><div style="font-size:0.75rem; font-weight:700; color:#e87a86;">REJECTED</div></div></div></div>
   </div>
 
-  <form id="batchForm" method="POST" action="{{ url_for('batch_approve_enrollments') }}">
   <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
       <div class="d-flex align-items-center gap-2">
-        <input type="checkbox" id="selectAll" class="form-check-input" style="width:20px; height:20px; border-radius:8px;">
-        <span style="font-weight:800;"><i class="bi bi-table me-1"></i> Enrollment Requests</span>
+        <span style="font-weight:800;"><i class="bi bi-table me-1"></i> <span id="dynamicTitle">Pending Requests</span></span>
         <span class="badge" style="background:#eef2ff; color:#5a6cf3; border-radius:50px;" id="selectedCount">0 selected</span>
       </div>
-      <div class="d-flex gap-2 align-items-center">
+      <div class="d-flex gap-2 align-items-center flex-wrap">
         <input type="text" id="searchEnroll" class="form-control" placeholder="Search ID, name..." style="max-width:200px; border-radius:50px;">
-        <button type="submit" name="action" value="approve" class="friendly-btn enroll" id="batchApproveBtn" disabled><i class="bi bi-check2-all"></i> Batch Approve (<span id="batchCount">0</span>)</button>
-        <button type="submit" name="action" value="reject" class="friendly-btn danger" id="batchRejectBtn" disabled><i class="bi bi-x-circle"></i> Reject</button>
+        <div class="batch-group" data-show="pending" style="display:flex; gap:8px;">
+          <button class="friendly-btn primary" id="batchApproveBtn" disabled>Batch Approve (<span id="batchCount">0</span>)</button>
+          <button class="friendly-btn danger" id="batchRejectBtn" disabled>Reject</button>
+        </div>
+        <div class="batch-group" data-show="approved" style="display:none; gap:8px;">
+          <button class="friendly-btn secondary" id="batchMovePendingApprovedBtn" disabled><i class="bi bi-arrow-left-circle"></i> Move to Pending (<span class="bPendingCount">0</span>)</button>
+          <button class="friendly-btn warning" id="batchDeleteApprovedBtn" disabled>Delete (<span class="bDelCount">0</span>)</button>
+        </div>
+        <div class="batch-group" data-show="rejected" style="display:none; gap:8px;">
+          <button class="friendly-btn secondary" id="batchMovePendingRejectedBtn" disabled><i class="bi bi-arrow-left-circle"></i> Move to Pending (<span class="bPendingCount">0</span>)</button>
+          <button class="friendly-btn warning" id="batchDeleteRejectedBtn" disabled>Delete (<span class="bDelCount">0</span>)</button>
+        </div>
+        <div class="batch-group" data-show="deleted" style="display:none; gap:8px;">
+          <button class="friendly-btn success" id="batchRestoreBtn" disabled>Restore (<span class="bRestoreCount">0</span>)</button>
+          <button class="friendly-btn danger" id="batchHardDeleteBtn" disabled>Permanent Delete</button>
+        </div>
       </div>
     </div>
-    <div class="table-responsive">
+
+    <div class="tabs-wrapper">
+      <button class="tab-btn active" data-tab="pending">Pending <span class="count" id="tabPendingCount">0</span></button>
+      <button class="tab-btn" data-tab="approved">Approved <span class="count" id="tabApprovedCount">0</span></button>
+      <button class="tab-btn" data-tab="rejected">Rejected <span class="count" id="tabRejectedCount">0</span></button>
+      <button class="tab-btn" data-tab="deleted">Deleted <span class="count" id="tabDeletedCount">0</span></button>
+    </div>
+
+    <div class="table-responsive" style="min-height:300px;">
       <table class="table table-hover align-middle mb-0" id="enrollTable">
-        <thead style="background:#3b82f6; color:#fff;"><tr style="font-size:0.78rem; text-transform:uppercase; letter-spacing:0.04em;"><th><i class="bi bi-check-square"></i></th><th>ID Number ⭐</th><th>Name</th><th>Course</th><th>Year/Section</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
-        <tbody>
+        <thead style="background:#f8f7ff;"><tr style="font-size:0.78rem; text-transform:uppercase;">
+          <th style="width:40px;"><input type="checkbox" id="headerCheck" class="form-check-input" style="width:18px; height:18px;"></th>
+          <th>ID NUMBER ⭐</th>
+          <th>SUBJECT</th>
+          <th>SURNAME</th>
+          <th>FIRST</th>
+          <th>MIDDLE</th>
+          <th>COURSE</th>
+          <th>YEAR/SECTION</th>
+          <th>STATUS</th>
+          <th>DATE</th>
+          <th>ACTIONS</th>
+        </tr></thead>
+        <tbody id="enrollTbody">
           {% for e in enrollments %}
-          <tr>
-            <td><input type="checkbox" name="ids" value="{{ e.id }}" class="form-check-input row-check" style="width:18px; height:18px; border-radius:6px;"></td>
-            <td><span class="badge" style="background:#eef2ff; color:#5a6cf3; font-weight:800; border-radius:50px; padding:6px 12px;"><i class="bi bi-upc-scan me-1"></i>{{ e.student_id }}</span></td>
-            <td style="font-weight:700;">{{ e.name }}</td>
+          <tr data-id="{{ e.id }}" data-status="{{ e.status }}" data-deleted="{{ 'true' if e.is_deleted else 'false' }}" data-search="{{ (e.student_id ~ ' ' ~ e.display_name ~ ' ' ~ (e.subject_code or e.subject or '') ~ ' ' ~ e.last_name ~ ' ' ~ e.first_name)|lower }}">
+            <td><input type="checkbox" value="{{ e.id }}" class="form-check-input row-check" style="width:18px; height:18px;"></td>
+            <td><span class="badge" style="background:#eef2ff; color:#5a6cf3; border-radius:50px; padding:6px 12px;">{{ e.student_id }}</span></td>
+            <td>{% if e.subject_code or e.subject %}<span class="badge" style="background:#f3efff; color:#7a5af0; border:1px solid #e0d6ff; border-radius:50px; padding:6px 12px;">{{ e.subject_code or e.subject }}</span>{% else %}— GENERAL{% endif %}</td>
+            <td>{{ e.last_name or '-' }}</td>
+            <td>{{ e.first_name or '-' }}</td>
+            <td>{{ e.middle_name or '-' }}</td>
             <td>{{ e.course or '—' }}</td>
             <td><small>{{ e.year or '' }} {{ e.section or '' }}</small></td>
             <td>
-              {% if e.status == 'pending' %}<span class="badge" style="background:#fff7e0; color:#b78a1f; border-radius:50px;">Pending</span>
+              {% if e.is_deleted %}<span class="badge" style="background:#e9e9ee; color:#5a5a6e; border-radius:50px;">Deleted</span>
+              {% elif e.status == 'pending' %}<span class="badge" style="background:#fff7e0; color:#b78a1f; border-radius:50px;">Pending</span>
               {% elif e.status == 'approved' %}<span class="badge" style="background:#e8f6eb; color:#2e9d6b; border-radius:50px;">Approved</span>
               {% else %}<span class="badge" style="background:#ffe8e8; color:#e5485a; border-radius:50px;">Rejected</span>{% endif %}
             </td>
             <td><small>{{ e.created_at.strftime('%b %d, %Y') if e.created_at else '' }}</small></td>
             <td>
               <div class="d-flex gap-1">
-                <form method="POST" action="{{ url_for('approve_enrollment', id=e.id) }}"><button class="friendly-btn success" style="padding:5px 12px; font-size:0.75rem;"><i class="bi bi-check-lg"></i></button></form>
-                <form method="POST" action="{{ url_for('reject_enrollment', id=e.id) }}"><button class="friendly-btn danger" style="padding:5px 12px; font-size:0.75rem;"><i class="bi bi-x-lg"></i></button></form>
+                {% if not e.is_deleted %}
+                  {% if e.status == 'pending' %}
+                  <button class="friendly-btn success btn-action" data-action="approve" data-id="{{ e.id }}" style="padding:5px 10px; font-size:0.75rem;"><i class="bi bi-check-lg"></i></button>
+                  <button class="friendly-btn danger btn-action" data-action="reject" data-id="{{ e.id }}" style="padding:5px 10px; font-size:0.75rem;"><i class="bi bi-x-lg"></i></button>
+                  {% elif e.status == 'approved' %}
+                  <button class="friendly-btn secondary btn-action" data-action="move_pending" data-id="{{ e.id }}" style="padding:5px 10px; font-size:0.75rem;" title="Move to Pending"><i class="bi bi-arrow-left-circle"></i> Pending</button>
+                  <button class="friendly-btn warning btn-action" data-action="delete" data-id="{{ e.id }}" style="padding:5px 10px; font-size:0.75rem;"><i class="bi bi-trash"></i></button>
+                  {% elif e.status == 'rejected' %}
+                  <button class="friendly-btn secondary btn-action" data-action="move_pending" data-id="{{ e.id }}" style="padding:5px 10px; font-size:0.75rem;" title="Move to Pending"><i class="bi bi-arrow-left-circle"></i> Pending</button>
+                  <button class="friendly-btn warning btn-action" data-action="delete" data-id="{{ e.id }}" style="padding:5px 10px; font-size:0.75rem;"><i class="bi bi-trash"></i></button>
+                  {% endif %}
+                {% else %}
+                  <button class="friendly-btn success btn-action" data-action="restore" data-id="{{ e.id }}" style="padding:5px 10px; font-size:0.75rem;">Restore</button>
+                  <button class="friendly-btn danger btn-action" data-action="hard_delete" data-id="{{ e.id }}" style="padding:5px 10px; font-size:0.75rem;"><i class="bi bi-trash3"></i></button>
+                {% endif %}
               </div>
             </td>
           </tr>
-          {% else %}
-          <tr><td colspan="8" class="text-center py-4 text-muted">No enrollment requests yet</td></tr>
           {% endfor %}
         </tbody>
       </table>
+      <div id="emptyState" class="empty-state" style="display:none;"><i class="bi bi-inbox" style="font-size:2rem;"></i><div style="font-weight:800;">No requests in this tab</div></div>
     </div>
   </div>
-  </form>
 </div>
-<script>
-const selectAll = document.getElementById('selectAll');
-const rowChecks = document.querySelectorAll('.row-check');
-const batchApproveBtn = document.getElementById('batchApproveBtn');
-const batchRejectBtn = document.getElementById('batchRejectBtn');
-const selectedCount = document.getElementById('selectedCount');
-const batchCount = document.getElementById('batchCount');
 
-function updateBatch(){
-  const checked = document.querySelectorAll('.row-check:checked');
-  const n = checked.length;
-  batchCount.textContent = n;
-  selectedCount.textContent = n + ' selected';
-  batchApproveBtn.disabled = n===0;
-  batchRejectBtn.disabled = n===0;
-  if(n>0){ batchApproveBtn.style.opacity='1'; } else { batchApproveBtn.style.opacity='0.5'; }
+<div id="toastContainer" style="position:fixed; bottom:20px; right:20px; z-index:9999; display:flex; flex-direction:column; gap:8px;"></div>
+
+<script>
+let currentTab='pending';
+const tbody=document.getElementById('enrollTbody');
+let allRows=Array.from(tbody.querySelectorAll('tr'));
+const headerCheck=document.getElementById('headerCheck');
+const dynamicTitle=document.getElementById('dynamicTitle');
+
+function getVisibleRows(){ return Array.from(tbody.querySelectorAll('tr')).filter(r=> r.style.display!=='' ); }
+function getVisibleChecked(){ return getVisibleRows().filter(r=>{ const c=r.querySelector('.row-check'); return c&&c.checked; }); }
+
+function updateCounts(){
+  const pending=allRows.filter(r=>r.dataset.status==='pending' && r.dataset.deleted==='false').length;
+  const approved=allRows.filter(r=>r.dataset.status==='approved' && r.dataset.deleted==='false').length;
+  const rejected=allRows.filter(r=>r.dataset.status==='rejected' && r.dataset.deleted==='false').length;
+  const deleted=allRows.filter(r=>r.dataset.deleted==='true').length;
+  document.getElementById('tabPendingCount').textContent=pending;
+  document.getElementById('tabApprovedCount').textContent=approved;
+  document.getElementById('tabRejectedCount').textContent=rejected;
+  document.getElementById('tabDeletedCount').textContent=deleted;
+  document.getElementById('pendingCount').textContent=pending;
+  document.getElementById('approvedCount').textContent=approved;
+  document.getElementById('rejectedCount').textContent=rejected;
+  document.getElementById('totalCount').textContent=allRows.length;
 }
-selectAll?.addEventListener('change', ()=>{
-  rowChecks.forEach(c=>c.checked=selectAll.checked);
-  updateBatch();
+function updateBatchButtons(){
+  document.querySelectorAll('.batch-group').forEach(g=>{ g.style.display=g.dataset.show===currentTab?'flex':'none'; });
+  const titles={pending:'Pending Requests',approved:'Approved Requests',rejected:'Rejected Requests',deleted:'Deleted Requests'};
+  dynamicTitle.textContent=titles[currentTab];
+}
+function updateBatchUI(){
+  const checked=getVisibleChecked();
+  const n=checked.length;
+  document.getElementById('selectedCount').textContent=n+' selected';
+  document.querySelectorAll('#batchCount,.bDelCount,.bRestoreCount,.bPendingCount').forEach(el=>{ if(el) el.textContent=n; });
+  ['batchApproveBtn','batchRejectBtn','batchDeleteApprovedBtn','batchDeleteRejectedBtn','batchMovePendingApprovedBtn','batchMovePendingRejectedBtn','batchRestoreBtn','batchHardDeleteBtn'].forEach(id=>{ const b=document.getElementById(id); if(b) b.disabled=n===0; });
+  const visibleChecks=getVisibleRows().map(r=>r.querySelector('.row-check')).filter(Boolean);
+  const allChecked=visibleChecks.length>0 && visibleChecks.every(c=>c.checked);
+  const someChecked=n>0 && !allChecked;
+  headerCheck.checked=allChecked;
+  headerCheck.indeterminate=someChecked;
+}
+function filterTab(tab){
+  currentTab=tab;
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
+  const search=document.getElementById('searchEnroll').value.toLowerCase();
+  let vis=0;
+  allRows.forEach(r=>{
+    const matchTab=(tab==='deleted' && r.dataset.deleted==='true') || (tab!=='deleted' && r.dataset.deleted==='false' && r.dataset.status===tab);
+    const matchSearch=!search || r.dataset.search.includes(search);
+    const show=matchTab && matchSearch;
+    r.style.display=show?'':'none';
+    if(show) vis++;
+  });
+  document.getElementById('emptyState').style.display=vis===0?'block':'none';
+  // clear checks
+  allRows.forEach(r=>{ const cb=r.querySelector('.row-check'); if(cb) cb.checked=false; });
+  headerCheck.checked=false; headerCheck.indeterminate=false;
+  updateCounts(); updateBatchButtons(); updateBatchUI();
+}
+document.querySelectorAll('.tab-btn').forEach(btn=>btn.addEventListener('click',()=>filterTab(btn.dataset.tab)));
+document.querySelectorAll('.summary-card').forEach(c=>c.addEventListener('click',()=>{ filterTab(c.dataset.filter==='all'?'pending':c.dataset.filter); }));
+document.getElementById('searchEnroll').addEventListener('input',()=>filterTab(currentTab));
+headerCheck.addEventListener('change',()=>{ getVisibleRows().forEach(r=>{ const cb=r.querySelector('.row-check'); if(cb) cb.checked=headerCheck.checked; }); updateBatchUI(); });
+tbody.addEventListener('change',e=>{ if(e.target.classList.contains('row-check')) updateBatchUI(); });
+
+function showToast(msg,type='success'){
+  const c=document.getElementById('toastContainer');
+  const t=document.createElement('div');
+  t.style.cssText=`padding:12px 18px; border-radius:50px; font-weight:700; font-size:0.85rem; box-shadow:0 8px 24px rgba(0,0,0,.12); transition:all .3s; background:${type==='success'?'#e8f6eb':'#fff0f2'}; color:${type==='success'?'#2e9d6b':'#e5485a'};`;
+  t.innerHTML=msg;
+  c.appendChild(t);
+  setTimeout(()=>{ t.style.opacity='0'; setTimeout(()=>t.remove(),300); },2500);
+}
+async function doAction(action,ids){
+  if(!ids.length) return;
+  try{
+    const res=await fetch('/api/enrollments/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,ids})});
+    const data=await res.json();
+    if(!data.success) throw new Error(data.error);
+    for(let result of data.results){
+      const row=allRows.find(r=> parseInt(r.dataset.id)===result.id);
+      if(!row) continue;
+      row.classList.add('row-exit');
+      await new Promise(r=>setTimeout(r,200));
+      if(action==='approve'){ row.dataset.status='approved'; row.dataset.deleted='false'; }
+      else if(action==='reject'){ row.dataset.status='rejected'; row.dataset.deleted='false'; }
+      else if(action==='delete'){ row.dataset.deleted='true'; }
+      else if(action==='move_pending'){ row.dataset.status='pending'; row.dataset.deleted='false'; }
+      else if(action==='restore'){ row.dataset.status='approved'; row.dataset.deleted='false'; }
+      else if(action==='hard_delete'){ row.remove(); allRows=allRows.filter(x=>x!==row); continue; }
+      // update badge
+      const statusTd=row.children[8];
+      const actionTd=row.children[10];
+      if(result.is_deleted){
+        statusTd.innerHTML='<span class="badge" style="background:#e9e9ee; border-radius:50px;">Deleted</span>';
+        actionTd.innerHTML=`<div class="d-flex gap-1"><button class="friendly-btn success btn-action" data-action="restore" data-id="${result.id}">Restore</button><button class="friendly-btn danger btn-action" data-action="hard_delete" data-id="${result.id}"><i class="bi bi-trash3"></i></button></div>`;
+      } else if(result.status==='approved'){
+        statusTd.innerHTML='<span class="badge" style="background:#e8f6eb; color:#2e9d6b; border-radius:50px;">Approved</span>';
+        actionTd.innerHTML=`<div class="d-flex gap-1"><button class="friendly-btn secondary btn-action" data-action="move_pending" data-id="${result.id}">Pending</button><button class="friendly-btn warning btn-action" data-action="delete" data-id="${result.id}"><i class="bi bi-trash"></i></button></div>`;
+      } else if(result.status==='rejected'){
+        statusTd.innerHTML='<span class="badge" style="background:#ffe8e8; color:#e5485a; border-radius:50px;">Rejected</span>';
+        actionTd.innerHTML=`<div class="d-flex gap-1"><button class="friendly-btn secondary btn-action" data-action="move_pending" data-id="${result.id}">Pending</button><button class="friendly-btn warning btn-action" data-action="delete" data-id="${result.id}"><i class="bi bi-trash"></i></button></div>`;
+      } else if(result.status==='pending'){
+        statusTd.innerHTML='<span class="badge" style="background:#fff7e0; color:#b78a1f; border-radius:50px;">Pending</span>';
+        actionTd.innerHTML=`<div class="d-flex gap-1"><button class="friendly-btn success btn-action" data-action="approve" data-id="${result.id}"><i class="bi bi-check-lg"></i></button><button class="friendly-btn danger btn-action" data-action="reject" data-id="${result.id}"><i class="bi bi-x-lg"></i></button></div>`;
+      }
+      row.classList.remove('row-exit');
+      const cb=row.querySelector('.row-check'); if(cb) cb.checked=false;
+    }
+    filterTab(currentTab);
+    showToast(`✅ ${data.count} moved to ${action==='move_pending'?'Pending': action==='approve'?'Approved': action==='delete'?'Deleted': action==='restore'?'Approved': action}`, 'success');
+  }catch(e){ showToast('❌ '+e.message,'error'); console.error(e); }
+}
+tbody.addEventListener('click',e=>{
+  const btn=e.target.closest('.btn-action');
+  if(!btn) return;
+  const action=btn.dataset.action;
+  const id=btn.dataset.id;
+  if(action==='hard_delete' && !confirm('Permanently delete?')) return;
+  if(action==='delete' && !confirm('Move to Deleted? Can restore later.')) return;
+  doAction(action,[id]);
 });
-rowChecks.forEach(c=>c.addEventListener('change', updateBatch));
-document.getElementById('searchEnroll')?.addEventListener('keyup', function(){ let f=this.value.toLowerCase(); document.querySelectorAll('#enrollTable tbody tr').forEach(r=>{ r.style.display=r.textContent.toLowerCase().includes(f)?'':'none'; }); });
-document.getElementById('batchForm')?.addEventListener('submit', (e)=>{
-  const checked = document.querySelectorAll('.row-check:checked');
-  if(checked.length===0){ e.preventDefault(); alert('Select at least one!'); return; }
-  if(!confirm(`Are you sure to ${e.submitter.value} ${checked.length} enrollment(s)?`)){ e.preventDefault(); }
-});
+document.getElementById('batchApproveBtn').addEventListener('click',()=> doAction('approve', getVisibleChecked().map(r=>r.dataset.id)));
+document.getElementById('batchRejectBtn').addEventListener('click',()=> doAction('reject', getVisibleChecked().map(r=>r.dataset.id)));
+document.getElementById('batchDeleteApprovedBtn').addEventListener('click',()=>{ const ids=getVisibleChecked().map(r=>r.dataset.id); if(ids.length && confirm(`Delete ${ids.length}?`)) doAction('delete',ids); });
+document.getElementById('batchDeleteRejectedBtn').addEventListener('click',()=>{ const ids=getVisibleChecked().map(r=>r.dataset.id); if(ids.length && confirm(`Delete ${ids.length}?`)) doAction('delete',ids); });
+document.getElementById('batchMovePendingApprovedBtn').addEventListener('click',()=> doAction('move_pending', getVisibleChecked().map(r=>r.dataset.id)));
+document.getElementById('batchMovePendingRejectedBtn').addEventListener('click',()=> doAction('move_pending', getVisibleChecked().map(r=>r.dataset.id)));
+document.getElementById('batchRestoreBtn').addEventListener('click',()=> doAction('restore', getVisibleChecked().map(r=>r.dataset.id)));
+document.getElementById('batchHardDeleteBtn').addEventListener('click',()=>{ const ids=getVisibleChecked().map(r=>r.dataset.id); if(ids.length && confirm(`Permanently delete ${ids.length}?`)) doAction('hard_delete',ids); });
+
+filterTab('pending');
 </script>
 {% endblock %}

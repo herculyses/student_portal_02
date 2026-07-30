@@ -286,7 +286,7 @@ h2 { font-weight: 800; color: #2e334d; letter-spacing: -0.02em; }
                         {% set access = access_map.get((student.student_id, exam.id)) %}
                         <tr>
                             <td class="text-center">{{ student.student_id }}</td>
-                            <td>{{ student.name }}</td>
+                            <td>{{ student.display_name }}</td>
                             <td id="section-{{ student.student_id }}-{{ exam.id }}">
                                 {{ student.section }}
                             </td>
@@ -565,7 +565,7 @@ h2 { font-weight: 800; color: #2e334d; letter-spacing: -0.02em; }
                       <button type="button"
                               class="list-group-item list-group-item-action subject-item"
                               data-id="{{ subject.id }}"
-                              data-name="{{ subject.subject_code }} - {{ subject.subject_name }}">
+                              data-display-name="{{ subject.subject_code }} - {{ subject.subject_name }}">
 
                           {{ subject.subject_code }} - {{ subject.subject_name }}
 
@@ -1000,7 +1000,7 @@ function addToQueue(data) {
             </td>
 
             <td>
-                ${data.student_name}
+                ${data.student_display_name || data.student_name}
             </td>
 
             <td id="section-${data.student_id}-${data.exam_id}">
@@ -1495,10 +1495,9 @@ document.addEventListener("DOMContentLoaded", function () {
             );
 
             if (selectedItem) {
-
                 hiddenInput.value = subjectId;
-
-                searchInput.value = selectedItem.dataset.name;
+                const name = selectedItem.dataset.displayName || selectedItem.getAttribute('data-display-name') || selectedItem.getAttribute('data-name') || selectedItem.textContent.trim();
+                searchInput.value = name;
             }
         }
     }
@@ -1517,6 +1516,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (!searchInput) return;
 
+    function getDisplayName(el){
+        // robust: support both data-display-name and old data-name
+        return el.dataset.displayName || el.dataset.display_name || el.getAttribute('data-display-name') || el.getAttribute('data-name') || el.textContent.trim();
+    }
+
     // SHOW DROPDOWN WHEN CLICKED
     searchInput.addEventListener("focus", function () {
         dropdown.style.display = "block";
@@ -1524,25 +1528,22 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // SEARCH FILTER
     searchInput.addEventListener("input", function () {
-
         const keyword = this.value.toLowerCase().trim();
+        // if user manually types, invalidate hidden id until they select
+        if (hiddenInput) {
+            const currentValid = Array.from(items).some(it => getDisplayName(it) === this.value);
+            if (!currentValid) hiddenInput.value = "";
+        }
 
         let found = false;
-
         items.forEach(item => {
-
-            const text = item.dataset.name.toLowerCase();
-
+            const text = getDisplayName(item).toLowerCase();
             if (text.includes(keyword)) {
-
                 item.style.display = "block";
                 found = true;
-
             } else {
-
                 item.style.display = "none";
             }
-
         });
 
         if (found) {
@@ -1550,35 +1551,27 @@ document.addEventListener("DOMContentLoaded", function () {
         } else {
             noResult.classList.remove("d-none");
         }
-
         dropdown.style.display = "block";
     });
 
     // SELECT SUBJECT
     items.forEach(item => {
-
         item.addEventListener("click", function () {
-
-            searchInput.value = this.dataset.name;
-
-            hiddenInput.value = this.dataset.id;
-
+            const name = getDisplayName(this);
+            searchInput.value = name;
+            if (hiddenInput) hiddenInput.value = this.dataset.id || this.getAttribute('data-id');
             dropdown.style.display = "none";
+            // trigger validity
+            searchInput.dispatchEvent(new Event('change'));
         });
-
     });
 
     // CLOSE DROPDOWN WHEN CLICKING OUTSIDE
     document.addEventListener("click", function (e) {
-
-        if (!dropdown.contains(e.target) &&
-            e.target !== searchInput) {
-
+        if (!dropdown.contains(e.target) && e.target !== searchInput) {
             dropdown.style.display = "none";
         }
-
     });
-
 });
 </script>
 
@@ -1715,7 +1708,7 @@ function reviewAttempt(examId, studentId) {
                             <div class="col-md-6">
 
                                 <strong>Name</strong><br>
-                                ${data.student_name}
+                                ${data.student_display_name || data.student_name}
 
                             </div>
 

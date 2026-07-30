@@ -1,120 +1,218 @@
 {% extends "base.html" %}
 {% block title %}Register - Student Grade Portal{% endblock %}
-
 {% block extra_css %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
-body, .container, h1,h2,h3,h4,h5, small,p,span,a,button,td,th,div,label { font-family: 'Nunito', system-ui, sans-serif !important; }
 body { background: #fdfbff !important; }
-.card { border-radius: 22px !important; border: 1px solid #f2eefb !important; box-shadow: 0 6px 28px rgba(120,100,180,0.07) !important; }
-.card-header { border-radius: 22px 22px 0 0 !important; background: #faf8ff !important; border-bottom: 1px solid #f0eafb !important; }
-.friendly-btn { display:inline-flex; align-items:center; justify-content:center; gap:7px; padding:11px 22px; border-radius:50px; font-weight:700; font-size:0.88rem; border:1.5px solid transparent; cursor:pointer; transition:all 0.32s cubic-bezier(0.34,1.56,0.64,1); box-shadow:0 3px 12px rgba(0,0,0,0.04); text-decoration:none; }
-.friendly-btn:hover { transform:translateY(-2px); box-shadow:0 8px 22px rgba(0,0,0,0.10); }
-.friendly-btn i { transition:transform 0.55s cubic-bezier(0.34,1.56,0.64,1); display:inline-block; }
-.friendly-btn:hover i { transform:scale(1.2) rotateY(10deg); }
-.friendly-btn.primary { background:#eef2ff; color:#5a6cf3; border-color:#d9e0ff; } .friendly-btn.primary:hover { background:#5a6cf3; color:#fff; }
-.friendly-btn.success { background:#e8f6eb; color:#3daa5e; border-color:#cde9d3; } .friendly-btn.success:hover { background:#3daa5e; color:#fff; }
-.friendly-btn.secondary { background:#f5f5f9; color:#8b90a3; border-color:#ececf2; } .friendly-btn.secondary:hover { background:#8b90a3; color:#fff; }
-.form-control, .form-select { border-radius:14px !important; border:1.5px solid #ece9f6 !important; padding:12px 16px !important; font-weight:500; }
+.card { border-radius: 22px !important; border: 1px solid #f2eefb !important; }
+.form-control { border-radius:14px !important; border:1.5px solid #ece9f6 !important; padding:12px 16px !important; transition: all 0.3s ease; }
 .form-control:focus { border-color:#a9b3ff !important; box-shadow:0 0 0 4px rgba(90,108,243,0.1) !important; }
-.id-priority-card { border-radius:20px !important; border:2px solid #d9e0ff !important; background: linear-gradient(135deg, #eef2ff 0%, #f3efff 100%) !important; box-shadow:0 8px 30px rgba(90,108,243,0.12) !important; }
-.id-badge { background:#5a6cf3; color:#fff; font-weight:800; font-size:0.65rem; letter-spacing:0.08em; padding:4px 10px; border-radius:50px; text-transform:uppercase; }
+.form-control.is-valid { border-color:#3daa5e !important; background:#e8f6eb !important; }
+.form-control.is-invalid { border-color:#ff6b7b !important; background:#fff0f2 !important; }
 .label-soft { font-weight:700; font-size:0.85rem; color:#5a5f7a; }
-.id-input-group { position:relative; }
-.id-input-group i.bi { position:absolute; left:14px; top:50%; transform:translateY(-50%); color:#5a6cf3; font-size:1.1rem; }
-.id-input-group input { padding-left:42px !important; font-weight:700 !important; font-size:1.05rem !important; }
+.id-priority-card { border-radius:20px !important; border:2px solid #d9e0ff !important; background: linear-gradient(135deg, #eef2ff 0%, #f3efff 100%) !important; }
+.friendly-btn { display:inline-flex; align-items:center; gap:7px; padding:11px 22px; border-radius:50px; font-weight:700; }
+.password-wrapper { position:relative; }
+.password-wrapper .toggle-eye { position:absolute; right:12px; top:50%; transform:translateY(-50%); cursor:pointer; color:#8b90a3; background:#fff; width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; border:1px solid #ece9f6; transition: all 0.2s; }
+.password-wrapper .toggle-eye:hover { background:#eef2ff; color:#5a6cf3; }
+.match-hint { font-size:0.75rem; font-weight:700; margin-top:6px; display:flex; align-items:center; gap:4px; }
+.match-hint.ok { color:#3daa5e; }
+.match-hint.bad { color:#ff6b7b; }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container d-flex justify-content-center align-items-center" style="min-height:100vh; padding: 30px 12px;">
-  <div class="card shadow-lg" style="width:100%; max-width:520px; overflow:hidden;">
-    <div style="background: linear-gradient(135deg, #5a6cf3 0%, #7a5af0 100%); padding:26px 28px; color:#fff;">
-      <h3 class="mb-1" style="font-weight:800; font-family:'Quicksand' !important; color:#fff;"><i class="bi bi-person-badge me-2"></i>Create Account</h3>
-      <p class="mb-0" style="opacity:0.85; font-weight:500;">ID number is required • Your primary identity</p>
+  <div class="card shadow-lg" style="width:100%; max-width:540px;">
+    <div style="background: linear-gradient(135deg, #5a6cf3 0%, #7a5af0 100%); padding:26px 28px; color:#fff; border-radius:22px 22px 0 0;">
+      <h3 class="mb-1" style="font-weight:800; color:#fff;"><i class="bi bi-person-plus-fill me-2"></i>Create Account</h3>
+      <p class="mb-0" style="opacity:0.85;">Split name format: SURNAME, First Mi. | ID must be approved first</p>
     </div>
-    
     <div class="card-body p-4">
+      <!-- FLASH MESSAGES - CRITICAL FOR CONFIRM FEEDBACK -->
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
           {% for category, message in messages %}
-            <div class="alert alert-{{ category }}" style="border-radius:14px; font-weight:600;">{{ message }}</div>
+            <div class="alert alert-{{ category }} mb-3" style="border-radius:14px; font-weight:600; font-size:0.88rem;">{{ message }}</div>
           {% endfor %}
         {% endif %}
       {% endwith %}
 
-      <form method="POST" novalidate>
-        {{ form.hidden_tag() if form else '' }}
+      <form method="POST" id="registerForm" novalidate>
+        {{ form.hidden_tag() if form and form.hidden_tag }}
 
-        <!-- ID PRIORITY -->
-        <div class="id-priority-card p-3 mb-4">
-          <div class="d-flex justify-content-between align-items-center mb-2">
-            <label class="label-soft mb-0" style="color:#5a6cf3;"><i class="bi bi-upc-scan me-1"></i> ID NUMBER <span class="text-danger">*</span></label>
-            <span class="id-badge"><i class="bi bi-star-fill me-1"></i>Priority</span>
-          </div>
-          <div class="id-input-group mb-2">
-            <i class="bi bi-person-vcard"></i>
-            <input type="text" name="student_id" id="student_id" class="form-control" placeholder="Enter your Student ID" required autofocus>
-          </div>
-          <small id="idMsg" style="font-weight:700; color:#8b90a3;"><i class="bi bi-info-circle me-1"></i> This must match your enrollment ID. No ID, no account.</small>
+        <div class="id-priority-card p-3 mb-3">
+          <label class="label-soft" style="color:#5a6cf3;">ID NUMBER * <small style="color:#8b90a3; font-weight:500;">(must be approved in Enrollment)</small></label>
+          <input type="text" name="student_id" id="student_id" class="form-control" placeholder="Enter your Student ID" required>
+          <small id="idCheck" class="fw-bold mt-2 d-block" style="font-size:0.75rem; color:#8b90a3;"></small>
         </div>
 
-        <div class="mb-3">
-          <label class="label-soft">Full Name</label>
-          <input type="text" name="name" class="form-control" placeholder="Juan Dela Cruz" required>
+        <div class="row g-2 mb-3">
+          <div class="col-12"><label class="label-soft">Surname *</label><input type="text" name="last_name" class="form-control" placeholder="Dela Cruz" required></div>
+          <div class="col-7"><label class="label-soft">First Name *</label><input type="text" name="first_name" class="form-control" placeholder="Juan" required></div>
+          <div class="col-5"><label class="label-soft">Middle Name (optional)</label><input type="text" name="middle_name" class="form-control" placeholder="Santos"></div>
         </div>
+        <div class="mb-3"><small id="preview" class="fw-bold" style="color:#5a6cf3;">Preview: SURNAME, First name M.</small></div>
 
-        <div class="mb-3">
-          <label class="label-soft">Username</label>
-          <input type="text" name="username" id="username" class="form-control" placeholder="Will auto-fill from ID" required>
-        </div>
-
-        <div class="row g-3 mb-3">
+        <div class="mb-3"><label class="label-soft">Username * <small class="text-muted">(auto = ID, you can change)</small></label><input type="text" name="username" id="username" class="form-control" placeholder="Username" required></div>
+        
+        <div class="row g-2 mb-1">
           <div class="col-6">
-            <label class="label-soft">Password</label>
-            <input type="password" name="password" class="form-control" placeholder="••••••••" required minlength="6">
+            <label class="label-soft">Password *</label>
+            <div class="password-wrapper">
+              <input type="password" name="password" id="password" class="form-control" placeholder="At least 6 chars" required minlength="6">
+              <span class="toggle-eye" onclick="togglePass('password', this)"><i class="bi bi-eye"></i></span>
+            </div>
           </div>
           <div class="col-6">
-            <label class="label-soft">Confirm</label>
-            <input type="password" name="confirm_password" class="form-control" placeholder="••••••••" required>
+            <label class="label-soft">Confirm Password *</label>
+            <div class="password-wrapper">
+              <input type="password" name="confirm_password" id="confirm_password" class="form-control" placeholder="Re-type password" required>
+              <span class="toggle-eye" onclick="togglePass('confirm_password', this)"><i class="bi bi-eye"></i></span>
+            </div>
           </div>
         </div>
-
         <div class="mb-3">
-          <label class="label-soft">Role</label>
-          <select name="role" class="form-select">
-            <option value="Student" selected>Student</option>
-          </select>
-          <small class="text-muted" style="font-size:0.75rem;">Only students can self-register. Instructor/Admin via admin panel.</small>
+          <div id="matchHint" class="match-hint"></div>
         </div>
 
-        <div class="d-grid gap-2 mt-4">
-          <button type="submit" class="friendly-btn success" style="width:100%; padding:13px;"><i class="bi bi-check2-circle"></i> Register Now</button>
-          <a href="{{ url_for('login') }}" class="friendly-btn secondary" style="width:100%;"><i class="bi bi-box-arrow-in-left"></i> Already have account? Login</a>
+        <button type="submit" id="registerBtn" class="btn btn-success w-100" style="border-radius:50px; padding:12px; font-weight:700; background: linear-gradient(135deg, #3daa5e 0%, #2e9d6b 100%); border:none;" disabled>Register Now</button>
+        
+        <div class="text-center mt-3">
+          <small class="text-muted">Already have account? <a href="{{ url_for('login') }}" style="color:#5a6cf3; font-weight:700;">Login</a> | Need approval? <a href="{{ url_for('enrollment') }}" style="color:#7a5af0; font-weight:700;">Enroll first</a></small>
         </div>
-
-        <p class="text-center mt-3 mb-0" style="font-size:0.78rem; color:#9aa0b6; font-weight:600;">By registering you agree to link your ID to exam & grade records</p>
       </form>
     </div>
   </div>
 </div>
-
 <script>
-const idInput=document.getElementById('student_id');
-const userInput=document.getElementById('username');
-const msg=document.getElementById('idMsg');
-idInput?.addEventListener('input', async()=>{
-  const v=idInput.value.trim();
-  if(userInput) userInput.value=v;
-  if(!v){ msg.innerHTML='<i class="bi bi-info-circle me-1"></i>This must match your enrollment ID.'; msg.style.color='#8b90a3'; idInput.classList.remove('is-valid','is-invalid'); return; }
+// Preview
+function upd(){ 
+  const l=document.querySelector('[name=last_name]').value||'SURNAME';
+  const f=document.querySelector('[name=first_name]').value||'First';
+  const m=document.querySelector('[name=middle_name]').value;
+  let out = `${l.toUpperCase()}, ${f}`;
+  if(m) out += ` ${m.trim()[0].toUpperCase()}.`;
+  document.getElementById('preview').textContent='Preview: '+out;
+}
+document.querySelectorAll('[name=last_name],[name=first_name],[name=middle_name]').forEach(e=>e.addEventListener('input', upd));
+
+// Auto-fill username from ID
+document.getElementById('student_id')?.addEventListener('input', function(){
+  const val = this.value.trim();
+  const userField = document.getElementById('username');
+  if(userField && !userField.dataset.manuallyEdited) userField.value = val;
+  checkIdStatus(val);
+});
+document.getElementById('username')?.addEventListener('input', function(){ this.dataset.manuallyEdited = "1"; });
+
+function togglePass(id, btn){
+  const inp = document.getElementById(id);
+  const icon = btn.querySelector('i');
+  if(inp.type === 'password'){
+    inp.type = 'text';
+    icon.className = 'bi bi-eye-slash';
+  } else {
+    inp.type = 'password';
+    icon.className = 'bi bi-eye';
+  }
+}
+
+// Confirm password live validation - FIXES YOUR SCREENSHOT BUG
+const pwd = document.getElementById('password');
+const confirm = document.getElementById('confirm_password');
+const hint = document.getElementById('matchHint');
+const btn = document.getElementById('registerBtn');
+
+function validateMatch(){
+  const p = pwd.value;
+  const c = confirm.value;
+  
+  // Reset
+  pwd.classList.remove('is-valid','is-invalid');
+  confirm.classList.remove('is-valid','is-invalid');
+  hint.className = 'match-hint';
+  
+  if(!p && !c){
+    hint.textContent = '';
+    btn.disabled = true;
+    return;
+  }
+  
+  if(p.length > 0 && p.length < 6){
+    hint.className = 'match-hint bad';
+    hint.innerHTML = '<i class="bi bi-x-circle"></i> Password must be at least 6 characters';
+    pwd.classList.add('is-invalid');
+    btn.disabled = true;
+    return;
+  }
+  
+  if(c.length === 0){
+    hint.textContent = '';
+    btn.disabled = true;
+    return;
+  }
+  
+  if(p === c){
+    hint.className = 'match-hint ok';
+    hint.innerHTML = '<i class="bi bi-check-circle"></i> Passwords match ✅';
+    pwd.classList.add('is-valid');
+    confirm.classList.add('is-valid');
+    // Check other required fields
+    const requiredFilled = document.getElementById('student_id').value.trim() && 
+                          document.querySelector('[name=last_name]').value.trim() &&
+                          document.querySelector('[name=first_name]').value.trim() &&
+                          document.getElementById('username').value.trim();
+    btn.disabled = !requiredFilled;
+    btn.style.opacity = requiredFilled ? '1' : '0.6';
+  } else {
+    hint.className = 'match-hint bad';
+    hint.innerHTML = '<i class="bi bi-x-circle"></i> Passwords do not match ❌';
+    confirm.classList.add('is-invalid');
+    btn.disabled = true;
+    btn.style.opacity = '0.6';
+  }
+}
+
+pwd?.addEventListener('input', validateMatch);
+confirm?.addEventListener('input', validateMatch);
+document.querySelectorAll('[name=last_name],[name=first_name],[name=student_id],[name=username]').forEach(e=>e.addEventListener('input', validateMatch));
+
+// Check ID enrollment status
+async function checkIdStatus(val){
+  const el = document.getElementById('idCheck');
+  if(!val){ el.textContent=''; return; }
   try{
-    const r=await fetch(`/api/check-id?id=${encodeURIComponent(v)}`);
-    const d=await r.json();
-    if(d.exists && !d.has_user){ msg.innerHTML='<i class="bi bi-check-circle me-1"></i>Found in enrollment! You can register.'; msg.style.color='#2e9d6b'; idInput.classList.add('is-valid'); idInput.classList.remove('is-invalid'); }
-    else if(d.exists && d.has_user){ msg.innerHTML='<i class="bi bi-x-circle me-1"></i>ID already has an account.'; msg.style.color='#e5485a'; idInput.classList.add('is-invalid'); }
-    else { msg.innerHTML='<i class="bi bi-exclamation-triangle me-1"></i>ID not found in enrollment. Enroll first.'; msg.style.color='#b78a1f'; idInput.classList.add('is-invalid'); }
-  }catch{}
+    const res = await fetch(`/api/check-id?id=${encodeURIComponent(val)}`);
+    const data = await res.json();
+    if(data.exists){
+      // Check enrollment status via extra fetch? Use message
+      if(data.message.includes('already in student records') || data.message.includes('already enrolled')){
+        // Need to check enrollment status specifically
+        // For now show warning, backend will validate approved
+        el.style.color = '#b78a1f';
+        el.innerHTML = `<i class="bi bi-hourglass-split"></i> ID found - backend will check if approved. Must be approved to register.`;
+      } else {
+        el.style.color = '#e5485a';
+        el.textContent = data.message;
+      }
+    } else {
+      el.style.color = '#e5485a';
+      el.innerHTML = '<i class="bi bi-exclamation-triangle"></i> ID not enrolled yet - please enroll first';
+    }
+  }catch(e){}
+}
+
+// Prevent submit if mismatch
+document.getElementById('registerForm')?.addEventListener('submit', function(e){
+  const p = pwd.value;
+  const c = confirm.value;
+  if(p !== c){
+    e.preventDefault();
+    hint.className = 'match-hint bad';
+    hint.innerHTML = '<i class="bi bi-x-circle"></i> Fix: Passwords do not match!';
+    confirm.focus();
+  }
 });
 </script>
 {% endblock %}

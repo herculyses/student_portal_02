@@ -107,6 +107,94 @@ h5, h4 { font-weight:800; color:#2e334d; }
 #sidebarToggle:active{ animation: breathPress .5s ease; }
 .exam-description-box{background:#f8f9fa;color:#212529;min-height:100px;white-space:pre-wrap;}
 .dark-mode .exam-description-box{background:#2b2b2b;color:#e0e0e0;border-color:#444 !important;}
+
+/* ===== REFRESH EXAMS BUTTON - UNIQUE ICON WITH PRESS REACTION ===== */
+.refresh-exams-btn{
+  width:42px;
+  height:42px;
+  border-radius:50%;
+  border:1.5px solid #d9e0ff;
+  background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+  color:#5a6cf3;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  position:relative;
+  transition: all .35s cubic-bezier(.34,1.56,.64,1);
+  box-shadow: 0 3px 10px rgba(90,108,243,0.12);
+  flex-shrink:0;
+  outline:none;
+  overflow:hidden;
+}
+.refresh-exams-btn i{
+  font-size:1.25rem;
+  transition: transform .6s cubic-bezier(.34,1.56,.64,1);
+  display:inline-block;
+  position:relative;
+  z-index:2;
+}
+.refresh-exams-btn:hover{
+  background: linear-gradient(135deg, #5a6cf3 0%, #7a8cff 100%);
+  color:#fff;
+  border-color:#5a6cf3;
+  transform: translateY(-2px) scale(1.08);
+  box-shadow: 0 8px 20px rgba(90,108,243,0.32);
+}
+.refresh-exams-btn:hover i{
+  transform: rotate(180deg) scale(1.15);
+}
+.refresh-exams-btn:active, .refresh-exams-btn.pressed{
+  transform: scale(0.82) !important;
+  box-shadow: 0 2px 6px rgba(90,108,243,0.2) !important;
+  transition: transform 0.12s ease, box-shadow 0.12s ease !important;
+}
+.refresh-exams-btn.loading{
+  pointer-events:none;
+  background:#eef2ff;
+  border-color:#c7d2fe;
+}
+.refresh-exams-btn.loading i{
+  animation: spinRefresh 0.8s linear infinite;
+}
+@keyframes spinRefresh{ from{transform:rotate(0deg);} to{transform:rotate(360deg);} }
+@keyframes rippleAnim{
+  0%{ transform:scale(0); opacity:0.6; }
+  100%{ transform:scale(2.5); opacity:0; }
+}
+@keyframes cardSlideIn{
+  0%{ opacity:0; transform:translateY(20px) scale(0.95); }
+  100%{ opacity:1; transform:translateY(0) scale(1); }
+}
+.refresh-exams-btn .tooltip-text{
+  position:absolute;
+  bottom:-36px;
+  left:50%;
+  transform:translateX(-50%) translateY(-6px);
+  background:#2e334d;
+  color:#fff;
+  font-size:.72rem;
+  font-weight:700;
+  padding:5px 10px;
+  border-radius:50px;
+  white-space:nowrap;
+  opacity:0;
+  visibility:hidden;
+  transition: all .25s ease;
+  pointer-events:none;
+  box-shadow:0 4px 12px rgba(0,0,0,0.15);
+  z-index:10;
+}
+.refresh-exams-btn:hover .tooltip-text{ opacity:1; visibility:visible; transform:translateX(-50%) translateY(0); }
+.refresh-exams-btn::after{
+  content:''; position:absolute; inset:-4px; border-radius:50%;
+  border:2px solid rgba(90,108,243,0.25); opacity:0; transform:scale(0.8); transition: all .35s ease;
+}
+.refresh-exams-btn:hover::after{ opacity:1; transform:scale(1); }
+.approved-highlight{ animation: approvedPulse 1s ease 3; border-color:#3daa5e !important; background:#e8f6eb !important; }
+@keyframes approvedPulse{ 0%,100%{ box-shadow:0 0 0 0 rgba(61,170,94,0.4);} 50%{ box-shadow:0 0 0 12px rgba(61,170,94,0);} }
+.dark-mode .refresh-exams-btn{ background:#2a2e45; border-color:#3d4263; color:#a5b4ff; }
+.dark-mode .refresh-exams-btn:hover{ background:linear-gradient(135deg, #5a6cf3 0%, #7a8cff 100%); color:#fff; }
 </style>
 </head>
 <body class="bg-light">
@@ -242,9 +330,15 @@ h5, h4 { font-weight:800; color:#2e334d; }
 
 <!-- EXAMS -->
 <div class="card shadow-sm p-3 mt-4" id="exam-section">
-  <h4 class="mb-3"><i class="bi bi-pencil-square icon-flip"></i> Available Exams</h4>
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <h4 class="mb-0 d-flex align-items-center gap-2"><i class="bi bi-pencil-square icon-flip"></i> Available Exams</h4>
+    <button id="refreshExamsBtn" class="refresh-exams-btn" type="button" aria-label="Refresh available exams" onclick="refreshAvailableExams()">
+      <i class="bi bi-arrow-repeat"></i>
+      <span class="tooltip-text">Refresh exams</span>
+    </button>
+  </div>
 {% if allowed_exams %}
-<div class="list-group">
+<div class="list-group" id="examListContainer">
 {% for exam in allowed_exams %}
 <div id="req-{{ exam.id }}" class="list-group-item exam-card d-flex justify-content-between align-items-center">
     <div><h6 class="mb-1">{{ exam.title }}</h6><small class="text-muted">Subject: {{ exam.subject.subject_code if exam.subject else "N/A" }}</small></div>
@@ -262,7 +356,7 @@ h5, h4 { font-weight:800; color:#2e334d; }
 </div>
 {% endfor %}
 </div>
-{% else %}<p>No exams available.</p>{% endif %}
+{% else %}<div id="examListContainer" class="list-group"></div><p id="noExamsMsg">No exams available. Click refresh to check, or contact admin if your subjects have no active exams.</p>{% endif %}
 </div>
 
 <!-- REQUEST EXAM MODAL -->
