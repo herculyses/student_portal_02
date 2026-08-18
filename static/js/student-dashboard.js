@@ -7,6 +7,45 @@
 const studentId = window.studentId || "";
 const examStatusCache = {};
 
+function getCsrfToken(){
+  const meta = document.querySelector('meta[name="csrf-token"]');
+  if(meta) return meta.content;
+  const input = document.querySelector('input[name="csrf_token"]');
+  return input ? input.value : "";
+}
+async function safeJsonFetch(url, options={}){
+  // Always attach CSRF token as header too
+  const csrfToken = getCsrfToken();
+  const baseHeaders = {
+    'Accept': 'application/json',
+    'X-Requested-With': 'XMLHttpRequest'
+  };
+  if(csrfToken){
+    baseHeaders['X-CSRFToken'] = csrfToken;
+    baseHeaders['X-CSRF-TOKEN'] = csrfToken;
+  }
+  // Merge user headers AFTER base so they don't overwrite Accept/X-Requested-With
+  const userHeaders = options.headers || {};
+  const finalHeaders = { ...baseHeaders, ...userHeaders };
+  // Ensure Accept and X-Requested-With are always present even if user overwrote
+  finalHeaders['Accept'] = 'application/json';
+  finalHeaders['X-Requested-With'] = 'XMLHttpRequest';
+
+  const { headers, ...restOptions } = options;
+  const res = await fetch(url, {
+    credentials: 'include',
+    ...restOptions,
+    headers: finalHeaders
+  });
+  const text = await res.text();
+  const ctype = res.headers.get('content-type')||'';
+  if(!ctype.includes('application/json') || text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')){
+    console.error(`HTML returned for ${url}:`, text.substring(0,600));
+    throw new Error(text.includes('login') ? 'Session expired - reload page' : `Server returned HTML (${res.status}) - CSRF or route error`);
+  }
+  return { ok: res.ok, status: res.status, json: JSON.parse(text) };
+}
+
 /* ================= FLASH AUTO REMOVE ================= */
 document.querySelectorAll(".flash").forEach(flash => {
     setTimeout(() => {
@@ -206,7 +245,7 @@ function cancelExamRequest(examId) {
 }
 
 /* ================= MANUAL REFRESH - WITH PRESS REACTION ================= */
-function refreshAvailableExams() {
+window.refreshAvailableExams = function refreshAvailableExams() {
     const btn = document.getElementById("refreshExamsBtn");
     if (!btn) return;
     
@@ -327,12 +366,16 @@ document.addEventListener("DOMContentLoaded", function () {
     form.addEventListener("submit", function (event) {
         event.preventDefault();
         showSendingState();
-        fetch(form.action, {
+        const formData = new FormData(form);
+        const token = getCsrfToken();
+        if(token && !formData.has('csrf_token')){
+            formData.append('csrf_token', token);
+        }
+
+        safeJsonFetch(form.action, {
             method: "POST",
-            body: new FormData(form),
-            headers: { "X-Requested-With": "XMLHttpRequest" }
+            body: formData,
         })
-        .then(r => r.json().then(j=> ({ok: r.ok, json: j})))
         .then(({ok, json}) => {
             // Always force cleanup backdrop
             forceCloseModal("requestExamModal");
@@ -395,15 +438,11 @@ if (!window.studentId) {
         const data = JSON.parse(e.data);
         console.log("Approved:", data);
         fetch("/student-dashboard-data")
-            .then(r => r.json())
-            .then(exams => {
-                exams.forEach(updateExamCard);
-                const toastEl = document.getElementById("liveToast");
-                const toastMsg = document.getElementById("toastMessage");
-                toastMsg.textContent = "🎉 Your exam request has been approved!";
-                toastEl.classList.remove("text-bg-success");
-                toastEl.classList.add("text-bg-primary");
-                new bootstrap.Toast(toastEl).show();
+        safeJsonFetch("/student-dashboard-data")
+            .then(({json: exams}) => {
+                console.log("MANUAL REFRESH:", exams);
+                exams.forEach(exam => updateExamCard(exam));
+                // your existing toast success code here
             })
             .catch(err => console.error("SSE Refresh Error:", err));
     });

@@ -332,7 +332,7 @@ h5, h4 { font-weight:800; color:#2e334d; }
 <div class="card shadow-sm p-3 mt-4" id="exam-section">
   <div class="d-flex align-items-center justify-content-between mb-3">
     <h4 class="mb-0 d-flex align-items-center gap-2"><i class="bi bi-pencil-square icon-flip"></i> Available Exams</h4>
-    <button id="refreshExamsBtn" class="refresh-exams-btn" type="button" aria-label="Refresh available exams" onclick="refreshAvailableExams()">
+    <button id="refreshExamsBtn" class="refresh-exams-btn" type="button" aria-label="Refresh available exams" onclick="window.refreshAvailableExams && window.refreshAvailableExams()">
       <i class="bi bi-arrow-repeat"></i>
       <span class="tooltip-text">Refresh exams</span>
     </button>
@@ -363,6 +363,7 @@ h5, h4 { font-weight:800; color:#2e334d; }
 <div class="modal fade" id="requestExamModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog"><div class="modal-content">
       <form id="requestExamForm" method="POST" action="{{ url_for('request_exam') }}">
+    <input type="hidden" name="csrf_token" value="">
         <div class="modal-header"><h5 class="modal-title">Request Exam Access</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
         <div class="modal-body">
           <input type="hidden" name="exam_id" id="modal_exam_id">
@@ -492,4 +493,23 @@ function toggleDarkMode(){
 }
 </script>
 <script src="{{ url_for('static', filename='js/student-dashboard.js') }}"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  const btn = document.getElementById('refreshExamsBtn');
+  if(btn && !btn.dataset.bound){
+    btn.dataset.bound = '1';
+    btn.addEventListener('click', function(e){
+      e.preventDefault();
+      if(window.refreshAvailableExams){
+        window.refreshAvailableExams();
+      } else {
+        console.warn('refreshAvailableExams not loaded yet, retrying in 500ms');
+        setTimeout(()=> window.refreshAvailableExams && window.refreshAvailableExams(), 500);
+      }
+    });
+  }
+});
+</script>
+
 {% endblock %}

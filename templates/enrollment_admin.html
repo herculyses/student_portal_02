@@ -224,8 +224,26 @@ function showToast(msg,type='success'){
 async function doAction(action,ids){
   if(!ids.length) return;
   try{
-    const res=await fetch('/api/enrollments/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,ids})});
-    const data=await res.json();
+    // Get CSRF token
+    const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+    const csrfToken = csrfMeta ? csrfMeta.content : '';
+    const headers = {'Content-Type':'application/json','Accept':'application/json','X-Requested-With':'XMLHttpRequest'};
+    if(csrfToken){
+      headers['X-CSRFToken'] = csrfToken;
+      headers['X-CSRF-TOKEN'] = csrfToken;
+    }
+    const res=await fetch('/api/enrollments/action',{
+      method:'POST',
+      credentials:'include',
+      headers: headers,
+      body:JSON.stringify({action,ids})
+    });
+    const text = await res.text();
+    let data;
+    try{ data = JSON.parse(text); } catch(e){
+      console.error('Server returned HTML instead of JSON:', text.substring(0,500));
+      throw new Error(`Server error ${res.status}: ${text.includes('login')?'Session expired':''} - Check console`);
+    }
     if(!data.success) throw new Error(data.error);
     for(let result of data.results){
       const row=allRows.find(r=> parseInt(r.dataset.id)===result.id);

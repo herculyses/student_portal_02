@@ -1,8 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Edit Student{% endblock %}
 {% block content %}
-<<<<<<< HEAD
-=======
 <div class="container mt-4" style="max-width:850px;">
   <div class="card soft-card shadow-sm p-4">
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
@@ -10,7 +8,7 @@
       <span class="badge" style="background:#eef2ff; color:#5a6cf3; border-radius:50px; padding:8px 14px;"><i class="bi bi-person-badge"></i> {{ student.student_id }}</span>
     </div>
     <h6 class="text-center text-muted mb-4"><i class="bi bi-eye"></i> Display: <strong>{{ student.display_name if student.display_name else student.name }}</strong> | Format: SURNAME, First Mi.</h6>
->>>>>>> 67d5f7b (updated dozens of improvements unto the system)
+
 
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
@@ -41,10 +39,10 @@
           <input type="text" name="middle_name" class="form-control" value="{{ student.middle_name or '' }}">
         </div>
       </div>
-<<<<<<< HEAD
+
 
       <button type="submit" class="btn btn-primary w-100">Save Changes</button>
-=======
+
       <div class="row">
         <div class="col-md-6 mb-3">
           <label class="form-label"><i class="bi bi-journal-bookmark"></i> Subject</label>
@@ -58,7 +56,7 @@
       <div class="d-flex gap-2 mt-3 flex-wrap">
         <button type="submit" class="friendly-btn success w-100" data-flip="pop"><i class="bi bi-check-circle-fill"></i> Save Changes</button>
       </div>
->>>>>>> 67d5f7b (updated dozens of improvements unto the system)
+
     </form>
 
     <hr class="my-4" style="border-color:#f0eaff;">

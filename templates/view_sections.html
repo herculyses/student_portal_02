@@ -9,10 +9,10 @@
       <small class="text-muted">Manage class sections like 1A, 2A, 3A, 4A - like Subjects but for sections</small>
     </div>
     <div class="d-flex align-items-center gap-2 flex-wrap">
-      <button class="btn btn-danger btn-sm" id="bulkDeleteSectionsBtn" style="border-radius:50px; font-weight:700; display:none;">
+      <button class="btn btn-danger btn-sm" id="bulkDeleteSectionsBtn" type="button" style="border-radius:50px; font-weight:700; display:none;">
         <i class="bi bi-trash"></i> Delete Selected (<span id="selectedSectionCount">0</span>)
       </button>
-      <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#addSectionModal" style="border-radius:50px; font-weight:700;">
+      <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#addSectionModal" type="button" style="border-radius:50px; font-weight:700;">
         <i class="bi bi-plus-circle"></i> Add Section
       </button>
     </div>
@@ -20,7 +20,7 @@
 
   {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}{% for cat,msg in messages %}<div class="alert alert-{{cat}}" style="border-radius:14px;">{{msg}}</div>{% endfor %}{% endif %}{% endwith %}
 
-  <form id="bulkDeleteSectionsForm" method="POST" action="{{ url_for('bulk_delete_sections') }}">
+  <!-- TABLE - NO OUTER FORM ANYMORE to avoid nested forms -->
   <div class="card shadow-sm" style="border-radius:18px; overflow:hidden;">
     <div class="table-responsive">
       <table class="table table-hover mb-0">
@@ -36,52 +36,23 @@
         <tbody>
           {% for sec in sections %}
           <tr>
-            <td><input type="checkbox" name="section_ids" value="{{ sec.id }}" class="section-check"></td>
+            <td><input type="checkbox" value="{{ sec.id }}" class="section-check"></td>
             <td><span class="badge" style="background:#eef2ff; color:#5a6cf3; border-radius:50px;">{{ sec.section_code }}</span></td>
             <td>{{ sec.description or '' }}</td>
             <td><span class="badge bg-primary rounded-pill">{{ counts.get(sec.section_code, 0) }} enrolled</span></td>
             <td>
               <div class="d-flex gap-1">
                 <a href="{{ url_for('view_section_students', section_id=sec.id) }}" class="btn btn-sm btn-outline-primary" style="border-radius:50px;"><i class="bi bi-people"></i> View</a>
-                <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editSectionModal{{ sec.id }}" style="border-radius:50px;"><i class="bi bi-pencil"></i></button>
-                <form method="POST" action="{{ url_for('delete_section', section_id=sec.id) }}" onsubmit="return confirm('Delete section {{ sec.section_code }}?')">
-                  <button class="btn btn-sm btn-outline-danger" style="border-radius:50px;"><i class="bi bi-trash"></i></button>
+                <!-- FIXED: type="button" so it doesn't submit -->
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editSectionModal{{ sec.id }}" style="border-radius:50px;"><i class="bi bi-pencil"></i></button>
+                <!-- FIXED: separate form, not nested, with type button inside -->
+                <form method="POST" action="{{ url_for('delete_section', section_id=sec.id) }}" class="d-inline delete-single-form" onsubmit="return confirm('Delete section {{ sec.section_code }}?')">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}">
+                  <button type="submit" class="btn btn-sm btn-outline-danger" style="border-radius:50px;"><i class="bi bi-trash"></i></button>
                 </form>
               </div>
             </td>
           </tr>
-
-          <!-- Edit Modal per section -->
-          <div class="modal fade" id="editSectionModal{{ sec.id }}" tabindex="-1">
-            <div class="modal-dialog">
-              <div class="modal-content" style="border-radius:22px;">
-                <form method="POST" action="{{ url_for('edit_section', section_id=sec.id) }}">
-                  <div class="modal-header" style="background: linear-gradient(135deg, #5a6cf3 0%, #7a5af0 100%); color:#fff; border-radius:22px 22px 0 0;">
-                    <h5 class="modal-title">Edit Section {{ sec.section_code }}</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                  </div>
-                  <div class="modal-body">
-                    <div class="mb-3">
-                      <label class="form-label fw-bold">Section Code (e.g. 1A, 2A, 3A)</label>
-                      <input type="text" name="section_code" class="form-control" value="{{ sec.section_code }}" required style="border-radius:12px;">
-                    </div>
-                    <div class="mb-3">
-                      <label class="form-label">Description</label>
-                      <input type="text" name="description" class="form-control" value="{{ sec.description or '' }}" placeholder="e.g. First Year Section A" style="border-radius:12px;">
-                    </div>
-                    <div class="mb-3">
-                      <label class="form-label">School Year</label>
-                      <input type="text" name="school_year" class="form-control" value="{{ sec.school_year or '' }}" style="border-radius:12px;">
-                    </div>
-                  </div>
-                  <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius:50px;">Cancel</button>
-                    <button type="submit" class="btn btn-primary" style="border-radius:50px; font-weight:700;">Save Changes</button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          </div>
           {% else %}
           <tr><td colspan="6" class="text-center py-4 text-muted">No sections yet. Add 1A, 2A, 3A, 4A etc.</td></tr>
           {% endfor %}
@@ -89,9 +60,8 @@
       </table>
     </div>
   </div>
-  </form>
 
-  <!-- Also show distinct sections from Student table that are not in Section table -->
+  <!-- Orphan sections -->
   {% set existing_codes = sections|map(attribute='section_code')|list %}
   {% set orphan_sections = [] %}
   {% for code in counts.keys() %}
@@ -105,6 +75,7 @@
     <div class="d-flex flex-wrap gap-2 mt-2">
       {% for code in orphan_sections %}
         <form method="POST" action="{{ url_for('add_section') }}" class="d-inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}">
           <input type="hidden" name="section_code" value="{{ code }}">
           <input type="hidden" name="description" value="Auto-imported from students">
           <button class="btn btn-sm btn-warning" style="border-radius:50px;">+ Add {{ code }} ({{ counts[code] }} students)</button>
@@ -115,11 +86,47 @@
   {% endif %}
 </div>
 
+<!-- EDIT MODALS - MOVED OUTSIDE TABLE/TBODY, FIXED NESTING -->
+{% for sec in sections %}
+<div class="modal fade" id="editSectionModal{{ sec.id }}" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content" style="border-radius:22px;">
+      <form method="POST" action="{{ url_for('edit_section', section_id=sec.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}">
+        <div class="modal-header" style="background: linear-gradient(135deg, #5a6cf3 0%, #7a5af0 100%); color:#fff; border-radius:22px 22px 0 0;">
+          <h5 class="modal-title">Edit Section {{ sec.section_code }}</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label fw-bold">Section Code (e.g. 1A, 2A, 3A)</label>
+            <input type="text" name="section_code" class="form-control" value="{{ sec.section_code }}" required style="border-radius:12px;">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Description</label>
+            <input type="text" name="description" class="form-control" value="{{ sec.description or '' }}" placeholder="e.g. First Year Section A" style="border-radius:12px;">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">School Year</label>
+            <input type="text" name="school_year" class="form-control" value="{{ sec.school_year or '' }}" style="border-radius:12px;">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius:50px;">Cancel</button>
+          <button type="submit" class="btn btn-primary" style="border-radius:50px; font-weight:700;">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
 <!-- Add Section Modal -->
-<div class="modal fade" id="addSectionModal" tabindex="-1">
+<div class="modal fade" id="addSectionModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content" style="border-radius:22px;">
       <form method="POST" action="{{ url_for('add_section') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}">
         <div class="modal-header" style="background: linear-gradient(135deg, #5a6cf3 0%, #7a5af0 100%); color:#fff; border-radius:22px 22px 0 0;">
           <h5 class="modal-title"><i class="bi bi-collection"></i> Add Section</h5>
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
@@ -148,11 +155,20 @@
   </div>
 </div>
 
+<!-- Hidden bulk delete form - now separate and built via JS -->
+<form id="bulkDeleteSectionsForm" method="POST" action="{{ url_for('bulk_delete_sections') }}" style="display:none;">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}">
+  <div id="bulkDeleteInputs"></div>
+</form>
+
 <script>
 document.addEventListener('DOMContentLoaded', function(){
   const checkAll = document.getElementById('checkAllSections');
   const bulkBtn = document.getElementById('bulkDeleteSectionsBtn');
   const countSpan = document.getElementById('selectedSectionCount');
+  const bulkForm = document.getElementById('bulkDeleteSectionsForm');
+  const bulkInputs = document.getElementById('bulkDeleteInputs');
+
   function updateCount(){
     const checked = document.querySelectorAll('.section-check:checked');
     const c = checked.length;
@@ -160,18 +176,31 @@ document.addEventListener('DOMContentLoaded', function(){
     bulkBtn.style.display = c>0 ? 'inline-flex' : 'none';
     if(checkAll) checkAll.checked = c>0 && c===document.querySelectorAll('.section-check').length;
   }
+  
   checkAll?.addEventListener('change', function(){
     document.querySelectorAll('.section-check').forEach(ch=> ch.checked = checkAll.checked);
     updateCount();
   });
+  
   document.querySelectorAll('.section-check').forEach(ch=>{
     ch.addEventListener('change', updateCount);
   });
+  
   bulkBtn?.addEventListener('click', function(){
-    const c = document.querySelectorAll('.section-check:checked').length;
+    const checked = document.querySelectorAll('.section-check:checked');
+    const c = checked.length;
     if(c===0) return;
     if(confirm(`Delete ${c} selected section(s)? Only empty sections will be deleted. Sections with students will be skipped.`)){
-      document.getElementById('bulkDeleteSectionsForm').submit();
+      // Build hidden inputs for selected ids
+      bulkInputs.innerHTML = '';
+      checked.forEach(ch => {
+        const inp = document.createElement('input');
+        inp.type = 'hidden';
+        inp.name = 'section_ids';
+        inp.value = ch.value;
+        bulkInputs.appendChild(inp);
+      });
+      bulkForm.submit();
     }
   });
 });

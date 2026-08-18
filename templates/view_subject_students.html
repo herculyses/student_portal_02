@@ -33,6 +33,7 @@
   </div>
 
   <form id="batchRemoveForm" method="POST" action="{{ url_for('batch_remove_students', subject_id=subject.id) }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}">
   <div class="card shadow-sm" style="border-radius:18px; overflow:hidden;">
     <div class="table-responsive">
       <table class="table table-hover mb-0" id="enrolledTable">
@@ -72,6 +73,7 @@
 
 <!-- Single Remove Hidden Form -->
 <form id="singleRemoveForm" method="POST" style="display:none;">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}">
   <input type="hidden" name="student_ids" id="singleRemoveId">
 </form>
 
@@ -80,6 +82,7 @@
   <div class="modal-dialog">
     <div class="modal-content" style="border-radius:22px;">
       <form method="POST" action="{{ url_for('assign_student_to_subject') }}" class="assign-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}">
         <div class="modal-header" style="background: linear-gradient(135deg, #5a6cf3 0%, #7a5af0 100%); color:#fff; border-radius:22px 22px 0 0;">
           <h5 class="modal-title"><i class="bi bi-person-plus"></i> Add 1 to {{ subject.subject_code }}</h5>
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
@@ -126,6 +129,7 @@
   <div class="modal-dialog modal-lg">
     <div class="modal-content" style="border-radius:22px;">
       <form method="POST" action="{{ url_for('batch_assign_students', subject_id=subject.id) }}" id="batchAddForm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}">
         <div class="modal-header" style="background: linear-gradient(135deg, #5a6cf3 0%, #7a5af0 100%); color:#fff; border-radius:22px 22px 0 0;">
           <h5 class="modal-title"><i class="bi bi-people"></i> Batch Add to {{ subject.subject_code }}</h5>
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>

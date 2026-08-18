@@ -30,6 +30,7 @@ import os
 
 # --- Flask Setup ---
 app = Flask(__name__)
+csrf = CSRFProtect(app)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your_secret_key_change_in_render')
 
 # --- PHONE OPTIMIZED CACHE: short timeout for live data ---
@@ -482,7 +483,7 @@ class ExamAccess(db.Model):
         db.UniqueConstraint(
             "exam_id",
             "student_id",
-            name="uq_exam_student"
+            name="uq_exam_student",
         ),
     )
 
@@ -533,7 +534,7 @@ class StudentAnswer(db.Model):
         db.Index(
             'idx_student_answer_attempt_question',
             'attempt_id',
-            'question_id'
+            'question_id',
         ),
     )
 
@@ -1792,6 +1793,7 @@ def enrollment_admin():
     return render_template('enrollment_admin.html', enrollments=enrollments)
 
 @app.route('/api/enrollments/action', methods=['POST'])
+@csrf.exempt
 @login_required(role=['Admin','Instructor'])
 def api_enrollment_action():
     data = request.get_json() or request.form
@@ -1903,6 +1905,7 @@ def api_enrollments_list():
 
 
 @app.route('/dashboard/admin/enrollments/<int:id>/approve', methods=['POST'])
+@csrf.exempt
 @login_required(role=['Admin','Instructor'])
 def approve_enrollment(id):
     e = Enrollment.query.get_or_404(id)
@@ -1935,6 +1938,7 @@ def approve_enrollment(id):
     return redirect(url_for('enrollment_admin'))
 
 @app.route('/dashboard/admin/enrollments/<int:id>/reject', methods=['POST'])
+@csrf.exempt
 @login_required(role=['Admin','Instructor'])
 def reject_enrollment(id):
     e = Enrollment.query.get_or_404(id)
@@ -1961,6 +1965,7 @@ def reject_enrollment(id):
 
 @app.route('/dashboard/admin/enrollments/batch', methods=['POST'])
 @app.route('/batch_approve_enrollments', methods=['POST'])
+@csrf.exempt
 @login_required(role=['Admin','Instructor'])
 def batch_approve_enrollments():
     ids = request.form.getlist('ids')
@@ -2060,6 +2065,7 @@ def logout():
 
 # Change Password
 @app.route('/change_password', methods=['GET', 'POST'])
+@csrf.exempt
 @login_required()
 def change_password():
     user = User.query.get(session['user_id'])
@@ -2347,6 +2353,7 @@ def dashboard_student():
 # =========================================================
 
 @app.route('/add-subject', methods=['GET', 'POST'])
+@csrf.exempt
 @login_required(role=['Admin', 'Instructor'])
 def add_subject():
 
@@ -2420,6 +2427,7 @@ def view_sections():
     return render_template('view_sections.html', sections=sections, counts=counts, all_students=all_students)
 
 @app.route('/add-section', methods=['POST'])
+@csrf.exempt
 @login_required(role=['Admin','Instructor'])
 def add_section():
     code = request.form.get('section_code','').strip().upper()
@@ -2439,6 +2447,7 @@ def add_section():
     return redirect(url_for('view_sections'))
 
 @app.route('/edit-section/<int:section_id>', methods=['POST'])
+@csrf.exempt
 @login_required(role=['Admin','Instructor'])
 def edit_section(section_id):
     sec = Section.query.get_or_404(section_id)
@@ -2467,6 +2476,7 @@ def edit_section(section_id):
     return redirect(url_for('view_sections'))
 
 @app.route('/delete-section/<int:section_id>', methods=['POST'])
+@csrf.exempt
 @login_required(role=['Admin','Instructor'])
 def delete_section(section_id):
     sec = Section.query.get_or_404(section_id)
@@ -2481,6 +2491,7 @@ def delete_section(section_id):
     return redirect(url_for('view_sections'))
 
 @app.route('/sections/bulk_delete', methods=['POST'])
+@csrf.exempt
 @login_required(role=['Admin','Instructor'])
 def bulk_delete_sections():
     section_ids = request.form.getlist('section_ids')
@@ -2511,6 +2522,7 @@ def bulk_delete_sections():
     return redirect(url_for('view_sections'))
 
 @app.route('/sections/<int:section_id>/bulk_remove', methods=['POST'])
+@csrf.exempt
 @login_required(role=['Admin','Instructor'])
 def bulk_remove_section_students(section_id):
     section = Section.query.get_or_404(section_id)
@@ -2555,6 +2567,7 @@ def view_section_students(section_id):
     return render_template('view_section_students.html', section=section, students=students, all_students=all_students, all_sections=all_sections, current_year=f"{datetime.now().year}-{datetime.now().year+1}")
 
 @app.route('/sections/<int:section_id>/batch_assign', methods=['POST'])
+@csrf.exempt
 @login_required(role=['Admin','Instructor'])
 def batch_assign_section_students(section_id):
     section = Section.query.get_or_404(section_id)
@@ -2580,6 +2593,7 @@ def batch_assign_section_students(section_id):
     return redirect(url_for('view_section_students', section_id=section_id))
 
 @app.route('/sections/<int:section_id>/remove_student/<student_id>', methods=['POST'])
+@csrf.exempt
 @login_required(role=['Admin','Instructor'])
 def remove_student_from_section(section_id, student_id):
     section = Section.query.get_or_404(section_id)
@@ -2595,6 +2609,7 @@ def remove_student_from_section(section_id, student_id):
 )
 
 @app.route('/sections/<int:section_id>/bulk_transfer', methods=['POST'])
+@csrf.exempt
 @login_required(role=['Admin','Instructor'])
 def bulk_transfer_section_students(section_id):
     section = Section.query.get_or_404(section_id)
@@ -2658,6 +2673,7 @@ def view_subject_students(subject_id):
         current_year="2026-2027"
     )
 @app.route('/subjects/<int:subject_id>/remove_student/<student_id>', methods=['POST'])
+@csrf.exempt
 @login_required(role=['Admin','Instructor'])
 def remove_student_from_subject(subject_id, student_id):
     subject = Subject.query.get_or_404(subject_id)
@@ -2675,6 +2691,7 @@ def remove_student_from_subject(subject_id, student_id):
     return redirect(url_for('view_subject_students', subject_id=subject_id))
 
 @app.route('/subjects/<int:subject_id>/batch_assign', methods=['POST'])
+@csrf.exempt
 @login_required(role=['Admin','Instructor'])
 def batch_assign_students(subject_id):
     subject = Subject.query.get_or_404(subject_id)
@@ -2719,6 +2736,7 @@ def batch_assign_students(subject_id):
     return redirect(url_for('view_subject_students', subject_id=subject_id))
 
 @app.route('/subjects/<int:subject_id>/batch_remove', methods=['POST'])
+@csrf.exempt
 @login_required(role=['Admin','Instructor'])
 def batch_remove_students(subject_id):
     subject = Subject.query.get_or_404(subject_id)
@@ -2737,6 +2755,7 @@ def batch_remove_students(subject_id):
     return redirect(url_for('view_subject_students', subject_id=subject_id))
 
 @app.route('/assign_student_to_subject', methods=['POST'])
+@csrf.exempt
 @login_required(role=['Admin', 'Instructor'])
 def assign_student_to_subject():
     subject_id = request.form.get('subject_id')
@@ -2794,6 +2813,7 @@ def assign_student_to_subject():
 
 
 @app.route('/admin/calendar/add', methods=['POST'])
+@csrf.exempt
 @login_required(role=['Admin','Instructor'])
 def add_calendar_event():
     title = request.form.get('title','').strip()
@@ -2818,6 +2838,7 @@ def add_calendar_event():
     return redirect(url_for('dashboard_admin'))
 
 @app.route('/admin/calendar/edit/<int:event_id>', methods=['POST'])
+@csrf.exempt
 @login_required(role=['Admin','Instructor'])
 def edit_calendar_event(event_id):
     ev = CalendarEvent.query.get_or_404(event_id)
@@ -2840,6 +2861,7 @@ def edit_calendar_event(event_id):
     return redirect(url_for('dashboard_admin'))
 
 @app.route('/admin/calendar/delete/<int:event_id>', methods=['POST'])
+@csrf.exempt
 @login_required(role=['Admin','Instructor'])
 def delete_calendar_event(event_id):
     ev = CalendarEvent.query.get_or_404(event_id)
@@ -2849,6 +2871,7 @@ def delete_calendar_event(event_id):
     return redirect(url_for('dashboard_admin'))
 
 @app.route('/admin/calendar/delete-all', methods=['POST'])
+@csrf.exempt
 @login_required(role=['Admin','Instructor'])
 def delete_all_calendar():
     CalendarEvent.query.delete()
@@ -2878,6 +2901,7 @@ def api_calendar_events():
 
 @app.route('/admin/calendar/upload', methods=['POST'])
 @app.route('/upload_calendar', methods=['POST'])
+@csrf.exempt
 @login_required(role=['Admin','Instructor'])
 def upload_calendar():
     """Handle PDF/Image upload and manual text - OCR parse dates & events - with 12a cleanup"""
@@ -3004,6 +3028,7 @@ def upload_calendar():
 
 
 @app.route('/edit-subject/<int:subject_id>', methods=['GET', 'POST'])
+@csrf.exempt
 @login_required(role=['Admin', 'Instructor'])
 def edit_subject(subject_id):
 
@@ -3026,6 +3051,7 @@ def edit_subject(subject_id):
     )
 
 @app.route('/delete-subject/<int:subject_id>', methods=['POST'])
+@csrf.exempt
 @login_required(role=['Admin', 'Instructor'])
 def delete_subject(subject_id):
 
@@ -3060,6 +3086,7 @@ def delete_subject(subject_id):
 # 2. 🧠 EXAM MANAGEMENT (CREATE / VIEW / EDIT)
 # =========================================================
 @app.route('/create-exam', methods=['POST'])
+@csrf.exempt
 @login_required(role=['Admin', 'Instructor'])
 def create_exam():
 
@@ -3092,6 +3119,7 @@ def create_exam():
 # EDIT EXAM - You accidentally deleted this, let's put it back
 # =========================================================
 @app.route('/edit-exam/<int:exam_id>', methods=['GET', 'POST'])
+@csrf.exempt
 @login_required(role=['Admin', 'Instructor'])
 def edit_exam(exam_id):
     exam = Exam.query.get_or_404(exam_id)
@@ -3348,6 +3376,7 @@ def api_exam_card(exam_id):
 # START / END / ARCHIVE / RESTORE - Seamless (no refresh)
 # =========================================================
 @app.route('/start-exam/<int:exam_id>', methods=['POST'])
+@csrf.exempt
 @login_required(role=['Instructor', 'Admin'])
 def admin_start_exam(exam_id):
     exam = Exam.query.get_or_404(exam_id)
@@ -3360,6 +3389,7 @@ def admin_start_exam(exam_id):
     return redirect(url_for('view_exams'))
 
 @app.route('/end-exam/<int:exam_id>', methods=['POST'])
+@csrf.exempt
 @login_required(role=['Instructor', 'Admin'])
 def end_exam(exam_id):
     exam = Exam.query.get_or_404(exam_id)
@@ -3429,6 +3459,7 @@ def end_exam(exam_id):
         return redirect(url_for('view_exams'))
 
 @app.route('/archive-exam/<int:exam_id>', methods=['POST'])
+@csrf.exempt
 @login_required(role=['Instructor', 'Admin'])
 def archive_exam(exam_id):
     exam = Exam.query.get_or_404(exam_id)
@@ -3442,6 +3473,7 @@ def archive_exam(exam_id):
     return redirect(url_for('archived_exams'))
 
 @app.route('/restore-exam/<int:exam_id>', methods=['POST'])
+@csrf.exempt
 @login_required(role=['Instructor', 'Admin'])
 def restore_exam(exam_id):
     exam = Exam.query.get_or_404(exam_id)
@@ -3458,6 +3490,7 @@ def restore_exam(exam_id):
 # =========================================================
 
 @app.route('/add-question/<int:exam_id>', methods=['GET', 'POST'])
+@csrf.exempt
 @login_required(role=['Admin', 'Instructor'])
 def add_question(exam_id):
     exam = Exam.query.get_or_404(exam_id)
@@ -3581,6 +3614,7 @@ def add_question(exam_id):
 # Edit Exam Question Route
 # =========================
 @app.route('/edit-question/<int:question_id>', methods=['GET', 'POST'])
+@csrf.exempt
 @login_required(role=['Admin', 'Instructor'])
 def edit_question(question_id):
     import json
@@ -3661,6 +3695,7 @@ def edit_question(question_id):
 # Delete Exam Question Route
 # =========================
 @app.route('/delete-question/<int:question_id>', methods=['POST'])
+@csrf.exempt
 @login_required(role=['Admin', 'Instructor'])
 def delete_question(question_id):
     question = Question.query.get_or_404(question_id)
@@ -3687,6 +3722,7 @@ def delete_question(question_id):
         return jsonify({"success": False, "message": str(e)}), 500
 
 @app.route('/restore-question/<int:question_id>', methods=['POST'])
+@csrf.exempt
 @login_required(role=['Admin', 'Instructor'])
 def restore_question(question_id):
     question = Question.query.get_or_404(question_id)
@@ -3699,6 +3735,7 @@ def restore_question(question_id):
     return jsonify({"success": False, "message": "Soft delete not enabled"}), 400
 
 @app.route('/hard-delete-question/<int:question_id>', methods=['POST'])
+@csrf.exempt
 @login_required(role=['Admin', 'Instructor'])
 def hard_delete_question(question_id):
     question = Question.query.get_or_404(question_id)
@@ -3716,6 +3753,7 @@ def get_question_alias(question_id):
     return edit_question(question_id)
 
 @app.route('/bulk-soft-delete', methods=['POST'])
+@csrf.exempt
 @login_required(role=['Admin', 'Instructor'])
 def bulk_soft_delete():
     data = request.get_json() or {}
@@ -3732,6 +3770,7 @@ def bulk_soft_delete():
     return jsonify({"success": True, "count": count})
 
 @app.route('/bulk-restore', methods=['POST'])
+@csrf.exempt
 @login_required(role=['Admin', 'Instructor'])
 def bulk_restore():
     data = request.get_json() or {}
@@ -3751,6 +3790,7 @@ def bulk_restore():
 # Import Exam Question Route
 # =========================
 @app.route('/import-questions/<int:exam_id>', methods=['POST'])
+@csrf.exempt
 @login_required(role=['Admin', 'Instructor'])
 def import_questions(exam_id):
 
@@ -3890,6 +3930,7 @@ def export_question_template():
 
 
 @app.route('/import-existing-questions/<int:exam_id>', methods=['POST'])
+@csrf.exempt
 @login_required(role=['Instructor', 'Admin'])
 def import_existing_questions(exam_id):
     import json
@@ -4173,278 +4214,74 @@ def start_exam(exam_id):
 #===== REQUEST EXAM ROUTE =====
 #===================================
 @app.route("/request_exam", methods=["POST"])
+@csrf.exempt
 @login_required(role=['Admin', 'Instructor', 'Student'])
 def request_exam():
-
     print("===== REQUEST EXAM ROUTE HIT =====")
-
     is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
-
-    # ==============================
-    # GET FORM DATA
-    # ==============================
     exam_id = request.form.get("exam_id")
     access_code = request.form.get("access_code")
-
     if not exam_id:
-
         if is_ajax:
-            return jsonify({
-                "success": False,
-                "message": "Exam ID missing."
-            }), 400
-
+            return jsonify({"success": False, "message": "Exam ID missing."}), 400
         flash("Exam ID missing.", "danger")
         return redirect(url_for("dashboard_student"))
-
-    # ==============================
-    # FIND EXAM
-    # ==============================
     exam = Exam.query.get(int(exam_id))
-
     if not exam:
-
-        return request_exam_response(
-            is_ajax,
-            False,
-            "Exam not found.",
-            "danger"
-        )
-
-    print("EXAM ID:", exam_id)
-    print("ACCESS CODE:", access_code)
-    print("SESSION USER ID:", session["user_id"])
-    print("EXAM SUBJECT:", exam.subject.subject_code)
-
-    # ==============================
-    # Temporary FIND STUDENT
-    # ==============================
-
-    print("\n===== STUDENT RECORDS FOR THIS USER =====")
-
-    students = Student.query.filter(
-        Student.user_id == session["user_id"]
-    ).all()
-
-    for s in students:
-        print(
-            "Student ID:", s.student_id,
-            "| Subject:", s.subject,
-            "| Subject Code:", repr(s.subject_code)
-        )
-
-    print("========================================")
-
-    # ==============================
-    # FIND STUDENT
-    # ==============================
-    student = Student.query.filter(
-        Student.user_id == session["user_id"],
-        Student.subject_code == exam.subject.subject_code
-    ).first()
-
-    print("REQUEST STUDENT")
-    if student is None:
-        print("NO MATCHING STUDENT FOUND")
-        print("SESSION USER ID:", session["user_id"])
-        print("EXAM SUBJECT:", exam.subject.subject_code)
-
-        print("------ STUDENT RECORDS ------")
-
-        students = Student.query.filter(
-            Student.user_id == session["user_id"]
-        ).all()
-
-        for s in students:
-            print(
-                s.student_id,
-                "|",
-                s.subject,
-                "|",
-                s.subject_code,
-                "| user_id:",
-                s.user_id
-            )
-
-        print("-----------------------------")
-
-        flash("You are not enrolled in this subject.", "danger")
-        return redirect(url_for("dashboard_student"))
-
-    print("Student ID:", student.student_id)
-    print("Subject Code:", student.subject_code)
-
-    print("REQUEST EXAM")
-    print("Exam ID:", exam.id)
-    print("Exam Subject:", exam.subject.subject_code)
-
-    print("FOUND STUDENT:", student)
-
+        return request_exam_response(is_ajax, False, "Exam not found.", "danger")
+    my_student_records = Student.query.filter_by(user_id=session["user_id"]).all()
+    my_codes = [(s.subject_code or "").strip() for s in my_student_records]
+    required_code = (exam.subject.subject_code or "").strip()
+    student = None
+    for s in my_student_records:
+        if s.subject_code and s.subject_code.strip().upper() == required_code.upper():
+            student = s
+            break
     if not student:
-
-        return request_exam_response(
-            is_ajax,
-            False,
-            "Student record not found.",
-            "danger"
-        )
-
-    # ==============================
-    # VALIDATE SUBJECT
-    # ==============================
-
-    if student.subject_code.strip() != exam.subject.subject_code.strip():
-
-        return request_exam_response(
-            is_ajax,
-            False,
-            "This exam is not assigned to your subject.",
-            "danger"
-        )
-
-    # ==============================
-    # VALIDATE ACCESS CODE
-    # ==============================
+        try:
+            my_student_ids = [s.student_id for s in my_student_records]
+            if my_student_ids:
+                enrollment = Enrollment.query.filter(
+                    Enrollment.student_id.in_(my_student_ids),
+                    func.upper(func.trim(Enrollment.subject_code)) == required_code.upper(),
+                    Enrollment.is_deleted == False
+                ).first()
+                if enrollment:
+                    student = Student.query.filter_by(student_id=enrollment.student_id).first()
+        except Exception as e:
+            print(f"Enrollment check error: {e}")
+    if not student:
+        msg = f"You are not enrolled in {required_code}. Your subjects: {my_codes}"
+        print(msg)
+        if is_ajax:
+            return jsonify({"success": False, "message": msg}), 403
+        flash(msg, "danger")
+        return redirect(url_for("dashboard_student"))
     if exam.access_code:
-
-        if not access_code:
-            flash("Access code is required.", "danger")
-            return redirect(url_for("dashboard_student"))
-
-        if access_code.strip() != exam.access_code.strip():
-
-            return request_exam_response(
-                is_ajax,
-                False,
-                "Invalid access code.",
-                "danger"
-            )
-
-    # ==============================
-    # CHECK EXISTING REQUEST
-    # ==============================
-    existing = ExamAccess.query.filter_by(
-        student_id=student.student_id,
-        exam_id=exam.id
-    ).first()
-
-    print("EXISTING:", existing)
-
+        if not access_code or access_code.strip() != exam.access_code.strip():
+            return request_exam_response(is_ajax, False, "Invalid access code.", "danger")
+    existing = ExamAccess.query.filter_by(exam_id=exam.id, student_id=student.student_id).first()
     if existing:
-
-        if existing.status == "approved":
-
-            return request_exam_response(
-                is_ajax,
-                False,
-                "You already have access to this exam.",
-                "info"
-            )
-
         if existing.status == "pending":
-
-            return request_exam_response(
-                is_ajax,
-                False,
-                "Your request is still pending approval.",
-                "warning"
-            )
-
-        if existing and existing.status == "not_requested":
-
-            existing.entered_code = access_code
+            return request_exam_response(is_ajax, False, "You already requested this exam. Waiting for approval.", "warning")
+        if existing.status == "approved":
+            return request_exam_response(is_ajax, False, "Your request already approved.", "info")
+        if existing.status == "rejected":
             existing.status = "pending"
-            #existing.is_reset = False
-            existing.reset_at = None
-
+            # existing.requested_at removed - no column
             db.session.commit()
-
-            if "admin" not in sse_events:
-                sse_events["admin"] = []
-
-            sse_events["admin"].append({
-                "event": "new_request",
-                "data": {
-                    "access_id": existing.id,
-
-                    "student_id": str(student.student_id).strip(),
-                    "student_name": student.name,
-                    "section": student.section,
-
-                    "exam_id": exam.id,
-                    "status": "pending",
-
-                    "score": None,
-                    "total_points": None,
-                    "submitted_at": None
-                }
-            })
-
-            return request_exam_response(
-                is_ajax,
-                True,
-                "Exam request submitted successfully.",
-                "success"
-            )
-
-    # ==============================
-    # CREATE ACCESS RECORD
-    # ==============================
-    request_access = ExamAccess(
-        student_id=student.student_id,
+            return request_exam_response(is_ajax, True, "Re-request sent!", "success")
+    new_access = ExamAccess(
         exam_id=exam.id,
-        entered_code=access_code,
-        status="pending"
-    )
-
-    db.session.add(request_access)
+        student_id=student.student_id,
+        status="pending")
+    db.session.add(new_access)
     db.session.commit()
+    return request_exam_response(is_ajax, True, "Exam request sent! Waiting for approval.", "success")
 
-    print("ACCESS SAVED")
 
-    # ==============================
-    # SSE NOTIFICATION
-    # ==============================
-    if "admin" not in sse_events:
-        sse_events["admin"] = []
-
-    sse_events["admin"].append({
-        "event": "new_request",
-        "data": {
-            "access_id": request_access.id,
-
-            "student_id": str(student.student_id).strip(),
-            "student_name": student.name,
-            "section": student.section,
-
-            "exam_id": exam.id,
-            "status": "pending",
-
-            "score": None,
-            "total_points": None,
-            "submitted_at": None
-        }
-    })
-
-    print("===== ADMIN SSE QUEUE =====")
-    print(sse_events["admin"])
-    print("===========================")
-
-    print("ADMIN QUEUE LENGTH:", len(sse_events["admin"]))
-
-    print("SSE EVENT ADDED")
-
-    return request_exam_response(
-        is_ajax,
-        True,
-        "Exam request submitted successfully.",
-        "success"
-    )
-
-#======================================
-#===== CANCEL REQUEST EXAM ROUTE =====
-#======================================
 @app.route('/cancel-exam-request', methods=['POST'])
+@csrf.exempt
 @login_required(role=['Student'])
 def cancel_exam_request():
 
@@ -4460,8 +4297,7 @@ def cancel_exam_request():
     access = ExamAccess.query.filter_by(
         exam_id=exam_id,
         student_id=student_id,
-        status="pending"
-    ).first()
+        status="pending").first()
 
     if not access:
         return jsonify({
@@ -4515,7 +4351,7 @@ def take_exam(exam_id, question_id):
         id=attempt_id,
         student_id=student_id,
         exam_id=exam_id,
-        is_submitted=False,
+        is_submitted=False
     ).first()
 
     if not attempt:
@@ -4646,6 +4482,7 @@ def take_exam(exam_id, question_id):
     return response
 
 @app.route('/save-answer', methods=['POST'])
+@csrf.exempt
 @login_required(role=['Admin', 'Instructor', 'Student'])
 def save_answer():
 
@@ -4681,6 +4518,7 @@ def save_answer():
     return jsonify({"status": "saved"})
 
 @app.route('/exam/<int:exam_id>/answer', methods=['POST'])
+@csrf.exempt
 @login_required(role=['Admin', 'Instructor', 'Student'])
 def submit_answer(exam_id):
 
@@ -4920,6 +4758,7 @@ def review_answers(exam_id):
 # LIVE SECURITY LOGS - FIXED to use ORIGINAL URL
 # =========================================================
 @app.route('/log-security-event', methods=['POST'])
+@csrf.exempt
 @login_required(role=['Admin', 'Instructor', 'Student'])
 def log_security_event():
     attempt = ExamAttempt.query.get(session.get('attempt_id'))
@@ -5331,6 +5170,7 @@ def approve_request(access_id):
 # Reject / Cancel Request - Admin cancels pending request (NOT retake)
 # ==================================
 @app.route('/reject-request/<int:access_id>', methods=['GET', 'POST'])
+@csrf.exempt
 @login_required(role=['Admin', 'Instructor'])
 def reject_request(access_id):
     access = ExamAccess.query.get_or_404(access_id)
@@ -5369,6 +5209,7 @@ def reject_request(access_id):
     return redirect(url_for("view_exams"))
 
 @app.route('/cancel-request-admin', methods=['POST'])
+@csrf.exempt
 @login_required(role=['Admin', 'Instructor'])
 def cancel_request_admin():
     data = request.get_json(silent=True) or {}
@@ -5420,6 +5261,7 @@ def cancel_request_admin():
 # Admin Deletes Exam
 # ==================================
 @app.route('/delete-exam/<int:exam_id>', methods=['POST'])
+@csrf.exempt
 @login_required(role=['Admin', 'Instructor'])
 def delete_exam(exam_id):
 
@@ -5571,49 +5413,74 @@ def student_exam_status():
     print(f"[REFRESH] Returning {len(result)} exams for {student_id}")
     return jsonify(result)
 
-@app.route('/student-dashboard-data')
-@login_required(role=['Student'])
-def student_dashboard_data():
-
-    student_id = session.get("student_id")
-
-    accesses = ExamAccess.query.filter_by(
-        student_id=student_id
-    ).all()
-
-    result = []
-
-    for access in accesses:
-
-        exam = Exam.query.get(access.exam_id)
-
-        if not exam:
-            continue
-
-        result.append({
-
-            "exam_id": exam.id,
-            "title": exam.title,
-            "description": exam.description,
-            "duration": exam.duration_minutes,
-            "question_count": len(exam.questions),
-            "exam_type": exam.exam_type,
-            "term": exam.term,
-            "subject": exam.subject.subject_code if exam.subject else "",
-            "status": access.status,
-            "start_url": url_for(
-                "start_exam",
-                exam_id=exam.id
-            )
-
-        })
-
-    return jsonify(result)
-
 # =========================
 # RESET EXAM OUTE
 # =========================
+
+@app.route('/student-dashboard-data')
+@csrf.exempt
+@login_required(role=['Student'])
+def student_dashboard_data():
+    try:
+        user_id = session.get("user_id")
+        if not user_id:
+            return jsonify([])
+        my_records = Student.query.filter_by(user_id=user_id).all()
+        if not my_records:
+            return jsonify([])
+        enrolled_codes = set()
+        for s in my_records:
+            if s.subject_code:
+                enrolled_codes.add(s.subject_code.strip().upper())
+        try:
+            my_ids = [s.student_id for s in my_records]
+            enrollments = Enrollment.query.filter(
+                Enrollment.student_id.in_(my_ids),
+                Enrollment.is_deleted == False
+            ).all()
+            for e in enrollments:
+                if e.subject_code:
+                    enrolled_codes.add(e.subject_code.strip().upper())
+        except Exception as e:
+            print(f"Enrollment fetch error: {e}")
+        if not enrolled_codes:
+            return jsonify([])
+        active_exams = Exam.query.join(Subject).filter(
+            Exam.is_active == True,
+            Exam.is_archived == False,
+            func.upper(func.trim(Subject.subject_code)).in_(list(enrolled_codes))
+        ).all()
+        result = []
+        for exam in active_exams:
+            access = None
+            for sid in [s.student_id for s in my_records]:
+                access = ExamAccess.query.filter_by(exam_id=exam.id, student_id=sid).first()
+                if access:
+                    break
+            status = access.status if access else "not_requested"
+            result.append({
+                "exam_id": exam.id,
+                "status": status,
+                "title": exam.title,
+                "subject": exam.subject.subject_code if exam.subject else "N/A",
+                "description": exam.description or "",
+                "duration": exam.duration_minutes or 0,
+                "exam_type": exam.exam_type or "",
+                "term": exam.term or "",
+                "question_count": len(exam.questions) if exam.questions else 0,
+                "start_url": url_for("start_exam", exam_id=exam.id)
+            })
+        print(f"[DASHBOARD-DATA] Returning {len(result)} exams")
+        return jsonify(result)
+    except Exception as e:
+        print(f"student-dashboard-data error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/reset-exam", methods=["POST"])
+@csrf.exempt
 @login_required(role=["Admin"])
 def reset_exam():
     data = request.get_json()
@@ -5665,6 +5532,7 @@ def reset_exam():
 # =========================
 
 @app.route("/force-submit", methods=["POST"])
+@csrf.exempt
 @login_required(role=["Admin"])
 def force_submit():
 
@@ -6334,6 +6202,7 @@ def view_logs():
 
 # Bulk Delete Logs (Admin)
 @app.route('/logs/bulk_delete', methods=['POST'])
+@csrf.exempt
 @login_required(role='Admin')
 def bulk_delete_logs():
     log_ids = request.form.getlist('log_ids')
@@ -6353,6 +6222,7 @@ def bulk_delete_logs():
 
 # Create User (Admin)
 @app.route('/dashboard/admin/create_user', methods=['GET','POST'])
+@csrf.exempt
 @login_required(role='Admin')
 def create_user():
     form = CreateUserForm()
@@ -6377,6 +6247,7 @@ def view_instructors():
 
 # Add/Edit/Delete Instructors
 @app.route('/dashboard/admin/instructors/add', methods=['GET','POST'])
+@csrf.exempt
 @login_required(role='Admin')
 def add_instructor():
     if request.method == 'POST':
@@ -6394,6 +6265,7 @@ def add_instructor():
     return render_template('add_instructor.html')
 
 @app.route('/dashboard/admin/instructors/edit/<int:id>', methods=['GET','POST'])
+@csrf.exempt
 @login_required(role='Admin')
 def edit_instructor(id):
     instructor = User.query.get_or_404(id)
@@ -6409,6 +6281,7 @@ def edit_instructor(id):
     return render_template('edit_instructor.html', instructor=instructor)
 
 @app.route('/dashboard/admin/instructors/delete/<int:id>', methods=['POST'])
+@csrf.exempt
 @login_required(role='Admin')
 def delete_instructor(id):
     instructor = User.query.get_or_404(id)
@@ -6419,6 +6292,7 @@ def delete_instructor(id):
     return redirect(url_for('view_instructors'))
 
 @app.route('/dashboard/admin/instructors/bulk_delete', methods=['POST'])
+@csrf.exempt
 @login_required(role='Admin')
 def bulk_delete_instructors():
     instructor_ids = request.form.getlist('instructor_ids')
@@ -6437,6 +6311,7 @@ def bulk_delete_instructors():
     return redirect(url_for('view_instructors'))
 
 @app.route('/attendance/<student_id>/<subject>', methods=['GET', 'POST'])
+@csrf.exempt
 @login_required(role=['Admin','Instructor','Student'])
 def attendance_page(student_id, subject):
 
@@ -6488,6 +6363,7 @@ def attendance_page(student_id, subject):
     )
 
 @app.route('/quizzes/<student_id>/<subject>', methods=['GET', 'POST'])
+@csrf.exempt
 @login_required(role=['Student','Admin','Instructor'])
 def quizzes_page(student_id, subject):
 
@@ -6589,6 +6465,7 @@ def pit_page(student_id, subject):
     )
 
 @app.route('/report/<student_id>/<subject>', methods=['GET', 'POST'])
+@csrf.exempt
 @login_required(role=['Admin','Instructor','Student'])
 def report_page(student_id, subject):
 
@@ -6688,6 +6565,7 @@ def exercises_page(student_id, subject):
     )
 
 @app.route('/exams/<student_id>/<subject>', methods=['GET', 'POST'])
+@csrf.exempt
 @login_required(role=['Admin', 'Instructor', 'Student'])
 def exams_page(student_id, subject):
 
@@ -6770,6 +6648,7 @@ def view_students():
 # --- Student Add ---
 # ====================
 @app.route('/add_student', methods=['GET', 'POST'])
+@csrf.exempt
 @login_required(role=['Admin','Instructor'])
 def add_student():
     form = StudentForm()
@@ -6840,6 +6719,7 @@ def add_student():
 # ====================
 @app.route('/dashboard/admin/students/edit/<student_id>/<subject>', methods=['GET', 'POST'])
 @app.route('/dashboard/instructor/students/edit/<student_id>/<subject>', methods=['GET', 'POST'])
+@csrf.exempt
 @login_required(role=['Admin', 'Instructor'])
 def edit_student(student_id, subject):
     student = Student.query.filter_by(student_id=student_id, subject=subject).first_or_404()
@@ -6894,6 +6774,7 @@ def edit_student(student_id, subject):
 
 # --- Student Reset Password ---
 @app.route('/admin/reset_password/<student_id>', methods=['POST'])
+@csrf.exempt
 @login_required(role='Admin')
 def reset_password(student_id):
     user = User.query.filter_by(username=student_id, role='Student').first()
@@ -6912,6 +6793,7 @@ def reset_password(student_id):
 
 # --- Student Change Password ---
 @app.route('/admin/change_student_password/<student_id>', methods=['POST'])
+@csrf.exempt
 @login_required(role='Admin')
 def change_student_password(student_id):
     new_password = request.form.get('new_password')
@@ -6936,6 +6818,7 @@ def change_student_password(student_id):
 # --- Student delete ---
 @app.route('/dashboard/admin/students/delete/<student_id>/<subject>', methods=['POST'])
 @app.route('/dashboard/instructor/students/delete/<student_id>/<subject>', methods=['POST'])
+@csrf.exempt
 @login_required(role=['Admin','Instructor'])
 def delete_student(student_id, subject):
     student = Student.query.filter_by(student_id=student_id, subject=subject).first_or_404()
@@ -6955,6 +6838,7 @@ def delete_student(student_id, subject):
 # --- Student bulk delete ---
 @app.route('/dashboard/admin/students/bulk_delete', methods=['POST'])
 @app.route('/dashboard/instructor/students/bulk_delete', methods=['POST'])
+@csrf.exempt
 @login_required(role=['Admin','Instructor'])
 def bulk_delete_students():
     student_ids = request.form.getlist('student_ids')
@@ -7007,6 +6891,7 @@ def parse_fullname(fullname):
 
 @app.route('/dashboard/admin/students/upload', methods=['GET', 'POST'])
 @app.route('/dashboard/instructor/students/upload', methods=['GET', 'POST'])
+@csrf.exempt
 @login_required(role=['Admin', 'Instructor'])
 def upload_students():
     form = UploadCSVForm()
