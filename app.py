@@ -1438,7 +1438,7 @@ def login_required(role=None):
 SECURITY_EVENTS = {
 
     "TAB_SWITCH": {
-        "penalty": 1,
+        "penalty": 0,
         "severity": "HIGH",
         "source": "Window",
         "description": "Student switched to another browser tab."
