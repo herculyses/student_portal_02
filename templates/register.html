@@ -29,7 +29,6 @@ body { background: #fdfbff !important; }
       <p class="mb-0" style="opacity:0.85;">Split name format: SURNAME, First Mi. | ID must be approved first</p>
     </div>
     <div class="card-body p-4">
-      <!-- FLASH MESSAGES - CRITICAL FOR CONFIRM FEEDBACK -->
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
           {% for category, message in messages %}
@@ -39,7 +38,7 @@ body { background: #fdfbff !important; }
       {% endwith %}
 
       <form method="POST" id="registerForm" novalidate>
-        {{ form.hidden_tag() if form and form.hidden_tag }}
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
         <div class="id-priority-card p-3 mb-3">
           <label class="label-soft" style="color:#5a6cf3;">ID NUMBER * <small style="color:#8b90a3; font-weight:500;">(must be approved in Enrollment)</small></label>
@@ -86,7 +85,6 @@ body { background: #fdfbff !important; }
   </div>
 </div>
 <script>
-// Preview
 function upd(){ 
   const l=document.querySelector('[name=last_name]').value||'SURNAME';
   const f=document.querySelector('[name=first_name]').value||'First';
@@ -97,7 +95,6 @@ function upd(){
 }
 document.querySelectorAll('[name=last_name],[name=first_name],[name=middle_name]').forEach(e=>e.addEventListener('input', upd));
 
-// Auto-fill username from ID
 document.getElementById('student_id')?.addEventListener('input', function(){
   const val = this.value.trim();
   const userField = document.getElementById('username');
@@ -118,7 +115,6 @@ function togglePass(id, btn){
   }
 }
 
-// Confirm password live validation - FIXES YOUR SCREENSHOT BUG
 const pwd = document.getElementById('password');
 const confirm = document.getElementById('confirm_password');
 const hint = document.getElementById('matchHint');
@@ -127,18 +123,14 @@ const btn = document.getElementById('registerBtn');
 function validateMatch(){
   const p = pwd.value;
   const c = confirm.value;
-  
-  // Reset
   pwd.classList.remove('is-valid','is-invalid');
   confirm.classList.remove('is-valid','is-invalid');
   hint.className = 'match-hint';
-  
   if(!p && !c){
     hint.textContent = '';
     btn.disabled = true;
     return;
   }
-  
   if(p.length > 0 && p.length < 6){
     hint.className = 'match-hint bad';
     hint.innerHTML = '<i class="bi bi-x-circle"></i> Password must be at least 6 characters';
@@ -146,19 +138,16 @@ function validateMatch(){
     btn.disabled = true;
     return;
   }
-  
   if(c.length === 0){
     hint.textContent = '';
     btn.disabled = true;
     return;
   }
-  
   if(p === c){
     hint.className = 'match-hint ok';
     hint.innerHTML = '<i class="bi bi-check-circle"></i> Passwords match ✅';
     pwd.classList.add('is-valid');
     confirm.classList.add('is-valid');
-    // Check other required fields
     const requiredFilled = document.getElementById('student_id').value.trim() && 
                           document.querySelector('[name=last_name]').value.trim() &&
                           document.querySelector('[name=first_name]').value.trim() &&
@@ -173,12 +162,10 @@ function validateMatch(){
     btn.style.opacity = '0.6';
   }
 }
-
 pwd?.addEventListener('input', validateMatch);
 confirm?.addEventListener('input', validateMatch);
 document.querySelectorAll('[name=last_name],[name=first_name],[name=student_id],[name=username]').forEach(e=>e.addEventListener('input', validateMatch));
 
-// Check ID enrollment status
 async function checkIdStatus(val){
   const el = document.getElementById('idCheck');
   if(!val){ el.textContent=''; return; }
@@ -186,10 +173,7 @@ async function checkIdStatus(val){
     const res = await fetch(`/api/check-id?id=${encodeURIComponent(val)}`);
     const data = await res.json();
     if(data.exists){
-      // Check enrollment status via extra fetch? Use message
       if(data.message.includes('already in student records') || data.message.includes('already enrolled')){
-        // Need to check enrollment status specifically
-        // For now show warning, backend will validate approved
         el.style.color = '#b78a1f';
         el.innerHTML = `<i class="bi bi-hourglass-split"></i> ID found - backend will check if approved. Must be approved to register.`;
       } else {
@@ -203,7 +187,6 @@ async function checkIdStatus(val){
   }catch(e){}
 }
 
-// Prevent submit if mismatch
 document.getElementById('registerForm')?.addEventListener('submit', function(e){
   const p = pwd.value;
   const c = confirm.value;

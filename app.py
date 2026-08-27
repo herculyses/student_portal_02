@@ -1517,6 +1517,7 @@ SECURITY_EVENTS = {
 # ENROLLMENT & REGISTER SYSTEM - NEW (SMOOTH COLORFUL)
 # ==========================================================
 @app.route('/api/check-id')
+@csrf.exempt
 def check_id():
     sid = request.args.get('id','').strip()
     if not sid:
@@ -1537,6 +1538,7 @@ def check_id():
     return jsonify({"exists": exists, "has_user": has_user, "message": msg, "allow_reenroll": True})
 
 @app.route('/api/check-id-subjects')
+@csrf.exempt
 def check_id_subjects():
     sid = request.args.get('id','').strip()
     if not sid:
@@ -1565,6 +1567,7 @@ def check_id_subjects():
     })
 
 @app.route('/api/subjects/search')
+@csrf.exempt
 def search_subjects():
     q = request.args.get('q','').strip().lower()
     limit = int(request.args.get('limit', 30))
@@ -1582,7 +1585,20 @@ def search_subjects():
 
 @app.route('/enrollment', methods=['GET','POST'])
 def enrollment():
-    form = None
+    form = FlaskForm()
+    # --- COPY FROM view_sections.html logic - this finds sections ---
+    sections = Section.query.order_by(Section.section_code.asc()).all()
+    # also get distinct sections from Student table to auto-populate counts (same as view_sections)
+    student_sections = db.session.query(Student.section, func.count(Student.student_id)).group_by(Student.section).all() if hasattr(Student, 'section') else []
+    counts = {sec: cnt for sec, cnt in student_sections if sec}
+    # Merge: include orphan sections from Student that aren't in Section table yet
+    section_codes_from_db = [s.section_code for s in sections]
+    for sec_code in counts.keys():
+        if sec_code not in section_codes_from_db:
+            section_codes_from_db.append(sec_code)
+    section_list = sorted(set(section_codes_from_db))
+    # For template: pass both full objects (sections) and simple list (section_list)
+
     if request.method == 'POST':
         student_id = request.form.get('student_id','').strip()
         last_name = request.form.get('last_name','').strip()
@@ -1602,11 +1618,11 @@ def enrollment():
 
         if not student_id or not last_name or not first_name:
             flash("ID Number, Surname and First Name are required (ID is priority).", "danger")
-            return render_template('enrollment.html', form=form)
+            return render_template('enrollment.html', form=form, sections=sections, section_list=section_list, counts=counts)
 
         if not subjects_selected:
             flash("Please select at least one subject to enroll.", "warning")
-            return render_template('enrollment.html', form=form)
+            return render_template('enrollment.html', form=form, sections=sections, section_list=section_list, counts=counts)
 
         existing_students = Student.query.filter_by(student_id=student_id).all()
         is_reenroll = len(existing_students) > 0
@@ -1627,7 +1643,7 @@ def enrollment():
 
         if not new_codes:
             flash(f"You are already enrolled in: {', '.join(skipped_codes)}. No new subjects.", "warning")
-            return render_template('enrollment.html', form=form)
+            return render_template('enrollment.html', form=form, sections=sections, section_list=section_list, counts=counts)
 
         try:
             disp = format_display_name(last_name, first_name, middle_name)
@@ -1695,12 +1711,13 @@ def enrollment():
             db.session.rollback()
             flash(f"Enrollment failed: {str(e)}", "danger")
 
-    return render_template('enrollment.html', form=form)
+    return render_template('enrollment.html', form=form, sections=sections, section_list=section_list, counts=counts)
 
 
 @app.route('/register', methods=['GET','POST'])
+@csrf.exempt
 def register():
-    form = LoginForm()
+    form = FlaskForm()
     if request.method == 'POST':
         student_id = request.form.get('student_id','').strip()
         last_name = request.form.get('last_name','').strip()
