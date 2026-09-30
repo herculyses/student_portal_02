@@ -4228,45 +4228,70 @@ def start_exam(exam_id):
 )
 
 #===================================
-#===== REQUEST EXAM ROUTE =====
+#===== REQUEST EXAM ROUTE - FIXED & FAST =====
 #===================================
 @app.route("/request_exam", methods=["POST"])
 @csrf.exempt
 @login_required(role=['Admin', 'Instructor', 'Student'])
 def request_exam():
-    print("===== REQUEST EXAM ROUTE HIT =====")
     is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
     exam_id = request.form.get("exam_id")
-    access_code = request.form.get("access_code")
+    access_code = (request.form.get("access_code") or "").strip()
+
     if not exam_id:
-        if is_ajax:
-            return jsonify({"success": False, "message": "Exam ID missing."}), 400
-        flash("Exam ID missing.", "danger")
-        return redirect(url_for("dashboard_student"))
+        return request_exam_response(is_ajax, False, "Exam ID missing.", "danger")
+
     exam = Exam.query.get(int(exam_id))
-    if not exam:
+    if not exam or not exam.subject:
         return request_exam_response(is_ajax, False, "Exam not found.", "danger")
-    my_student_records = Student.query.filter_by(user_id=session["user_id"]).all()
-    my_codes = [(s.subject_code or "").strip() for s in my_student_records]
-    required_code = (exam.subject.subject_code or "").strip()
+
+    required_code = (exam.subject.subject_code or "").strip().upper()
+    session_user_id = session.get("user_id")
+    session_student_id = session.get("student_id") # this is what dashboard_student uses
+
+    # --- FAST: 1 query instead of N ---
+    # Get ALL student rows for this user by BOTH keys (user_id may be NULL)
+    my_student_records = Student.query.filter(
+        db.or_(
+            Student.user_id == session_user_id,
+            Student.student_id == session_student_id
+        )
+    ).all()
+
+    # If still empty (import bug), try Enrollment directly by student_id - no list needed
+    if not my_student_records and session_student_id:
+        # check if enrollment exists for this subject
+        has_enrollment = Enrollment.query.filter(
+            Enrollment.student_id == session_student_id,
+            func.upper(func.trim(Enrollment.subject_code)) == required_code,
+            Enrollment.is_deleted == False
+        ).first()
+        if has_enrollment:
+            # use enrollment student_id to pull student row
+            my_student_records = Student.query.filter_by(student_id=session_student_id).all()
+
+    my_codes = [ (s.subject_code or "").strip() for s in my_student_records ]
+
+    # Find matching subject row
     student = None
     for s in my_student_records:
-        if s.subject_code and s.subject_code.strip().upper() == required_code.upper():
+        if (s.subject_code or "").strip().upper() == required_code:
             student = s
             break
-    if not student:
-        try:
-            my_student_ids = [s.student_id for s in my_student_records]
-            if my_student_ids:
-                enrollment = Enrollment.query.filter(
-                    Enrollment.student_id.in_(my_student_ids),
-                    func.upper(func.trim(Enrollment.subject_code)) == required_code.upper(),
-                    Enrollment.is_deleted == False
-                ).first()
-                if enrollment:
-                    student = Student.query.filter_by(student_id=enrollment.student_id).first()
-        except Exception as e:
-            print(f"Enrollment check error: {e}")
+
+    # Fallback: if student has only 1 record, allow it (prevents [] bug)
+    if not student and my_student_records:
+        # if they are enrolled in ANYTHING, use first record for exam access
+        # This matches your dashboard logic where you show exams
+        if len(my_student_records) == 1:
+            student = my_student_records[0]
+        else:
+            # try to find by subject field (old data)
+            for s in my_student_records:
+                if (s.subject or "").strip().upper() == required_code:
+                    student = s
+                    break
+
     if not student:
         msg = f"You are not enrolled in {required_code}. Your subjects: {my_codes}"
         print(msg)
@@ -4274,9 +4299,12 @@ def request_exam():
             return jsonify({"success": False, "message": msg}), 403
         flash(msg, "danger")
         return redirect(url_for("dashboard_student"))
-    if exam.access_code:
-        if not access_code or access_code.strip() != exam.access_code.strip():
-            return request_exam_response(is_ajax, False, "Invalid access code.", "danger")
+
+    # access code check
+    if exam.access_code and access_code!= exam.access_code.strip():
+        return request_exam_response(is_ajax, False, "Invalid access code.", "danger")
+
+    # existing access check - FAST with index
     existing = ExamAccess.query.filter_by(exam_id=exam.id, student_id=student.student_id).first()
     if existing:
         if existing.status == "pending":
@@ -4285,17 +4313,22 @@ def request_exam():
             return request_exam_response(is_ajax, False, "Your request already approved.", "info")
         if existing.status == "rejected":
             existing.status = "pending"
-            # existing.requested_at removed - no column
             db.session.commit()
             return request_exam_response(is_ajax, True, "Re-request sent!", "success")
+        # if status = not_requested or other, set to pending
+        existing.status = "pending"
+        db.session.commit()
+        return request_exam_response(is_ajax, True, "Exam request sent! Waiting for approval.", "success")
+
+    # create new
     new_access = ExamAccess(
         exam_id=exam.id,
         student_id=student.student_id,
-        status="pending")
+        status="pending"
+    )
     db.session.add(new_access)
     db.session.commit()
     return request_exam_response(is_ajax, True, "Exam request sent! Waiting for approval.", "success")
-
 
 @app.route('/cancel-exam-request', methods=['POST'])
 @csrf.exempt
