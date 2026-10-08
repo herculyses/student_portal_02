@@ -55,8 +55,8 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     "connect_args": {"connect_timeout": 10},  # 10 not 15 - phone drops faster
     "pool_pre_ping": True,
     "pool_recycle": 300,
-    "pool_size": 2,       # perfect for 0.1 CPU
-    "max_overflow": 2     # was 3, lower = less Neon connections from phone spam
+    "pool_size": 10,       # perfect for 0.1 CPU
+    "max_overflow": 10     # was 3, lower = less Neon connections from phone spam
 }
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
@@ -5840,6 +5840,22 @@ def review_attempt_data(exam_id, student_id):
             .all()
         )
 
+    # AUTO-REGRADE on view - fixes Q8, Q9, Q18 etc
+    q_map = {q.id: q for q in questions}
+    changed = False
+    for ans in answers:
+        q = q_map.get(ans.question_id)
+        if q and q.question_type == 'identification':
+            new_val = check_identification_answer(ans.selected_answer or "", q.correct_answer or "")
+            if ans.is_correct != new_val:
+                ans.is_correct = new_val
+                changed = True
+    if changed:
+        db.session.commit()
+        if attempt:
+            attempt.score = sum(q_map[a.question_id].points for a in answers if a.is_correct and a.question_id in q_map)
+            db.session.commit()
+
         answer_map = {
             answer.question_id: answer
             for answer in answers
@@ -5984,7 +6000,6 @@ def review_report(exam_id, student_id):
     answers = []
 
     if attempt:
-
         answers = (
             StudentAnswer.query
             .filter_by(
@@ -5992,6 +6007,20 @@ def review_report(exam_id, student_id):
             )
             .all()
         )
+        # AUTO-REGRADE on view
+        q_map = {q.id: q for q in questions}
+        changed = False
+        for ans in answers:
+            q = q_map.get(ans.question_id)
+            if q and q.question_type == 'identification':
+                new_val = check_identification_answer(ans.selected_answer or "", q.correct_answer or "")
+                if ans.is_correct != new_val:
+                    ans.is_correct = new_val
+                    changed = True
+        if changed:
+            db.session.commit()
+            attempt.score = sum(q_map[a.question_id].points for a in answers if a.is_correct and a.question_id in q_map)
+            db.session.commit()
 
     answer_map = {
         answer.question_id: answer
