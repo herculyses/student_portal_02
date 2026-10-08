@@ -4540,6 +4540,8 @@ def take_exam(exam_id, question_id):
 
     t = time.perf_counter()
 
+    student = Student.query.filter_by(student_id=student_id).first()
+
     response = render_template(
         "take_exam.html",
         exam=exam,

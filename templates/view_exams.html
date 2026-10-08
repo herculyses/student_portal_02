@@ -416,24 +416,28 @@ h2 { font-weight: 800; color: #2e334d; letter-spacing: -0.02em; }
                                 {% elif access and access.status == "rejected" %}
                                     <span class="text-muted"><i class="bi bi-dash-lg text-muted"></i></span>
                                 {% elif access and access.status == "approved" %}
-                                    <div class="d-flex justify-content-center gap-2">
-                                        <button
-                                            class="friendly-btn outline-primary" data-flip="pop"
-                                            onclick="reviewAttempt(
-                                                {{ exam.id }},
-                                                '{{ student.student_id }}'
-                                            )">
-                                            <i class="bi bi-eye"></i> Review
-                                        </button>
-                                             <button
-                                                class="friendly-btn danger force-submit-btn" data-flip="send"
-                                                onclick="forceSubmit(
-                                                    {{ exam.id }},
-                                                    '{{ student.student_id }}'
-                                                )">
+                                    {% if score_map[(student.student_id, exam.id)].is_active_attempt %}
+                                        <!-- Student is currently TAKING - show Force Submit -->
+                                        <div class="d-flex justify-content-center gap-2">
+                                            <button class="friendly-btn outline-primary" data-flip="pop"
+                                                    onclick="reviewAttempt({{ exam.id }}, '{{ student.student_id }}')">
+                                                <i class="bi bi-eye"></i> Review
+                                            </button>
+                                            <button class="friendly-btn danger force-submit-btn" data-flip="send"
+                                                    onclick="forceSubmit({{ exam.id }}, '{{ student.student_id }}')">
                                                 <i class="bi bi-send-exclamation-fill"></i> Force Submit
                                             </button>
-                                    </div>
+                                        </div>
+                                    {% else %}
+                                        <!-- Just Approved, hasn't started - only Review -->
+                                        <div class="d-flex justify-content-center gap-2">
+                                            <button class="friendly-btn outline-primary" data-flip="pop"
+                                                    onclick="reviewAttempt({{ exam.id }}, '{{ student.student_id }}')">
+                                                <i class="bi bi-eye"></i> Review
+                                            </button>
+                                            <span class="badge bg-success">Approved</span>
+                                        </div>
+                                    {% endif %}
                                 {% elif access and access.status in ["completed", "forced_submit"] %}
 
                                     <div class="d-flex justify-content-center gap-2">

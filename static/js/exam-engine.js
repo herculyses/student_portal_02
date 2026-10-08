@@ -111,15 +111,15 @@ const Exam = {
 
             if (this.timeLeft <= 0) {
 
-                document.getElementById("timer").innerText = "00:00";
+                document.getElementById("timer").innerText = "00:00:00";
+                const hms = document.getElementById("timerHMS");
+                if (hms) hms.innerText = "Time's up!";
 
                 clearInterval(this.timerInterval);
 
-                // Prevent duplicate auto-submit
                 if (!Exam.isSubmitting) {
 
                     Exam.isSubmitting = true;
-
                     Exam.submit.finish(true);
 
                 }
@@ -128,14 +128,21 @@ const Exam = {
 
             }
 
-            const minutes =
-                Math.floor(this.timeLeft / 60);
+            const hours = Math.floor(this.timeLeft / 3600);
+            const minutes = Math.floor((this.timeLeft % 3600) / 60);
+            const seconds = this.timeLeft % 60;
 
-            const seconds =
-                this.timeLeft % 60;
+            // HH:MM:SS format - your 209:17 becomes 03:29:17
+            const display = `${String(hours).padStart(2,'0')}:${String(minutes).padStart(2,'0')}:${String(seconds).padStart(2,'0')}`;
 
-            document.getElementById("timer").innerText =
-                `${String(minutes).padStart(2,'0')}:${String(seconds).padStart(2,'0')}`;
+            document.getElementById("timer").innerText = display;
+
+            // Small text below: 3h 29m 17s
+            const label = document.getElementById("timerHMS");
+            if (label) {
+                if (hours > 0) label.innerText = `${hours}h ${minutes}m ${seconds}s`;
+                else label.innerText = `${minutes}m ${seconds}s`;
+            }
 
             this.timeLeft--;
 
