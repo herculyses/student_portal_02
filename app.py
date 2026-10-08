@@ -3503,9 +3503,8 @@ def restore_exam(exam_id):
     return redirect(url_for('finished_exams'))
 
 # =========================================================
-# 3. ✏️ QUESTION MANAGEMENT - Add Question
+# 3. ✏ QUESTION MANAGEMENT - Add Question - FIXED
 # =========================================================
-
 @app.route('/add-question/<int:exam_id>', methods=['GET', 'POST'])
 @csrf.exempt
 @login_required(role=['Admin', 'Instructor'])
@@ -3526,42 +3525,45 @@ def add_question(exam_id):
         for letter in choice_letters:
             choices_by_letter[letter] = request.form.getlist(f'choice_{letter}[]')
 
-        id_idx = 0
-        mcq_idx = 0
-
+        # FIXED: No more id_idx / mcq_idx - use direct index i
+        # This fixes "identification answer not saved on draft"
         for i in range(len(questions_text)):
-            if not questions_text[i].strip():
+            q_text = (questions_text[i] or "").strip()
+            if not q_text:
                 continue
-            q_type = question_types[i] if i < len(question_types) else 'mcq'
+            q_type = (question_types[i] if i < len(question_types) else 'mcq').strip().lower()
+            if q_type not in ('mcq', 'identification'):
+                q_type = 'mcq'
             try:
                 points = int(points_list[i]) if i < len(points_list) and points_list[i] else 1
             except:
                 points = 1
 
             if q_type == "identification":
-                correct = identification_answers[id_idx] if id_idx < len(identification_answers) else ""
-                id_idx += 1
+                # FIXED: use i directly, with fallback
+                correct = ""
+                if i < len(identification_answers) and identification_answers[i].strip():
+                    correct = identification_answers[i].strip()
+                elif i < len(correct_answers) and correct_answers[i].strip():
+                    correct = correct_answers[i].strip()
+
                 question = Question(
                     exam_id=exam.id,
                     question_type="identification",
-                    question_text=questions_text[i],
-                    correct_answer=correct,
+                    question_text=q_text,
+                    correct_answer=correct, # now ALWAYS saved
                     points=points,
                     is_deleted=False,
                     is_active=True
                 )
                 db.session.add(question)
             else:
+                # MCQ - collect choices for this exact card index i
                 all_choices = {}
                 for letter in choice_letters:
                     lst = choices_by_letter.get(letter, [])
-                    val = ""
                     if i < len(lst) and lst[i].strip():
-                        val = lst[i]
-                    elif mcq_idx < len(lst) and lst[mcq_idx].strip():
-                        val = lst[mcq_idx]
-                    if val:
-                        all_choices[letter.upper()] = val
+                        all_choices[letter.upper()] = lst[i].strip()
 
                 choice_a = all_choices.get('A', '')
                 choice_b = all_choices.get('B', '')
@@ -3569,15 +3571,15 @@ def add_question(exam_id):
                 choice_d = all_choices.get('D', '')
 
                 correct = ""
-                if mcq_idx < len(correct_answers) and correct_answers[mcq_idx].strip():
-                    correct = correct_answers[mcq_idx]
-                elif i < len(correct_answers):
-                    correct = correct_answers[i]
+                if i < len(correct_answers) and correct_answers[i].strip():
+                    correct = correct_answers[i].strip().upper()
+                elif i < len(identification_answers) and identification_answers[i].strip():
+                    correct = identification_answers[i].strip().upper()
 
                 question = Question(
                     exam_id=exam.id,
                     question_type="mcq",
-                    question_text=questions_text[i],
+                    question_text=q_text,
                     choice_a=choice_a,
                     choice_b=choice_b,
                     choice_c=choice_c,
@@ -3589,7 +3591,6 @@ def add_question(exam_id):
                     is_active=True
                 )
                 db.session.add(question)
-                mcq_idx += 1
 
         db.session.commit()
         flash("Questions added successfully!", "success")
@@ -3601,13 +3602,11 @@ def add_question(exam_id):
     except:
         all_questions = Question.query.filter_by(exam_id=exam_id).order_by(Question.id.asc()).all()
 
-    # Robust counting - handle NULLs (old data before migration)
     active_questions = []
     hidden_questions = []
     for q in all_questions:
         is_del = getattr(q, 'is_deleted', False)
         is_act = getattr(q, 'is_active', True)
-        # Treat None as False/True
         if is_del is None:
             is_del = False
         if is_act is None:
@@ -3627,6 +3626,7 @@ def add_question(exam_id):
         hidden_count=len(hidden_questions),
         subjects=subjects
     )
+
 # =========================
 # Edit Exam Question Route
 # =========================

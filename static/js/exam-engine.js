@@ -264,24 +264,53 @@ const Exam = {
         // Restore previously saved answer
         // ----------------------------------------------
 
-        restore() {
-
+                restore() {
             const savedAnswer =
                 document.getElementById("selectedAnswer").value;
-
             if (!savedAnswer) return;
-
             document.querySelectorAll(".option-btn").forEach(btn => {
-
                 if (btn.dataset.answer === savedAnswer) {
-
                     btn.classList.remove("btn-outline-primary");
                     btn.classList.add("btn-primary");
-
                 }
-
             });
+            // FIX: also restore identification input
+            const idInput = document.getElementById("identificationAnswer");
+            if (idInput && savedAnswer) {
+                idInput.value = savedAnswer;
+            }
+        },
 
+        // ----------------------------------------------
+        // FIX: THIS WAS MISSING - causes your student bug
+        // "Mo blue diba sir if naka answer... pero pag type dili ma save"
+        // ----------------------------------------------
+        _idSaveTimeout: null,
+
+        async saveIdentification(text) {
+            const val = (text || "").trim();
+            // 1. Immediate sync for form submit
+            document.getElementById("selectedAnswer").value = val;
+            const ft = document.getElementById("formAnswerText");
+            if (ft) ft.value = val;
+            const fa = document.getElementById("formAnswer");
+            if (fa) fa.value = val;
+
+            // 2. Debounce 400ms - don't spam /save-answer on every keystroke
+            if (this._idSaveTimeout) clearTimeout(this._idSaveTimeout);
+            this._idSaveTimeout = setTimeout(async () => {
+                const qid = document.getElementById("questionId").value;
+                if (val.length === 0) {
+                    Exam.navigator.updateSingle(qid, false);
+                    return;
+                }
+                try {
+                    const result = await this.save(val);
+                    if (result) Exam.navigator.updateSingle(result.question_id, true);
+                } catch (e) {
+                    console.error("[saveIdentification] error:", e);
+                }
+            }, 400);
         }
 
     },
