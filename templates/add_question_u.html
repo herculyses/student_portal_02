@@ -20,10 +20,6 @@
 .soft-deleted{background:#fff3cd!important;border-left:5px solid #ffc107}
 .paste-hint{font-size:0.75rem;color:#198754;background:rgba(25,135,84,0.1);border:1px dashed #198754;border-radius:4px;padding:4px 8px;margin-top:4px;display:none}
 .paste-hint.show{display:block}
-.keyword-input-row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
-.keyword-index{font-weight:800;min-width:28px;height:36px;display:flex;align-items:center;justify-content:center;background:#fff3cd;border:1px solid #ffc107;border-radius:6px}
-.keyword-preview-badge{display:inline-block;padding:4px 10px;margin:3px;border-radius:20px;background:#fff3cd;border:1px solid #ffc107;font-size:0.82rem;font-weight:600}
-.keyword-counter{font-size:0.78rem}
 .bi, .reactive-icon {display:inline-block;transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1), filter 0.25s ease;will-change:transform;}
 .btn:hover .bi, .list-group-item:hover .bi {transform: scale(1.25) rotate(-6deg);filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));}
 .bi:hover {transform: scale(1.35) rotate(8deg) translateY(-2px) !important;}
@@ -37,7 +33,6 @@
 .icon-success {animation: popSuccess 0.6s cubic-bezier(0.34,1.56,0.64,1) !important;color:#198754 !important;}
 @keyframes popSuccess {0%{transform: scale(1);}30%{transform: scale(1.6) rotate(15deg);}60%{transform: scale(0.9) rotate(-10deg);}100%{transform: scale(1) rotate(0);}}
 .choice-row.added {animation: slideIn 0.35s ease-out;}
-.keyword-input-row.added {animation: slideIn 0.35s ease-out;}
 @keyframes slideIn {from{opacity:0; transform: translateY(-10px) scale(0.95);}to{opacity:1; transform: translateY(0) scale(1);}}
 .bulk-bar{position:sticky;top:0;z-index:5;background:#fff;border:1px solid #dee2e6;border-radius:8px;padding:8px 12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 2px 6px rgba(0,0,0,0.05)}
 </style>
@@ -52,8 +47,10 @@
             <span class="badge bg-warning text-dark ms-1 d-none" id="builderCountBadge"><span id="builderCount">1</span> draft</span>
         </h4>
         <div class="d-flex gap-2">
-        <a href="{{ url_for('dashboard_admin') }}" class="friendly-btn emerald btn-sm" data-flip="elastic"><i class="bi bi-person-gear"></i> Admin</a>
-        <a href="{{ url_for('view_exams') }}" class="friendly-btn lavender btn-sm" data-flip="eye"><i class="bi bi-eye"></i> View Exams</a>
+        <a href="{{ url_for('dashboard_admin') }}" class="friendly-btn emerald btn-sm" data-flip="elastic"><i class="bi bi-person-gear">
+            </i> Admin</a>
+        <a href="{{ url_for('view_exams') }}" class="friendly-btn lavender btn-sm" data-flip="eye"><i class="bi bi-eye">
+            </i> View Exams</a>
         </div>
     </div>
 </div>
@@ -80,21 +77,7 @@
     <div class="mb-2"><label class="form-label fw-bold">Question Type</label><select class="form-select type" name="question_type[]"><option value="mcq">Multiple Choice (A-Z)</option><option value="identification">Identification</option></select></div>
     <div class="mb-2"><label class="form-label fw-bold">Question <small class="text-success">- Paste with a) b) c) d) auto-splits!</small></label><textarea class="form-control question-input" rows="4" name="question_text[]" placeholder="Paste here..."></textarea><div class="paste-hint">✨ Auto-detected choices!</div></div>
     <div class="mcq-section"><div class="d-flex justify-content-between mb-2"><label class="form-label fw-bold mb-0">Choices (A-Z)</label><div class="btn-group btn-group-sm"><button type="button" class="btn btn-outline-success add-choice-btn"><i class="bi bi-plus"></i></button><button type="button" class="btn btn-outline-danger remove-choice-btn"><i class="bi bi-dash"></i></button></div></div><div class="choices-container"></div><div class="mt-2"><label class="form-label">Correct Answer</label><input class="form-control correct-answer-input" name="correct_answer[]" placeholder="e.g., B"></div></div>
-    <!-- FIXED BUILDER: 10-Keyword Identification -->
-    <div class="identification-section d-none">
-        <div class="identification-wrapper">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-                <label class="form-label fw-bold mb-0"><i class="bi bi-key"></i> Identification Keywords (max 10)</label>
-                <span class="badge bg-warning text-dark keyword-counter">0 / 10 keywords</span>
-            </div>
-            <div class="alert alert-warning py-2 small mb-2"><i class="bi bi-lightbulb"></i> Any keyword match = Correct (case-insensitive). Example: <code>Photosynthesis | Sunlight | Chlorophyll</code></div>
-            <!-- Hidden input stores "kw1 | kw2 | kw3" -->
-            <input type="hidden" class="identification-answer-input" name="correct_identification[]">
-            <div class="keyword-list"></div>
-            <button type="button" class="btn btn-sm btn-outline-warning mt-2 add-keyword-btn"><i class="bi bi-plus-lg"></i> Add keyword</button>
-            <div class="mt-2 small text-muted keyword-preview-wrap">Preview: <span class="keyword-preview-text fst-italic">No keywords yet</span></div>
-        </div>
-    </div>
+    <div class="identification-section d-none"><div class="identification-wrapper"><label class="form-label fw-bold">Identification Answer</label><input class="form-control identification-answer-input" name="correct_identification[]" placeholder="Correct answer"></div></div>
     <div class="mb-2 mt-2"><label class="form-label fw-bold">Points</label><input type="number" class="form-control points-input" name="points[]" value="1" min="1"></div>
     <div class="preview-box"><strong><i class="bi bi-eye"></i> Live Preview</strong><span class="badge bg-secondary ms-2 preview-type-badge">MCQ</span><hr class="my-2"><div class="preview-question fst-italic text-muted">Preview...</div><div class="preview-choices mt-2"></div></div>
 </div>
@@ -108,6 +91,7 @@
   <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#deletedTab"><i class="bi bi-eye-slash"></i> Hidden / Deleted <span class="badge bg-warning text-dark">{{ hidden_count if hidden_count is defined else 0 }}</span></button></li>
 </ul>
 <div class="tab-content border p-2">
+<!-- ACTIVE TAB WITH BULK -->
 <div class="tab-pane fade show active" id="activeTab">
 <div class="bulk-bar">
   <div class="d-flex align-items-center gap-2">
@@ -136,6 +120,7 @@
 </ul></div>
 </div>
 
+<!-- HIDDEN TAB WITH BULK RESTORE -->
 <div class="tab-pane fade" id="deletedTab">
 <div class="bulk-bar bg-warning-subtle">
   <div class="d-flex align-items-center gap-2">
@@ -156,37 +141,13 @@
 </ul>
 </div>
 </div>
+</div>
 </div></div>
 
 <!-- Modals -->
 <div class="modal fade" id="deleteQuestionModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header bg-danger text-white"><h5 class="modal-title"><i class="bi bi-exclamation-triangle"></i> Delete</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="form-check"><input class="form-check-input" type="radio" name="deleteMode" value="soft" id="softDel" checked><label class="form-check-label" for="softDel"><strong>Soft Delete</strong> - Hide from exam</label></div><div class="form-check mt-2"><input class="form-check-input" type="radio" name="deleteMode" value="hard" id="hardDel"><label class="form-check-label" for="hardDel"><strong>Hard Delete</strong> - Permanent from NeonDB</label></div></div><div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-danger" id="confirmDeleteQuestion"><i class="bi bi-trash"></i> Confirm</button></div></div></div></div>
 
-<!-- FIXED EDIT MODAL WITH 10-KEYWORD BUILDER -->
-<div class="modal fade" id="editQuestionModal" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header bg-warning"><h5 class="modal-title">✏ Edit Question - 10 Keywords Support</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="editQuestionId"><div class="mb-3"><label class="form-label fw-bold">Question</label><textarea id="editQuestionText" class="form-control" rows="3"></textarea></div><div class="mb-3"><label class="form-label fw-bold">Type</label><select id="editQuestionType" class="form-select"><option value="mcq">MCQ A-Z</option><option value="identification">Identification</option></select></div>
-<!-- MCQ Container -->
-<div id="editChoicesContainer" class="row"></div>
-<!-- Identification Keyword Builder for Edit Modal -->
-<div id="editKeywordBuilder" class="d-none">
-  <div class="identification-wrapper">
-    <div class="d-flex justify-content-between align-items-center mb-2">
-      <label class="form-label fw-bold mb-0"><i class="bi bi-key"></i> Keywords (max 10) - Any match = Correct</label>
-      <span class="badge bg-warning text-dark" id="editKeywordCounter">0 / 10 keywords</span>
-    </div>
-    <div class="alert alert-warning py-2 small"><i class="bi bi-info-circle"></i> Any keyword match = Correct (case-insensitive)</div>
-    <div id="editKeywordList"></div>
-    <button type="button" class="btn btn-sm btn-outline-warning mt-2" id="editAddKeywordBtn"><i class="bi bi-plus-lg"></i> Add keyword</button>
-    <div class="mt-2 small text-muted">Preview: <span id="editKeywordPreview" class="fst-italic">No keywords</span></div>
-  </div>
-</div>
-<div class="row mt-3">
-  <div class="col-md-6" id="editCorrectAnswerWrapper">
-    <label class="form-label">Correct Answer</label>
-    <input id="editCorrectAnswer" class="form-control">
-    <small class="text-muted d-none" id="editCorrectAnswerHint">Auto-synced from keywords (kw1 | kw2 | ...)</small>
-  </div>
-  <div class="col-md-6"><label class="form-label">Points</label><input id="editPoints" type="number" class="form-control"></div>
-</div>
-</div><div class="modal-footer"><button class="btn btn-warning" id="saveQuestionChanges"><i class="bi bi-floppy"></i> Save Changes</button><button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button></div></div></div></div>
+<div class="modal fade" id="editQuestionModal" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header bg-warning"><h5 class="modal-title">✏ Edit Question - Choices update instantly</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="editQuestionId"><div class="mb-3"><label class="form-label fw-bold">Question</label><textarea id="editQuestionText" class="form-control" rows="3"></textarea></div><div class="mb-3"><label class="form-label fw-bold">Type</label><select id="editQuestionType" class="form-select"><option value="mcq">MCQ A-Z</option><option value="identification">Identification</option></select></div><div id="editChoicesContainer" class="row"></div><div class="row mt-3"><div class="col-md-6"><label class="form-label">Correct Answer</label><input id="editCorrectAnswer" class="form-control"></div><div class="col-md-6"><label class="form-label">Points</label><input id="editPoints" type="number" class="form-control"></div></div></div><div class="modal-footer"><button class="btn btn-warning" id="saveQuestionChanges"><i class="bi bi-floppy"></i> Save Changes</button><button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button></div></div></div></div>
 
 <div class="modal fade" id="importQuestionsModal" tabindex="-1"><div class="modal-dialog modal-xl modal-dialog-scrollable"><div class="modal-content"><div class="modal-header bg-primary text-white"><h5 class="modal-title">Import from <span id="importSubjectName">Subject</span></h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="d-flex justify-content-between mb-3"><input type="text" id="importSearch" class="form-control form-control-sm" placeholder="Search..." style="width:250px"><div class="d-flex gap-2"><button class="btn btn-outline-secondary btn-sm" id="selectAllImport">Select All</button><button class="btn btn-outline-secondary btn-sm" id="deselectAllImport">Deselect</button></div></div><div id="importLoading" class="text-center py-4"><div class="spinner-border text-primary"></div></div><div id="importList" class="list-group d-none"></div><div id="importEmpty" class="alert alert-secondary d-none">No questions.</div></div><div class="modal-footer"><span class="me-auto"><span id="importCount">0</span> selected</span><button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary" id="confirmImportBtn">Add</button></div></div></div></div>
 
@@ -214,74 +175,6 @@ function createChoiceRow(letter,value='',card){
 }
 function initChoices(card,letters=4){const container=card.querySelector('.choices-container');container.innerHTML='';for(let i=0;i<letters;i++) container.appendChild(createChoiceRow(ALPHABET[i],'',card));updateChoiceCountBadge(card);updatePreview(card);}
 function updateChoiceCountBadge(card){const count=card.querySelectorAll('.choices-container .choice-row').length;const badge=card.querySelector('.choice-count-badge');if(badge) badge.textContent=`${count} choices`;}
-// ===== BUILDER KEYWORD BUILDER - FIX 1 =====
-function createKeywordRowBuilder(value='', card){
-    const div=document.createElement('div');
-    div.className='keyword-input-row added';
-    const idx = card.querySelectorAll('.keyword-list .keyword-input-row').length + 1;
-    div.innerHTML=`<span class="keyword-index">${idx}</span><input class="form-control keyword-input flex-grow-1" placeholder="Keyword ${idx} e.g., Photosynthesis" value="${value.replace(/"/g,'&quot;')}"><button type="button" class="btn btn-sm btn-outline-danger remove-keyword-btn"><i class="bi bi-x"></i></button>`;
-    setTimeout(()=>div.classList.remove('added'),350);
-    return div;
-}
-function initKeywordBuilder(card){
-    if(card.dataset.keywordInit==='1') return;
-    card.dataset.keywordInit='1';
-    const list = card.querySelector('.keyword-list');
-    const hidden = card.querySelector('.identification-answer-input');
-    const counter = card.querySelector('.keyword-counter');
-    const previewText = card.querySelector('.keyword-preview-text');
-    const addBtn = card.querySelector('.add-keyword-btn');
-
-    function syncBuilder(){
-        const vals = Array.from(card.querySelectorAll('.keyword-list .keyword-input')).map(i=>i.value.trim()).filter(Boolean);
-        hidden.value = vals.join(' | ');
-        if(counter) counter.textContent = `${vals.length} / 10 keywords`;
-        if(previewText){
-            if(vals.length===0) previewText.textContent='No keywords yet';
-            else previewText.innerHTML = vals.map(v=>`<span class="keyword-preview-badge">${v}</span>`).join(' ');
-        }
-        updatePreview(card);
-    }
-    function renumber(){
-        card.querySelectorAll('.keyword-list .keyword-index').forEach((el,i)=> el.textContent = i+1);
-        card.querySelectorAll('.keyword-list .keyword-input').forEach((inp,i)=> inp.placeholder = `Keyword ${i+1}`);
-    }
-    // initial: if hidden has value, split, else 1 empty
-    let initialVals = [];
-    if(hidden.value){
-        initialVals = hidden.value.split(/\s*\|\s*/).map(s=>s.trim()).filter(Boolean).slice(0,10);
-    }
-    list.innerHTML='';
-    if(initialVals.length>0){
-        initialVals.forEach(v=> list.appendChild(createKeywordRowBuilder(v, card)));
-    } else {
-        list.appendChild(createKeywordRowBuilder('', card));
-    }
-    syncBuilder();
-    renumber();
-
-    addBtn?.addEventListener('click', ()=>{
-        const current = card.querySelectorAll('.keyword-list .keyword-input-row').length;
-        if(current>=10){ alert('Max 10 keywords'); return; }
-        list.appendChild(createKeywordRowBuilder('', card));
-        renumber();
-        syncBuilder();
-    });
-    list.addEventListener('click', (e)=>{
-        if(e.target.closest('.remove-keyword-btn')){
-            const rows = card.querySelectorAll('.keyword-list .keyword-input-row');
-            if(rows.length<=1){ alert('At least 1 keyword'); return; }
-            e.target.closest('.keyword-input-row').remove();
-            renumber();
-            syncBuilder();
-        }
-    });
-    list.addEventListener('input', (e)=>{
-        if(e.target.classList.contains('keyword-input')) syncBuilder();
-    });
-    // expose sync for external
-    card._syncKeywordBuilder = syncBuilder;
-}
 function updatePreview(card){
     if(!card) return;
     const qInput=card.querySelector('.question-input');
@@ -307,20 +200,15 @@ function updatePreview(card){
             previewChoices.appendChild(div);
         });
     }else{
-        const hiddenVal=card.querySelector('.identification-answer-input')?.value||'';
-        const kws=hiddenVal.split(/\s*\|\s*/).map(s=>s.trim()).filter(Boolean);
-        if(kws.length>0){
-            previewChoices.innerHTML = kws.map(k=>`<span class="keyword-preview-badge">${k}</span>`).join('') + `<div class="small text-muted mt-2"><i class="bi bi-info-circle"></i> Any match = Correct (case-insensitive)</div>`;
-        }else{
-            previewChoices.innerHTML=`<div class="preview-choice text-muted">No keywords yet - add at least 1</div>`;
-        }
+        const ans=card.querySelector('.identification-answer-input')?.value||'';
+        if(previewChoices) previewChoices.innerHTML=`<div class="preview-choice"><strong>Answer:</strong> ${ans||'Not set'}</div>`;
     }
 }
 function parsePastedQuestionBlock(text){
     const lines = text.split(/\n/).map(l=>l.trim()).filter(l=>l);
     if(lines.length < 2) return null;
     let choices = {};
-    let choicePattern = /^([a-zA-Z])[\)\.\-: ]\s*(.+)/;
+    let choicePattern = /^([a-zA-Z])[\).\-:]\s*(.+)/;
     let foundChoiceStart = -1;
     for(let i=0;i<lines.length;i++){ if(choicePattern.test(lines[i]) && i>0){ foundChoiceStart = i; break; } }
     if(foundChoiceStart === -1) return null;
@@ -348,13 +236,13 @@ function handleQuestionPaste(e){
 new Sortable(document.getElementById("builder"),{animation:150,handle:'.drag-handle',onEnd:updateQuestionCount});
 function addCard(){
     let div=document.createElement("div");div.className="question-card card p-3 mb-3 shadow-sm";
-    div.innerHTML=`<div class="d-flex justify-content-between mb-2"><div class="d-flex gap-2"><span class="drag-handle btn btn-outline-secondary btn-sm"><i class="bi bi-grip-vertical"></i></span><span class="question-counter">Question #</span></div><div class="d-flex gap-2"><span class="badge bg-info choice-count-badge">4 choices</span><button type="button" class="btn btn-danger btn-sm del"><i class="bi bi-x"></i></button></div></div><div class="mb-2"><label class="form-label fw-bold">Question Type</label><select class="form-select type" name="question_type[]"><option value="mcq">Multiple Choice (A-Z)</option><option value="identification">Identification</option></select></div><div class="mb-2"><label class="form-label fw-bold">Question</label><textarea class="form-control question-input" rows="4" name="question_text[]" placeholder="Paste full question..."></textarea><div class="paste-hint">Auto-filled!</div></div><div class="mcq-section"><div class="d-flex justify-content-between mb-2"><label class="form-label fw-bold mb-0">Choices (A-Z)</label><div class="btn-group btn-group-sm"><button type="button" class="btn btn-outline-success add-choice-btn"><i class="bi bi-plus"></i></button><button type="button" class="btn btn-outline-danger remove-choice-btn"><i class="bi bi-dash"></i></button></div></div><div class="choices-container"></div><div class="mt-2"><label class="form-label">Correct Answer</label><input class="form-control correct-answer-input" name="correct_answer[]" placeholder="e.g., B"></div></div><div class="identification-section d-none"><div class="identification-wrapper"><div class="d-flex justify-content-between align-items-center mb-2"><label class="form-label fw-bold mb-0"><i class="bi bi-key"></i> Identification Keywords (max 10)</label><span class="badge bg-warning text-dark keyword-counter">0 / 10 keywords</span></div><div class="alert alert-warning py-2 small mb-2"><i class="bi bi-lightbulb"></i> Any keyword match = Correct (case-insensitive). Example: <code>Photosynthesis | Sunlight | Chlorophyll</code></div><input type="hidden" class="identification-answer-input" name="correct_identification[]"><div class="keyword-list"></div><button type="button" class="btn btn-sm btn-outline-warning mt-2 add-keyword-btn"><i class="bi bi-plus-lg"></i> Add keyword</button><div class="mt-2 small text-muted keyword-preview-wrap">Preview: <span class="keyword-preview-text fst-italic">No keywords yet</span></div></div></div><div class="mb-2 mt-2"><label class="form-label fw-bold">Points</label><input type="number" class="form-control points-input" name="points[]" value="1" min="1"></div><div class="preview-box"><strong>Preview</strong> <span class="badge bg-secondary ms-2 preview-type-badge">MCQ</span><hr class="my-2"><div class="preview-question fst-italic text-muted">Preview...</div><div class="preview-choices mt-2"></div></div>`;
-    document.getElementById("builder").appendChild(div);initChoices(div,4);initKeywordBuilder(div);updateQuestionCount(); div.querySelector('.question-input').addEventListener('paste', handleQuestionPaste);
+    div.innerHTML=`<div class="d-flex justify-content-between mb-2"><div class="d-flex gap-2"><span class="drag-handle btn btn-outline-secondary btn-sm"><i class="bi bi-grip-vertical"></i></span><span class="question-counter">Question #</span></div><div class="d-flex gap-2"><span class="badge bg-info choice-count-badge">4 choices</span><button type="button" class="btn btn-danger btn-sm del"><i class="bi bi-x"></i></button></div></div><div class="mb-2"><label class="form-label fw-bold">Question Type</label><select class="form-select type" name="question_type[]"><option value="mcq">Multiple Choice (A-Z)</option><option value="identification">Identification</option></select></div><div class="mb-2"><label class="form-label fw-bold">Question</label><textarea class="form-control question-input" rows="4" name="question_text[]" placeholder="Paste full question..."></textarea><div class="paste-hint">Auto-filled!</div></div><div class="mcq-section"><div class="d-flex justify-content-between mb-2"><label class="form-label fw-bold mb-0">Choices (A-Z)</label><div class="btn-group btn-group-sm"><button type="button" class="btn btn-outline-success add-choice-btn"><i class="bi bi-plus"></i></button><button type="button" class="btn btn-outline-danger remove-choice-btn"><i class="bi bi-dash"></i></button></div></div><div class="choices-container"></div><div class="mt-2"><label class="form-label">Correct Answer</label><input class="form-control correct-answer-input" name="correct_answer[]" placeholder="e.g., B"></div></div><div class="identification-section d-none"><div class="identification-wrapper"><label class="form-label fw-bold">Identification Answer</label><input class="form-control identification-answer-input" name="correct_identification[]" placeholder="Correct answer"></div></div><div class="mb-2 mt-2"><label class="form-label fw-bold">Points</label><input type="number" class="form-control points-input" name="points[]" value="1" min="1"></div><div class="preview-box"><strong>Preview</strong><hr class="my-2"><div class="preview-question fst-italic text-muted">Preview...</div><div class="preview-choices mt-2"></div></div>`;
+    document.getElementById("builder").appendChild(div);initChoices(div,4);updateQuestionCount(); div.querySelector('.question-input').addEventListener('paste', handleQuestionPaste);
 }
 function clearAllCards(){if(!confirm('Clear all?')) return;document.getElementById('builder').innerHTML='';addCard();}
 document.addEventListener('DOMContentLoaded',()=>{
     const first=document.querySelector('#builder .question-card');
-    if(first){ initChoices(first,4); initKeywordBuilder(first); }
+    if(first) initChoices(first,4);
     updateQuestionCount();
     document.querySelectorAll('.question-input').forEach(el=>el.addEventListener('paste', handleQuestionPaste));
 });
@@ -368,8 +256,8 @@ document.addEventListener("click",function(e){
     if(e.target.closest(".restore-btn")){ const btn=e.target.closest(".restore-btn"); restoreQuestion(btn.dataset.id, btn); }
     if(e.target.closest(".hard-delete-btn")){ const btn=e.target.closest(".hard-delete-btn"); if(confirm('Permanent delete from NeonDB?')) hardDeleteQuestion(btn.dataset.id, btn); }
 });
-document.addEventListener("change",function(e){if(e.target.classList.contains("type")){let card=e.target.closest(".question-card");let mcq=card.querySelector(".mcq-section");let identification=card.querySelector(".identification-section");if(e.target.value==="mcq"){mcq.classList.remove("d-none");identification.classList.add("d-none");}else{mcq.classList.add("d-none");identification.classList.remove("d-none");if(!card.dataset.keywordInit) initKeywordBuilder(card);}updatePreview(card);}});
-document.addEventListener("input",function(e){if(e.target.classList.contains("question-input")||e.target.classList.contains("choice-input")||e.target.classList.contains("correct-answer-input")||e.target.classList.contains("points-input")||e.target.classList.contains("keyword-input")){const card=e.target.closest(".question-card"); if(card) updatePreview(card); }});
+document.addEventListener("change",function(e){if(e.target.classList.contains("type")){let card=e.target.closest(".question-card");let mcq=card.querySelector(".mcq-section");let identification=card.querySelector(".identification-section");if(e.target.value==="mcq"){mcq.classList.remove("d-none");identification.classList.add("d-none");}else{mcq.classList.add("d-none");identification.classList.remove("d-none");}updatePreview(card);}});
+document.addEventListener("input",function(e){if(e.target.classList.contains("question-input")||e.target.classList.contains("choice-input")||e.target.classList.contains("correct-answer-input")||e.target.classList.contains("identification-answer-input")||e.target.classList.contains("points-input")){updatePreview(e.target.closest(".question-card"));}});
 document.getElementById('searchExisting')?.addEventListener('input',function(){const term=this.value.toLowerCase();document.querySelectorAll('.existing-question-item').forEach(item=>{item.style.display=(item.dataset.text||'').includes(term)?'':'none';});});
 
 document.getElementById("confirmDeleteQuestion")?.addEventListener("click", async function(){
@@ -404,6 +292,7 @@ async function hardDeleteQuestion(id, btnEl){
         }
     }catch(err){ alert('Hard delete error'); }
 }
+// ===== BULK LOGIC =====
 function updateBulkCounts(){
     const activeChecked=document.querySelectorAll('.active-checkbox:checked').length;
     const hiddenChecked=document.querySelectorAll('.hidden-checkbox:checked').length;
@@ -450,80 +339,13 @@ document.getElementById('bulkHardDeleteBtn')?.addEventListener('click', async fu
 });
 </script>
 <script>
-// ===== EDIT MODAL FIXED - 10 KEYWORDS SUPPORT =====
-function createEditKeywordRow(value=''){
-    const div=document.createElement('div');
-    div.className='keyword-input-row added';
-    const existing = document.querySelectorAll('#editKeywordList .keyword-input-row').length + 1;
-    div.innerHTML=`<span class="keyword-index">${existing}</span><input class="form-control edit-keyword-input flex-grow-1" placeholder="Keyword ${existing}" value="${value.replace(/"/g,'&quot;')}"><button type="button" class="btn btn-sm btn-outline-danger edit-remove-keyword"><i class="bi bi-x"></i></button>`;
-    setTimeout(()=>div.classList.remove('added'),350);
-    return div;
-}
-function initEditKeywordBuilder(correctAnswerString){
-    const list = document.getElementById('editKeywordList');
-    const counter = document.getElementById('editKeywordCounter');
-    const preview = document.getElementById('editKeywordPreview');
-    const hiddenInput = document.getElementById('editCorrectAnswer');
-    const addBtn = document.getElementById('editAddKeywordBtn');
-
-    function parseKeywords(str){
-        if(!str) return [];
-        // Split by | , ; / newline or " or " (regex) - case-insensitive
-        return str.split(/\s*\|\s*|\s*,\s*|\s*;\s*|\s*\/\s*|\n+|\r+|\s+or\s+/gi).map(s=>s.trim()).filter(Boolean).slice(0,10);
-    }
-    function syncEditKeywords(){
-        const vals = Array.from(document.querySelectorAll('#editKeywordList .edit-keyword-input')).map(i=>i.value.trim()).filter(Boolean);
-        hiddenInput.value = vals.join(' | ');
-        if(counter) counter.textContent = `${vals.length} / 10 keywords`;
-        if(preview){
-            if(vals.length===0) preview.textContent='No keywords';
-            else preview.innerHTML = vals.map(v=>`<span class="keyword-preview-badge">${v}</span>`).join(' ');
-        }
-    }
-    function renumberEdit(){
-        document.querySelectorAll('#editKeywordList .keyword-index').forEach((el,i)=> el.textContent = i+1);
-        document.querySelectorAll('#editKeywordList .edit-keyword-input').forEach((inp,i)=> inp.placeholder = `Keyword ${i+1}`);
-    }
-
-    const parsed = parseKeywords(correctAnswerString);
-    list.innerHTML='';
-    if(parsed.length>0){
-        parsed.forEach(v=> list.appendChild(createEditKeywordRow(v)));
-    }else{
-        list.appendChild(createEditKeywordRow(''));
-    }
-    renumberEdit();
-    syncEditKeywords();
-
-    // Remove old listeners by cloning addBtn
-    const newAddBtn = addBtn.cloneNode(true);
-    addBtn.parentNode.replaceChild(newAddBtn, addBtn);
-    newAddBtn.addEventListener('click', ()=>{
-        const cur = document.querySelectorAll('#editKeywordList .keyword-input-row').length;
-        if(cur>=10){ alert('Max 10 keywords'); return; }
-        list.appendChild(createEditKeywordRow(''));
-        renumberEdit();
-        syncEditKeywords();
-    });
-    list.addEventListener('click', (e)=>{
-        if(e.target.closest('.edit-remove-keyword')){
-            const rows = document.querySelectorAll('#editKeywordList .keyword-input-row');
-            if(rows.length<=1){ alert('At least 1 keyword'); return; }
-            e.target.closest('.keyword-input-row').remove();
-            renumberEdit();
-            syncEditKeywords();
-        }
-    });
-    list.addEventListener('input', (e)=>{
-        if(e.target.classList.contains('edit-keyword-input')) syncEditKeywords();
-    });
-}
-
-document.getElementById("editQuestionModal")?.addEventListener("hidden.bs.modal",function(){document.getElementById("editQuestionId").value=''; document.getElementById('editKeywordBuilder').classList.add('d-none'); document.getElementById('editCorrectAnswerWrapper').classList.remove('d-none');});
+// ===== EDIT MODAL FIXED =====
+document.getElementById("editQuestionModal")?.addEventListener("hidden.bs.modal",function(){document.getElementById("editQuestionId").value='';});
 document.addEventListener("click",function(e){
     if(e.target.closest(".edit-question-btn")){
         const btn=e.target.closest(".edit-question-btn");
         const id=btn.dataset.id;
+        // FIX: call /edit-question with header so Flask returns JSON (not 404)
         fetch(`/edit-question/${id}`,{
             method:'GET',
             headers:{'X-Requested-With':'XMLHttpRequest','Accept':'application/json'}
@@ -540,49 +362,24 @@ document.addEventListener("click",function(e){
             document.getElementById("editQuestionType").value=data.question_type;
             document.getElementById("editCorrectAnswer").value=data.correct_answer||"";
             document.getElementById("editPoints").value=data.points;
-            const container=document.getElementById('editChoicesContainer');
-            const keywordBuilder=document.getElementById('editKeywordBuilder');
-            const correctWrapper=document.getElementById('editCorrectAnswerWrapper');
-            const hint=document.getElementById('editCorrectAnswerHint');
-            container.innerHTML='';
+            const container=document.getElementById('editChoicesContainer');container.innerHTML='';
             if(data.question_type==='mcq'){
-                keywordBuilder.classList.add('d-none');
-                correctWrapper.classList.remove('d-none');
-                hint.classList.add('d-none');
                 const choices=data.choices||{A:data.choice_a,B:data.choice_b,C:data.choice_c,D:data.choice_d};
                 Object.keys(choices).sort().forEach(letter=>{ if(!choices[letter]) return; container.innerHTML+=`<div class="col-md-6 mb-2"><label class="form-label">Choice ${letter}</label><input id="editChoice${letter}" class="form-control" value="${choices[letter].replace(/"/g,'&quot;')}"></div>`; });
                 container.innerHTML+=`<div class="col-12 mt-2"><button type="button" class="btn btn-sm btn-outline-success" id="addEditChoiceBtn"><i class="bi bi-plus"></i> Add Choice</button></div>`;
                 setTimeout(()=>{document.getElementById('addEditChoiceBtn')?.addEventListener('click',()=>{ const existingLetters=Array.from(document.querySelectorAll('#editChoicesContainer input[id^="editChoice"]')).map(i=>i.id.replace('editChoice','')); const nextLetter=ALPHABET.find(l=>!existingLetters.includes(l)); if(!nextLetter){alert('Max Z');return;} const div=document.createElement('div');div.className='col-md-6 mb-2';div.innerHTML=`<label class="form-label">Choice ${nextLetter}</label><input id="editChoice${nextLetter}" class="form-control" placeholder="Choice ${nextLetter}">`; container.insertBefore(div, document.getElementById('addEditChoiceBtn').parentNode); });},100);
-            }else{
-                // IDENTIFICATION - show 10-keyword builder
-                container.innerHTML='';
-                correctWrapper.classList.add('d-none');
-                keywordBuilder.classList.remove('d-none');
-                hint.classList.remove('d-none');
-                document.getElementById('editCorrectAnswer').value=data.correct_answer||'';
-                initEditKeywordBuilder(data.correct_answer||'');
-            }
+            }else{ container.innerHTML='<div class="col-12"><div class="alert alert-warning">Identification - answer is in Correct Answer field</div></div>'; }
             bootstrap.Modal.getOrCreateInstance(document.getElementById("editQuestionModal")).show();
         })
         .catch(err=>{
             console.error(err);
-            alert('Failed to load question '+id+': '+err.message);
+            alert('Failed to load question '+id+': '+err.message+' - Make sure /edit-question route exists (it now does) and you restarted Flask');
         });
     }
 });
 document.getElementById("saveQuestionChanges")?.addEventListener("click",function(){
     const questionId=document.getElementById("editQuestionId").value;
-    const qType=document.getElementById("editQuestionType").value;
-    let correctAnswerVal = document.getElementById("editCorrectAnswer").value;
-    // FIX: If identification, collect keywords from edit modal inputs and join with " | "
-    if(qType==='identification'){
-        const kwInputs = document.querySelectorAll('#editKeywordList .edit-keyword-input');
-        if(kwInputs.length>0){
-            const kws = Array.from(kwInputs).map(i=>i.value.trim()).filter(Boolean);
-            correctAnswerVal = kws.join(' | ');
-        }
-    }
-    const payload={question_text:document.getElementById("editQuestionText").value,question_type:qType,correct_answer:correctAnswerVal,points:document.getElementById("editPoints").value,choices:{}};
+    const payload={question_text:document.getElementById("editQuestionText").value,question_type:document.getElementById("editQuestionType").value,correct_answer:document.getElementById("editCorrectAnswer").value,points:document.getElementById("editPoints").value,choices:{}};
     document.querySelectorAll('#editChoicesContainer input[id^="editChoice"]').forEach(inp=>{const letter=inp.id.replace('editChoice','');payload.choices[letter]=inp.value;});
     fetch(`/edit-question/${questionId}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)})
     .then(r=>r.json()).then(data=>{

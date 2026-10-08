@@ -27,6 +27,7 @@ import random
 import time
 import json
 import os
+import re
 
 # --- Flask Setup ---
 app = Flask(__name__)
@@ -1194,6 +1195,9 @@ def get_latest_attempt(student_id, exam_id):
 # =========================================================
 # ---- CENTRAL EXAM GRADING ENGINE ----
 # =========================================================
+# NEW HELPER - Keyword checker for Identification
+# Handles "V-37 or Lot Data Computation" => ["v-37", "lot data computation"]
+
 def grade_attempt(attempt, forced=False):
 
     """
@@ -1228,26 +1232,22 @@ def grade_attempt(attempt, forced=False):
     score = 0
 
     # ============================
-    # Grade answers
+    # Grade answers - FIXED with keyword checker
     # ============================
     for ans in answers:
-
         question = questions.get(ans.question_id)
-
         if not question:
             continue
 
-        student_answer = (
-            ans.selected_answer or ""
-        ).strip().lower()
+        student_raw = (ans.selected_answer or "").strip()
+        correct_raw = (question.correct_answer or "").strip()
 
-        correct = (
-            question.correct_answer or ""
-        ).strip().lower()
-
-        ans.is_correct = (
-            student_answer == correct
-        )
+        if question.question_type == 'identification':
+            # NEW: any keyword match = correct, case-insensitive
+            ans.is_correct = check_identification_answer(student_raw, correct_raw)
+        else:
+            # MCQ - letter match (A, B, C...)
+            ans.is_correct = (student_raw.lower() == correct_raw.lower())
 
         if ans.is_correct:
             score += question.points
@@ -3405,16 +3405,34 @@ def admin_start_exam(exam_id):
     flash("Exam started successfully!", "success")
     return redirect(url_for('view_exams'))
 
+# =========================================================
+# ---- KEYWORD CHECKER - MUST BE BEFORE end_exam and grade_attempt ----
+# =========================================================
+def check_identification_answer(student_answer, correct_raw):
+    if not student_answer or not correct_raw:
+        return False
+    student = student_answer.strip().lower()
+    # Split by: | ; , / newline or " or " 
+    parts = re.split(r'\s*\|\s*|\s*;\s*|\s*,\s*|\s*\n\s*|\s*/\s*|\s+or\s+', correct_raw, flags=re.I)
+    keywords = [p.strip().lower() for p in parts if p.strip()]
+    if not keywords:
+        return False
+    for kw in keywords:
+        if student == kw:
+            return True
+        if len(kw) >= 2 and kw in student:
+            return True
+        if len(student) >= 2 and student in kw:
+            return True
+    return False
+
 @app.route('/end-exam/<int:exam_id>', methods=['POST'])
 @csrf.exempt
 @login_required(role=['Instructor', 'Admin'])
 def end_exam(exam_id):
     exam = Exam.query.get_or_404(exam_id)
-    
     try:
-        exam.is_active = False  # move inside try
-
-        # FORCE SUBMIT all taking
+        exam.is_active = False
         active_attempts = ExamAttempt.query.filter_by(exam_id=exam.id, is_submitted=False).all()
         for attempt in active_attempts:
             try:
@@ -3428,52 +3446,65 @@ def end_exam(exam_id):
                     selected = ans.selected_answer.strip()
                     if not correct or not selected:
                         continue
-                    
                     if q.question_type == 'identification':
-                        is_correct = selected.lower() == correct.lower()
+                        is_correct = check_identification_answer(selected, correct)  # FIXED
                     else:
                         is_correct = selected.upper() == correct.upper()
-                    
                     if is_correct:
                         score += q.points or 1
-                        
                 attempt.score = score
                 attempt.is_submitted = True
                 attempt.submitted_at = datetime.utcnow()
-                
                 acc = ExamAccess.query.filter_by(exam_id=exam.id, student_id=attempt.student_id).first()
                 if acc:
-                    acc.status = "completed"  # use completed, not submitted, to match your summary
+                    acc.status = "completed"
                     acc.submitted_at = datetime.utcnow()
             except Exception as e:
                 print(f"Force submit error for attempt {attempt.id}: {e}")
-                continue  # don't break whole exam for one bad attempt
-
+                continue
         db.session.commit()
-
-        # notify AFTER commit success
         for access in ExamAccess.query.filter_by(exam_id=exam.id).all():
             if str(access.student_id) in sse_events:
-                sse_events[access.student_id].append(
-                    {"event": "exam_ended", "data": {"exam_id": exam.id}}
-                )
-
+                sse_events[access.student_id].append({"event": "exam_ended", "data": {"exam_id": exam.id}})
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
             return jsonify({"success": True, "exam_id": exam.id, "title": exam.title})
-        
         flash(f'Exam "{exam.title}" ended successfully!', "success")
         return redirect(url_for('view_exams'))
-
     except Exception as e:
         db.session.rollback()
         print(f"End exam error: {e}")
         import traceback; traceback.print_exc()
-        
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
             return jsonify({"success": False, "message": str(e)}), 500
-            
         flash(f"Failed to end exam: {e}", "danger")
         return redirect(url_for('view_exams'))
+
+# =========================================================
+# ---- CENTRAL EXAM GRADING ENGINE ----
+# =========================================================
+def grade_attempt(attempt, forced=False):
+    student_id = attempt.student_id
+    exam_id = attempt.exam_id
+    answers = StudentAnswer.query.filter_by(attempt_id=attempt.id).all()
+    questions = {q.id: q for q in Question.query.filter_by(exam_id=exam_id).all()}
+    score = 0
+    for ans in answers:
+        question = questions.get(ans.question_id)
+        if not question:
+            continue
+        student_raw = (ans.selected_answer or "").strip()
+        correct_raw = (question.correct_answer or "").strip()
+        if question.question_type == 'identification':
+            ans.is_correct = check_identification_answer(student_raw, correct_raw)  # FIXED
+        else:
+            ans.is_correct = (student_raw.lower() == correct_raw.lower())
+        if ans.is_correct:
+            score += question.points
+    total_points = get_total_points(exam_id)
+    attempt.score = score
+    attempt.is_submitted = True
+    attempt.submitted_at = datetime.utcnow()
+    return score, total_points
 
 @app.route('/archive-exam/<int:exam_id>', methods=['POST'])
 @csrf.exempt
