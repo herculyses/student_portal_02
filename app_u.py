@@ -19,7 +19,6 @@ from time import perf_counter
 from functools import wraps
 from sqlalchemy import func
 from sqlalchemy import text
-MANILA_OFFSET = timedelta(hours=8)
 
 import pandas as pd
 import tempfile
@@ -4990,10 +4989,12 @@ def api_security_logs_live():
 @app.route('/security-logs')
 @login_required(role=['Admin', 'Instructor'])
 def security_logs():
+    # Only ACTIVE exams that are being taken - FIXED: compute from actual events to avoid mismatch
     active_attempts = ExamAttempt.query.filter_by(is_submitted=False).all()
-    grouped = {}
-    for att in active_attempts:
-        grouped.setdefault(att.exam_id, []).append(att)
+    from collections import defaultdict
+    grouped = defaultdict(list)
+    for attempt in active_attempts:
+        grouped[attempt.exam_id].append(attempt)
 
     exams_data = []
     total_monitored = len(active_attempts)
@@ -5008,6 +5009,7 @@ def security_logs():
         for attempt in attempts:
             student = Student.query.filter_by(student_id=attempt.student_id).first()
             events = SecurityEvent.query.filter_by(attempt_id=attempt.id).order_by(SecurityEvent.occurred_at.desc()).all()
+            # FIX: case-insensitive counts, handle any variation
             counts = {
                 'TAB_SWITCH': 0, 'RIGHT_CLICK': 0, 'TEXT_SELECTION': 0,
                 'COPY': 0, 'PASTE': 0, 'CUT': 0,
@@ -5019,22 +5021,18 @@ def security_logs():
                 if et in counts:
                     counts[et] += 1
                 else:
+                    # try to map close names
                     for k in counts:
                         if k in et or et in k:
                             counts[k] += 1
                             break
                 total_penalty += ev.penalty or 0
 
+            # FIX: compute score and total from actual events, not stale attempt fields
             actual_score = max(0, 100 - total_penalty)
             actual_total = len(events)
-            # FIXED: Manila time
-            last_time_obj = events[0].occurred_at if events else (attempt.last_violation if attempt else None)
-            if last_time_obj:
-                last_time = (last_time_obj + MANILA_OFFSET).strftime("%I:%M:%S %p")
-            else:
-                last_time = "Just now"
-
             last_type = events[0].event_type if events else (attempt.last_violation_type or 'None')
+            last_time = events[0].occurred_at.strftime("%I:%M:%S %p") if events else (attempt.last_violation.strftime("%I:%M:%S %p") if attempt.last_violation else "Just now")
 
             highest_type = None
             highest_pen = -1
@@ -5074,44 +5072,30 @@ def security_logs():
 
 @app.route('/api/security-summary')
 @login_required(role=['Admin', 'Instructor'])
+@cache.cached(timeout=10)
 def api_security_summary():
-    recent = SecurityEvent.query.order_by(SecurityEvent.occurred_at.desc()).limit(50).all()
+    # light summary only, no raw_events (saves Neon + phone data)
+    recent = SecurityEvent.query.order_by(SecurityEvent.occurred_at.desc()).limit(20).all()
     data = []
     for ev in recent:
         attempt = ExamAttempt.query.get(ev.attempt_id)
         if not attempt: continue
         student = Student.query.filter_by(student_id=attempt.student_id).first()
         exam = Exam.query.get(attempt.exam_id)
-
-        # FIXED: Manila time for live updates
-        occurred_manila = (ev.occurred_at + MANILA_OFFSET).strftime("%I:%M:%S %p") if ev.occurred_at else ''
-
-        # Build counts for this attempt
-        all_events = SecurityEvent.query.filter_by(attempt_id=attempt.id).all()
-        counts = {'TAB_SWITCH':0,'RIGHT_CLICK':0,'TEXT_SELECTION':0,'COPY':0,'PASTE':0,'CUT':0,'F12':0,'CTRL_U':0,'CTRL_SHIFT_I':0,'FULLSCREEN_EXIT':0}
-        total_pen = 0
-        for e in all_events:
-            et = (e.event_type or '').upper()
-            if et in counts: counts[et]+=1
-            total_pen += e.penalty or 0
-
         data.append({
             'attempt_id': attempt.id,
             'exam_id': attempt.exam_id,
             'event_id': ev.id,
             'student_id': attempt.student_id,
             'student_name': student.name if student else attempt.student_id,
-            'student_display_name': student.display_name if student and hasattr(student,'display_name') else (student.name if student else attempt.student_id),
             'section': student.section if student else '',
             'exam_title': exam.title if exam else '',
             'event_type': ev.event_type,
             'penalty': ev.penalty,
-            'security_score': max(0, 100 - total_pen),
-            'total_violations': len(all_events),
-            'last_violation_type': ev.event_type,
-            'highest_penalty_type': ev.event_type,
-            'occurred_at': occurred_manila,
-            'counts': counts
+            'security_score': attempt.security_score,
+            'total_violations': attempt.total_violations,
+            'highest_penalty_type': attempt.last_violation_type,
+            'occurred_at': ev.occurred_at.strftime("%I:%M:%S %p") if ev.occurred_at else ''
         })
     return jsonify(data)
 

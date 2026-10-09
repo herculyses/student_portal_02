@@ -245,7 +245,9 @@ function updateCounts(){
     const top=document.getElementById('statExamsTop');
     if(top) top.textContent=document.querySelectorAll('.exam-security-card').length;
 }
-function updateClock(){ document.getElementById('liveClock').textContent=new Date().toLocaleTimeString(); }
+function updateClock(){
+  document.getElementById('liveClock').textContent = new Date().toLocaleTimeString('en-PH', {timeZone: 'Asia/Manila', hour12: true}) + ' (Manila)';
+}
 setInterval(updateClock, 1000); updateClock();
 document.addEventListener('DOMContentLoaded', ()=>{ pollSecurity(); setInterval(pollSecurity, 3000); updateCounts(); });
 const examChannel = new BroadcastChannel('exam_moves');
